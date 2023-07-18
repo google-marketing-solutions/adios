@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+    {
+      "type": "npm",
+      "script": "deploy",
+      "problemMatcher": [],
+      "label": "npm: deploy",
+      "detail": "npm run lint && npm run test && npm run build && ncp .clasp-dev.json .clasp.json && clasp push -f"
+    }
+  ]
+}
