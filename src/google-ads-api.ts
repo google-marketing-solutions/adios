@@ -167,7 +167,7 @@ export class GoogleAdsApi {
     });
   }
 
-  getAssets(adGroup: string) {
+  getAssets(adGroupId: string) {
     const feedItems = this.executeSearch(
       GoogleAdsApi.QUERIES.FEED_ITEMS
     ).reduce((acc, e) => {
@@ -178,7 +178,7 @@ export class GoogleAdsApi {
       };
     }, {});
     const assets = this.executeSearch(
-      GoogleAdsApi.QUERIES.ASSETS + ` AND asset.name LIKE '${adGroup}%'`
+      GoogleAdsApi.QUERIES.ASSETS + ` AND asset.name LIKE '${adGroupId}%'`
     ).map(e => {
       return {
         name: e.asset.name,
@@ -186,7 +186,6 @@ export class GoogleAdsApi {
         feedItemResourceName: feedItems[e.asset.resourceName],
       };
     });
-    // TODO: Change asset name to include the Ad Group ID as well and search by that instead of name.
     return assets;
   }
 

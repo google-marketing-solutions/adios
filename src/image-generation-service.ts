@@ -77,7 +77,10 @@ export class ImageGenerationService {
         continue;
       }
       for (const image of images) {
-        const filename = `${adGroup.adGroup.name}|${Date.now()}`;
+        // TODO: Check for slashes in the Ad Group name
+        const filename = `${adGroup.adGroup.id}|${
+          adGroup.adGroup.name
+        }|${Date.now()}`;
         const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG[
           'Generated DIR'
         ]!}`;

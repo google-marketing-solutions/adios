@@ -53,7 +53,7 @@ export class ImageUploadService {
 
       // Remove images
       const assets = this._googleAdsApi
-        .getAssets(adGroup.adGroup.name)
+        .getAssets(adGroup.adGroup.id)
         .filter(e => e.feedItemResourceName);
       const uploadedImages = this._gcsApi
         .listImages(CONFIG['Account ID'], adGroup.adGroup.id, [

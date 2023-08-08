@@ -55,7 +55,7 @@ export class ImageExtensionService {
         ])
         ?.items?.map(e => e.name.split('/').slice(-1)[0]);
       const assets = this._googleAdsApi
-        .getAssets(adGroup.adGroup.name)
+        .getAssets(adGroup.adGroup.id)
         .filter(e => uploadedImages.includes(e.name));
       const assetsWithoutExtensionFeedItem = assets.filter(
         e => !e.feedItemResourceName && uploadedImages.includes(e.name)
