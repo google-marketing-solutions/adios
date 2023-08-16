@@ -15,4 +15,6 @@ limitations under the License.
 -->
 # Adios
 
+**Disclaimer: This is not an official Google product.**
+
 One-stop solution for image assets management.
