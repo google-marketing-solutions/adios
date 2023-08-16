@@ -55,7 +55,7 @@ export class VertexAiApi {
     };
     options.payload = JSON.stringify(payload);
     const result = UrlFetchApp.fetch(
-      `https://${this._apiEndpoint}/v1/projects/${this._projectId}/locations/us-central1/publishers/google/models/imagegeneration@002:predict`,
+      `https://${this._apiEndpoint}/v1/projects/${this._projectId}/locations/us-central1/publishers/google/models/imagegeneration:predict`,
       options
     );
     const resultParsed: VisionApiResponse = JSON.parse(
