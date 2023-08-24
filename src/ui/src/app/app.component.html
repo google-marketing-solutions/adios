@@ -1,0 +1,14 @@
+<mat-toolbar color="primary">
+  <span>Adios</span>
+  <span class="spacer"></span>
+  <button
+    mat-icon-button
+    title="Reload data"
+    aria-label="Reload data"
+    [disabled]="loading"
+    (click)="refreshData()"
+  >
+    <mat-icon>refresh</mat-icon>
+  </button>
+</mat-toolbar>
+<mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
