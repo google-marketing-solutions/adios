@@ -74,11 +74,6 @@ export class ImageGenerationService {
         prompt = CONFIG['ImgGen Prompt'];
       }
       const images = this._vertexAiApi.callVisionApi(adGroup.adGroup.name, prompt, imgCount);
-      const images = this._vertexAiApi.callVisionApi(
-        adGroup.adGroup.name,
-        CONFIG['ImgGen Prompt'],
-        imgCount
-      );
       Logger.log(
         `Received ${images?.length || 0} images for ${adGroup.adGroup.name}(${
           adGroup.adGroup.id
@@ -126,8 +121,7 @@ export class ImageGenerationService {
   createPrompt(obj) {
     let prompt = CONFIG['ImgGen Prompt'];
     for (const [key, value] of Object.entries(obj)) {
-      const regex = new RegExp('(\\${' + key + '})', 'gi');
-      prompt = prompt.replaceAll(regex, value);
+      prompt = prompt.replaceAll('${' + key + '}', value);
     }
     return prompt;
   }
