@@ -63,6 +63,17 @@ export class ImageGenerationService {
       if (imgCount === 0) {
         continue;
       }
+      const regex = new RegExp(CONFIG['Ad Group Name Regex']);
+      const matchGroups = this.getRegexMatchGroups(adGroup.adGroup.name, regex);
+      let prompt;
+      if (matchGroups) {
+        prompt = this.createPrompt(matchGroups);
+      } else {
+        Logger.log(
+          `No matching groups found for ${adGroup.adGroup.name} with ${regex}. Using full prompt.`);
+        prompt = CONFIG['ImgGen Prompt'];
+      }
+      const images = this._vertexAiApi.callVisionApi(adGroup.adGroup.name, prompt, imgCount);
       const images = this._vertexAiApi.callVisionApi(
         adGroup.adGroup.name,
         CONFIG['ImgGen Prompt'],
@@ -93,6 +104,32 @@ export class ImageGenerationService {
       }
     }
     Logger.log('Finished generating.');
+  }
+  /**
+   * For a given string & regex return the match groups if they exist else null
+   */
+  getRegexMatchGroups(str, regex) {
+    const regexMatch = str.match(regex);
+    if (regexMatch !== null) {
+      return regexMatch.groups;
+    }
+    return null;
+  }
+  /**
+   * Inject the values from the object into the prompt and return.
+   *
+   * A prompt can have placeholders for keys in the object. For example:
+   * "A photo of a ${city} in sharp, 4k".
+   * If an object with { 'city': 'London' } is provided it will replace the
+   * placeholder and return "A photo of a London in sharp, 4k".
+   */
+  createPrompt(obj) {
+    let prompt = CONFIG['ImgGen Prompt'];
+    for (const [key, value] of Object.entries(obj)) {
+      const regex = new RegExp('(\\${' + key + '})', 'gi');
+      prompt = prompt.replaceAll(regex, value);
+    }
+    return prompt;
   }
 }
 
