@@ -13,34 +13,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-.spacer {
-  flex: 1 1 auto;
+.selected {
+  outline: 5px #3f51b5 solid;
+  border-radius: 6px;
 }
 
-.ad-group-card {
-  width: 80%;
-  margin: auto;
-  margin-bottom: 24px;
+div {
+  position: relative;
 }
 
-mat-card > mat-card-title {
-  margin: 16px 0 16px 16px;
-}
-
-mat-card > mat-card-content {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-mat-paginator {
-  margin-top: 24px;
-  margin-right: 10%;
-}
-
-mat-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+mat-icon {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  filter: drop-shadow(2px 2px 3px black);
 }

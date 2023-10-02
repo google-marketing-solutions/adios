@@ -1,4 +1,4 @@
-/*
+<!--
 Copyright 2023 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,35 +12,21 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-*/
-.spacer {
-  flex: 1 1 auto;
-}
-
-.ad-group-card {
-  width: 80%;
-  margin: auto;
-  margin-bottom: 24px;
-}
-
-mat-card > mat-card-title {
-  margin: 16px 0 16px 16px;
-}
-
-mat-card > mat-card-content {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-mat-paginator {
-  margin-top: 24px;
-  margin-right: 10%;
-}
-
-mat-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
+-->
+<div style="position: relative">
+  <img
+    ngSrc="{{ image.url }}"
+    alt="{{ image.filename }}"
+    width="128"
+    height="128"
+    [class.selected]="image.selected"
+    priority
+  />
+  <mat-icon
+    matTooltip="{{ getTooltip(image) }}"
+    matTooltipClass="mat-tooltip"
+    [ngStyle]="getStyle(image.status)"
+  >
+    {{ getIcon(image.status) }}
+  </mat-icon>
+</div>

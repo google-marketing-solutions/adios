@@ -13,10 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ApplicationConfig } from '@angular/core';
-import { provideAnimations } from '@angular/platform-browser/animations';
-import { environment } from '../environments/environment';
+import { Observable } from 'rxjs';
+export enum IMAGE_STATUS {
+  GENERATED = 'Generated',
+  VALIDATED = 'Validated',
+  UPLOADED = 'Uploaded',
+  DISAPPROVED = 'Disapproved',
+  BAD_PERFORMANCE = 'Bad performance',
+  REJECTED = 'Manually rejected',
+}
 
-export const appConfig: ApplicationConfig = {
-  providers: [provideAnimations(), ...environment.providers],
-};
+export interface AdGroup {
+  name: string;
+  id: string;
+  images: Image[];
+}
+
+export interface Image {
+  filename: string;
+  url: string;
+  status: IMAGE_STATUS;
+  selected?: boolean;
+}
+
+export interface ApiCalls {
+  getData(): Observable<AdGroup[]>;
+  setImageStatus(images: Image[], status: IMAGE_STATUS): Observable<null>;
+}

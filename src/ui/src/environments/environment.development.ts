@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ApplicationConfig } from '@angular/core';
-import { provideAnimations } from '@angular/platform-browser/animations';
-import { environment } from '../environments/environment';
+import { ApiCallsService } from '../app/api-calls/api-calls.service';
+import { ApiCallsService as MockApiCallsService } from '../app/api-calls/api-calls.mock.service';
 
-export const appConfig: ApplicationConfig = {
-  providers: [provideAnimations(), ...environment.providers],
+export const environment = {
+  production: false,
+  providers: [{ provide: ApiCallsService, useExisting: MockApiCallsService }],
 };

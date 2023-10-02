@@ -34,10 +34,13 @@ export class ImageUploadService {
     const adGroups = this._googleAdsApi.getAdGroups();
     Logger.log(adGroups);
     for (const adGroup of adGroups) {
+      const imgFolder = CONFIG['Validated DIR']
+        ? CONFIG['Validated DIR']
+        : CONFIG['Generated DIR'];
       const images = this._gcsApi.getImages(
         CONFIG['Account ID'],
         adGroup.adGroup.id,
-        [CONFIG['Generated DIR']]
+        [imgFolder]
       );
       // Upload new images
       if (images.length === 0) {
@@ -47,7 +50,9 @@ export class ImageUploadService {
         this._gcsApi.moveImages(
           CONFIG['Account ID'],
           adGroup.adGroup.id,
-          images
+          images,
+          imgFolder,
+          CONFIG['Uploaded DIR']
         );
       }
 

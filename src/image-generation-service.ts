@@ -43,7 +43,11 @@ export class ImageGenerationService {
       const existingImgCount = this._gcsApi.countImages(
         adGroup.customer.id,
         adGroup.adGroup.id,
-        [CONFIG['Generated DIR'], CONFIG['Uploaded DIR']]
+        [
+          CONFIG['Generated DIR'],
+          CONFIG['Uploaded DIR'],
+          CONFIG['Validated DIR'],
+        ]
       );
       if (existingImgCount >= CONFIG['Number of images per Ad Group']!) {
         Logger.log(

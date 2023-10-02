@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ApplicationConfig } from '@angular/core';
-import { provideAnimations } from '@angular/platform-browser/animations';
-import { environment } from '../environments/environment';
+import { ApiCallsService } from '../app/api-calls/api-calls.service';
 
-export const appConfig: ApplicationConfig = {
-  providers: [provideAnimations(), ...environment.providers],
+export const environment = {
+  production: true,
+  providers: [{ provide: ApiCallsService }],
 };

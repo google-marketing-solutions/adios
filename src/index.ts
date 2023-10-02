@@ -18,8 +18,18 @@ import { menu } from './menu';
 import { ImageExtensionService } from './image-extension-service';
 import { ImageGenerationService } from './image-generation-service';
 import { ImageUploadService } from './image-upload-service';
+import { FRONTEND_HELPER } from './frontend-helper';
 
 menu;
 ImageExtensionService;
 ImageGenerationService;
 ImageUploadService;
+FRONTEND_HELPER;
+
+function doGet() {
+  return HtmlService.createTemplateFromFile('ui').evaluate().setTitle('Adios');
+}
+
+function include(filename: string) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}

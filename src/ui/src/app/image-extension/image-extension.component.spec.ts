@@ -13,19 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { TestBed } from '@angular/core/testing';
-import { AppComponent } from './app.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-describe('AppComponent', () => {
-  beforeEach(() =>
+import { ImageExtensionComponent } from './image-extension.component';
+
+describe('ImageExtensionComponent', () => {
+  let component: ImageExtensionComponent;
+  let fixture: ComponentFixture<ImageExtensionComponent>;
+
+  beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [AppComponent],
-    })
-  );
+      imports: [ImageExtensionComponent],
+    });
+    fixture = TestBed.createComponent(ImageExtensionComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+  it('should create', () => {
+    expect(component).toBeTruthy();
   });
 });
