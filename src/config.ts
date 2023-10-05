@@ -30,6 +30,7 @@ interface Config {
   'Bad performance DIR': string;
   'Uploaded DIR': string;
   'Generated DIR': string;
+  'Experiments sheet': string;
 }
 
 const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config');
@@ -50,6 +51,7 @@ const DEFAULT_CONFIG = {
   'Bad performance DIR': '',
   'Uploaded DIR': '',
   'Generated DIR': '',
+  'Experiments sheet': '',
 };
 
 export const CONFIG: Config =

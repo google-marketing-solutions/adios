@@ -255,6 +255,13 @@ export class GoogleAdsApi {
       ADGROUP_EXTENSION_SETTINGS: `
         SELECT ad_group_extension_setting.resource_name, ad_group_extension_setting.extension_feed_items, ad_group.id FROM ad_group_extension_setting WHERE ad_group_extension_setting.extension_type = 'IMAGE'
       `,
+      EXPERIMENTS: `
+        SELECT 
+      `,
     };
+  }
+
+  experimentExists(accountId: string, campaignId: string) {
+
   }
 }
