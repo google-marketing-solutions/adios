@@ -244,7 +244,34 @@ export class GoogleAdsApi {
           AND ad_group_ad.status != REMOVED
         `,
       FEED_ITEMS: `
-        SELECT extension_feed_item.image_feed_item.image_asset, extension_feed_item.resource_name, extension_feed_item.status, metrics.ctr, metrics.impressions FROM extension_feed_item WHERE extension_feed_item.extension_type = 'IMAGE' AND extension_feed_item.status != 'REMOVED'
+        SELECT 
+          extension_feed_item.image_feed_item.image_asset, 
+          extension_feed_item.resource_name, 
+          extension_feed_item.status, 
+          extension_feed_item.targeted_campaign,
+          extension_feed_item.targeted_ad_group,
+          metrics.ctr, 
+          metrics.impressions 
+        FROM 
+          extension_feed_item 
+        WHERE 
+          extension_feed_item.extension_type = 'IMAGE' 
+          AND extension_feed_item.status != 'REMOVED'
+      `,
+      FEED_ITEMS_EXTENDED: `
+        SELECT 
+          extension_feed_item.image_feed_item.image_asset, 
+          extension_feed_item.resource_name, 
+          extension_feed_item.status, 
+          extension_feed_item.targeted_campaign,
+          extension_feed_item.targeted_ad_group,
+          metrics.ctr, 
+          metrics.impressions 
+        FROM 
+          extension_feed_item 
+        WHERE 
+          extension_feed_item.extension_type = 'IMAGE' 
+          AND extension_feed_item.status != 'REMOVED'
       `,
       ASSETS: `
         SELECT asset.resource_name, asset.name FROM asset WHERE asset.type = 'IMAGE'
@@ -255,13 +282,87 @@ export class GoogleAdsApi {
       ADGROUP_EXTENSION_SETTINGS: `
         SELECT ad_group_extension_setting.resource_name, ad_group_extension_setting.extension_feed_items, ad_group.id FROM ad_group_extension_setting WHERE ad_group_extension_setting.extension_type = 'IMAGE'
       `,
-      EXPERIMENTS: `
-        SELECT 
+      EXPERIMENT_ARMS: `
+        SELECT experiment_arm.campaigns FROM experiment_arm WHERE experiment.status = 'ENABLED'
       `,
     };
   }
 
-  experimentExists(accountId: string, campaignId: string) {
+  /**
+   * Returns a list of campaigns for which experiments can be created.
+   *
+   * @param campaignIds List of campaigns where experiments need to be created
+   */
+  filterOutCampaignsWithExperiments(campaignIds: string[]) {
+    const campaignsWithExperiments = this.executeSearch(
+      GoogleAdsApi.QUERIES.EXPERIMENT_ARMS
+    )
+      .map(e => e.experimentArm.campaigns)
+      .reduce(
+        (acc, value) =>
+          acc.concat(value.map((e: string) => e.split('/').slice(-1)).flat()),
+        []
+      );
 
+    return campaignIds.filter(e => !campaignsWithExperiments.includes(e));
+  }
+
+  /**
+   * Creates a partial experiment (without experiment arms)
+   *
+   * @param campaignId Campaign ID
+   */
+  createExperiment(campaignId: string) {
+    const experiment = {
+      // Name must be unique.
+      name: `Adios Experiment for campaignId ${campaignId} (timestamp:${Date.now()})`,
+      type: 'SEARCH_CUSTOM',
+      suffix: '[Adios experiment]',
+      status: 'SETUP',
+    };
+
+    const operationResult = this.post('/experiments:mutate', {
+      operations: [{ create: experiment }],
+    });
+
+    return operationResult.results[0].resourceName;
+  }
+
+  /**
+   * Creates both A and B variants (aka experiment arms) of the A/B test
+   *
+   * @param customerId Customer Id
+   * @param campaignId Campaign Id
+   * @param experiment Experiment resource name
+   * @returns Result of the API call
+   */
+  createExperimentArms(
+    customerId: string,
+    campaignId: string,
+    experiment: string
+  ) {
+    const contrtolArm = {
+      experiment,
+      name: 'Version A (with ad group assets)',
+      control: true,
+      traffic_split: 50,
+      campaigns: [`customers/${customerId}/campaigns/${campaignId}`],
+    };
+
+    const testArm = {
+      experiment,
+      name: 'Version B (without ad group assets)',
+      control: false,
+      traffic_split: 50,
+    };
+
+    const operationResult = this.post('/experimentArms:mutate', {
+      customer_id: customerId,
+      operations: [{ create: contrtolArm }, { create: testArm }],
+      // To get automatically created campaign name
+      response_content_type: 'MUTABLE_RESOURCE',
+    });
+
+    return operationResult;
   }
 }
