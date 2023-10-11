@@ -21,6 +21,7 @@ interface Config {
   'CTR Threshold': number;
   'Impression Threshold': number;
   'ImgGen Prompt': string;
+  'ImgGen Prompt Suffix': string;
   'Number of images per Ad Group': number;
   'Number of images per API call': number;
   'GCP Project': string;
@@ -42,6 +43,7 @@ const DEFAULT_CONFIG = {
   'CTR Threshold': 0,
   'Impression Threshold': 0,
   'ImgGen Prompt': '${name}',
+  'ImgGen Prompt Suffix': 'HDR, taken by professional',
   'Number of images per Ad Group': 0,
   'Number of images per API call': 0,
   'GCP Project': '',

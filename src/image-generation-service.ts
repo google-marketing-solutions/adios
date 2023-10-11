@@ -70,10 +70,16 @@ export class ImageGenerationService {
         prompt = this.createPrompt(matchGroups);
       } else {
         Logger.log(
-          `No matching groups found for ${adGroup.adGroup.name} with ${regex}. Using full prompt.`);
+          `No matching groups found for ${adGroup.adGroup.name} with ${regex}. Using full prompt.`
+        );
         prompt = CONFIG['ImgGen Prompt'];
       }
-      const images = this._vertexAiApi.callVisionApi(adGroup.adGroup.name, prompt, imgCount);
+
+      if (CONFIG['ImgGen Prompt Suffix']) {
+        prompt += ', ' + CONFIG['ImgGen Prompt Suffix'];
+      }
+
+      const images = this._vertexAiApi.callVisionApi(prompt, imgCount);
       Logger.log(
         `Received ${images?.length || 0} images for ${adGroup.adGroup.name}(${
           adGroup.adGroup.id
@@ -103,7 +109,7 @@ export class ImageGenerationService {
   /**
    * For a given string & regex return the match groups if they exist else null
    */
-  getRegexMatchGroups(str, regex) {
+  getRegexMatchGroups(str: string, regex: RegExp) {
     const regexMatch = str.match(regex);
     if (regexMatch !== null) {
       return regexMatch.groups;
@@ -118,7 +124,7 @@ export class ImageGenerationService {
    * If an object with { 'city': 'London' } is provided it will replace the
    * placeholder and return "A photo of a London in sharp, 4k".
    */
-  createPrompt(obj) {
+  createPrompt(obj: { [key: string]: string }) {
     let prompt = CONFIG['ImgGen Prompt'];
     for (const [key, value] of Object.entries(obj)) {
       prompt = prompt.replaceAll('${' + key + '}', value);
