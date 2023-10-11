@@ -39,15 +39,11 @@ export class VertexAiApi {
     };
   }
 
-  callVisionApi(
-    topic: string,
-    prompt: string,
-    sampleCount = 8,
-    sampleImageSize = '1024'
-  ) {
+  callVisionApi(prompt: string, sampleCount = 8, sampleImageSize = '1024') {
+    console.log('prompt', prompt);
     const options = Object.assign({}, this._baseOptions);
     const payload = {
-      instances: [{ prompt: `${topic},${prompt}` }],
+      instances: [{ prompt }],
       parameters: {
         sampleImageSize,
         sampleCount,
