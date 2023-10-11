@@ -258,20 +258,17 @@ export class GoogleAdsApi {
           extension_feed_item.extension_type = 'IMAGE' 
           AND extension_feed_item.status != 'REMOVED'
       `,
-      FEED_ITEMS_EXTENDED: `
-        SELECT 
-          extension_feed_item.image_feed_item.image_asset, 
-          extension_feed_item.resource_name, 
-          extension_feed_item.status, 
-          extension_feed_item.targeted_campaign,
-          extension_feed_item.targeted_ad_group,
-          metrics.ctr, 
-          metrics.impressions 
+      AD_GROUP_ASSETS_FOR_CAMPAIGN_ID: `
+        SELECT
+          ad_group_asset.asset,
+          campaign.id
         FROM 
-          extension_feed_item 
-        WHERE 
-          extension_feed_item.extension_type = 'IMAGE' 
-          AND extension_feed_item.status != 'REMOVED'
+          ad_group_asset
+        WHERE
+          ad_group_asset.field_type = 'AD_IMAGE'
+          AND campaign.id = <campaign_id>
+        
+        PARAMETERS include_drafts=true
       `,
       ASSETS: `
         SELECT asset.resource_name, asset.name FROM asset WHERE asset.type = 'IMAGE'
@@ -364,5 +361,20 @@ export class GoogleAdsApi {
     });
 
     return operationResult;
+  }
+
+  /**
+   * Returns the list of ad group level assets for the specific campaign
+   * 
+   * @param campaignResourceName Resource name
+   */
+  getAdGroupAssetsForCampaign(campaignResourceName: string) {
+    const campaignId = campaignResourceName.split('/').slice(-1)[0];
+    const query = GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_CAMPAIGN_ID.replace(
+      '<campaign_id>',
+      campaignId
+    );
+
+    return this.executeSearch(query);
   }
 }

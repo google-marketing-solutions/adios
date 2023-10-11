@@ -35,11 +35,11 @@ export class ExperimentsService {
   }
 
   test() {
-    console.log(
-      JSON.stringify(
-        this._googleAdsApi.executeSearch(GoogleAdsApi.QUERIES.FEED_ITEMS)
-      )
+    const query = GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_CAMPAIGN_ID.replace(
+      '<campaign_id>',
+      '844445550702759'
     );
+    console.log(JSON.stringify(this._googleAdsApi.executeSearch(query)));
   }
 
   run() {
@@ -86,6 +86,9 @@ export class ExperimentsService {
       Logger.log(
         `Automatically created copy of the initial campaign: ${campaignCopy}`
       );
+      
+      const assetsToRemove = this._googleAdsApi
+        .getAdGroupAssetsForCampaign(campaignCopy);
 
       /*
       this._googleAdsApi.removeAdGroupLevelImageAssets(experiment);
