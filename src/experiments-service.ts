@@ -86,22 +86,33 @@ export class ExperimentsService {
       Logger.log(
         `Automatically created copy of the initial campaign: ${campaignCopy}`
       );
-      
-      const assetsToRemove = this._googleAdsApi
-        .getAdGroupAssetsForCampaign(campaignCopy);
 
-      /*
-      this._googleAdsApi.removeAdGroupLevelImageAssets(experiment);
-      Logger.log(`Ad Group level image extensions were removed.`);
-     */
+      const assetsToRemove = this._googleAdsApi
+        .getAdGroupAssetsForCampaign(campaignCopy)
+        .map(e => e.adGroupAsset.resourceName);
+      Logger.log(
+        `Following ${assetsToRemove.length} assets will be removed: ${assetsToRemove}`
+      );
+
+      Logger.log(
+        'Assets removed: ' +
+          JSON.stringify(
+            this._googleAdsApi.removeAssetsFromAdGroup(assetsToRemove)
+          )
+      );
+
+      Logger.log(
+        'Scheduled the experiment: ' +
+          JSON.stringify(this._googleAdsApi.scheduleExperiment(experiment))
+      );
     }
 
-    Logger.log('Finished creating experiments.');
+    Logger.log('Finished creating all experiments.');
   }
 }
 
 function runExperimentsService() {
   const experimentsService = new ExperimentsService(CONFIG['Campaign IDs']);
-  experimentsService.test();
-  //experimentsService.run();
+  //experimentsService.test();
+  experimentsService.run();
 }

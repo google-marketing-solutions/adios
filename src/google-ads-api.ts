@@ -261,7 +261,8 @@ export class GoogleAdsApi {
       AD_GROUP_ASSETS_FOR_CAMPAIGN_ID: `
         SELECT
           ad_group_asset.asset,
-          campaign.id
+          campaign.id,
+          ad_group.id
         FROM 
           ad_group_asset
         WHERE
@@ -364,17 +365,51 @@ export class GoogleAdsApi {
   }
 
   /**
+   * The in design campaign will be converted into a real campaign.
+   *
+   * @param resourceName
+   */
+  scheduleExperiment(resourceName: string) {
+    return this.post(
+      `/experiments/${this._getIdFromResourceName(
+        resourceName
+      )}:scheduleExperiment`,
+      {}
+    );
+  }
+
+  /**
+   * Gets the last part in the the pattern XXX/YYY/ZZZ/<lastPart>
+   *
+   * @param resourceName
+   */
+  _getIdFromResourceName(resourceName: string) {
+    return resourceName.split('/').slice(-1)[0];
+  }
+
+  /**
    * Returns the list of ad group level assets for the specific campaign
-   * 
+   *
    * @param campaignResourceName Resource name
    */
   getAdGroupAssetsForCampaign(campaignResourceName: string) {
-    const campaignId = campaignResourceName.split('/').slice(-1)[0];
+    const campaignId = this._getIdFromResourceName(campaignResourceName);
     const query = GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_CAMPAIGN_ID.replace(
       '<campaign_id>',
       campaignId
     );
 
     return this.executeSearch(query);
+  }
+
+  /**
+   * Remove the specified assets from the ad group
+   *
+   * @param assets Array of asset resourceNames
+   */
+  removeAssetsFromAdGroup(assets: string[]) {
+    return this.post('/adGroupAssets:mutate', {
+      operations: assets.map(e => ({ remove: e })),
+    });
   }
 }
