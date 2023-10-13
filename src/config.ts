@@ -21,6 +21,7 @@ interface Config {
   'CTR Threshold': number;
   'Impression Threshold': number;
   'ImgGen Prompt': string;
+  'ImgGen Prompt Suffix': string;
   'Number of images per Ad Group': number;
   'Number of images per API call': number;
   'GCP Project': string;
@@ -32,6 +33,7 @@ interface Config {
   'Generated DIR': string;
   'Validated DIR': string;
   'Rejected DIR': string;
+  'Ad Group Name Regex': string;
 }
 
 const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config');
@@ -42,7 +44,8 @@ const DEFAULT_CONFIG = {
   'Campaign IDs': '',
   'CTR Threshold': 0,
   'Impression Threshold': 0,
-  'ImgGen Prompt': '',
+  'ImgGen Prompt': '${name}',
+  'ImgGen Prompt Suffix': 'HDR, taken by professional',
   'Number of images per Ad Group': 0,
   'Number of images per API call': 0,
   'GCP Project': '',
@@ -54,6 +57,7 @@ const DEFAULT_CONFIG = {
   'Generated DIR': '',
   'Validated DIR': '',
   'Rejected DIR': '',
+  'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default
 };
 
 export const CONFIG: Config =
