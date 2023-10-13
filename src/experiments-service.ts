@@ -34,14 +34,6 @@ export class ExperimentsService {
     );
   }
 
-  test() {
-    const query = GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_CAMPAIGN_ID.replace(
-      '<campaign_id>',
-      '844445550702759'
-    );
-    console.log(JSON.stringify(this._googleAdsApi.executeSearch(query)));
-  }
-
   run() {
     Logger.log(
       `Starting creation of experiments for ${this._campaigns.length} campaigns.`
@@ -61,7 +53,7 @@ export class ExperimentsService {
     if (notEligableCampaigns) {
       Logger.log(
         `*Note*: Experiments for the campaigns "${notEligableCampaigns}" already 
-        exist, cannot create new ones. Try removing the experiments or wait 
+        exist, cannot create new ones. Try switching off the experiments or wait 
         untill they are finished`
       );
     }
@@ -70,7 +62,7 @@ export class ExperimentsService {
       Logger.log(`Creating experiment for campaign ${campaignId}.`);
 
       const experiment = this._googleAdsApi.createExperiment(campaignId);
-      Logger.log(`Partial experiment was created: ${experiment}`);
+      Logger.log(`Experiment draft was created: ${experiment}`);
 
       const experimentArms = this._googleAdsApi.createExperimentArms(
         CONFIG['Account ID'],
@@ -113,6 +105,5 @@ export class ExperimentsService {
 
 function runExperimentsService() {
   const experimentsService = new ExperimentsService(CONFIG['Campaign IDs']);
-  //experimentsService.test();
   experimentsService.run();
 }
