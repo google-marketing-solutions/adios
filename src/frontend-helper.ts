@@ -51,22 +51,22 @@ const getData = () => {
     const statusFolder = e.name.split('/')[2];
     let status: IMAGE_STATUS | null = null;
     switch (statusFolder) {
-      case 'GENERATED':
+      case CONFIG['Generated DIR']:
         status = IMAGE_STATUS.GENERATED;
         break;
-      case 'UPLOADED':
+      case CONFIG['Uploaded DIR']:
         status = IMAGE_STATUS.UPLOADED;
         break;
-      case 'VALIDATED':
+      case CONFIG['Validated DIR']:
         status = IMAGE_STATUS.VALIDATED;
         break;
-      case 'DISAPPROVED':
+      case CONFIG['Disapproved DIR']:
         status = IMAGE_STATUS.DISAPPROVED;
         break;
-      case 'BAD_PERFORMANCE':
+      case CONFIG['Bad performance DIR']:
         status = IMAGE_STATUS.BAD_PERFORMANCE;
         break;
-      case 'REJECTED':
+      case CONFIG['Rejected DIR']:
         status = IMAGE_STATUS.REJECTED;
         break;
       default:
