@@ -32,7 +32,6 @@ export class ImageUploadService {
 
   run() {
     const adGroups = this._googleAdsApi.getAdGroups();
-    Logger.log(adGroups);
     for (const adGroup of adGroups) {
       const imgFolder = CONFIG['Validated DIR'] || CONFIG['Generated DIR'];
       const images = this._gcsApi.getImages(
