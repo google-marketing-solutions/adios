@@ -13,17 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { Observable } from 'rxjs';
+export enum IMAGE_STATUS {
+  GENERATED = 'Generated',
+  VALIDATED = 'Validated',
+  UPLOADED = 'Uploaded',
+  DISAPPROVED = 'Disapproved',
+  BAD_PERFORMANCE = 'Bad performance',
+  REJECTED = 'Manually rejected',
+}
 
-import { menu } from './menu';
-import { ImageExtensionService } from './image-extension-service';
-import { ImageGenerationService } from './image-generation-service';
-import { ImageUploadService } from './image-upload-service';
-import { FRONTEND_HELPER } from './frontend-helper';
-import { uiHelper } from './ui-helper';
+export interface AdGroup {
+  name: string;
+  id: string;
+  images: Image[];
+}
 
-menu;
-ImageExtensionService;
-ImageGenerationService;
-ImageUploadService;
-FRONTEND_HELPER;
-uiHelper;
+export interface Image {
+  filename: string;
+  url: string;
+  status: IMAGE_STATUS;
+  selected?: boolean;
+}
+
+export interface ApiCalls {
+  getData(): Observable<AdGroup[]>;
+  setImageStatus(images: Image[], status: IMAGE_STATUS): Observable<null>;
+}

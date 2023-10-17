@@ -13,17 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+export const uiHelper = null;
+function doGet() {
+  return HtmlService.createTemplateFromFile('ui').evaluate().setTitle('Adios');
+}
 
-import { menu } from './menu';
-import { ImageExtensionService } from './image-extension-service';
-import { ImageGenerationService } from './image-generation-service';
-import { ImageUploadService } from './image-upload-service';
-import { FRONTEND_HELPER } from './frontend-helper';
-import { uiHelper } from './ui-helper';
-
-menu;
-ImageExtensionService;
-ImageGenerationService;
-ImageUploadService;
-FRONTEND_HELPER;
-uiHelper;
+function include(filename: string) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}

@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { TestBed } from '@angular/core/testing';
+import { AppComponent } from './app.component';
 
-import { menu } from './menu';
-import { ImageExtensionService } from './image-extension-service';
-import { ImageGenerationService } from './image-generation-service';
-import { ImageUploadService } from './image-upload-service';
-import { FRONTEND_HELPER } from './frontend-helper';
-import { uiHelper } from './ui-helper';
+describe('AppComponent', () => {
+  beforeEach(() =>
+    TestBed.configureTestingModule({
+      imports: [AppComponent],
+    })
+  );
 
-menu;
-ImageExtensionService;
-ImageGenerationService;
-ImageUploadService;
-FRONTEND_HELPER;
-uiHelper;
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
+  });
+});

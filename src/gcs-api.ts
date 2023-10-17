@@ -49,6 +49,25 @@ export class GcsApi {
     return `https://storage.cloud.google.com/${result.bucket}/${result.name}`;
   }
 
+  listAllImages(accountId: string) {
+    const matchGlob = `${accountId}/*/*/*`;
+    const url = `${this._BASE_PATH}/storage/v1/b/${
+      this._bucket
+    }/o?matchGlob=${encodeURIComponent(matchGlob)}`;
+    const accessToken = ScriptApp.getOAuthToken();
+    const response = UrlFetchApp.fetch(url, {
+      method: 'get',
+      muteHttpExceptions: true,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const result: GoogleCloud.Storage.ListResponse = JSON.parse(
+      response.getContentText()
+    );
+    return result;
+  }
+
   listImages(accountId: string, adGroupId: string, imageTypes: string[]) {
     const imageDirs = imageTypes.join(',');
     const matchGlob = `${accountId}/${adGroupId}/{${imageDirs}}/*`;
@@ -126,12 +145,18 @@ export class GcsApi {
     return response.getResponseCode();
   }
 
-  _moveImage(accountId: string, adGroupId: string, fileName: string) {
+  moveImage(
+    accountId: string,
+    adGroupId: string,
+    fileName: string,
+    fromDir: string,
+    toDir: string
+  ) {
     const fromObject = encodeURIComponent(
-      `${accountId}/${adGroupId}/${CONFIG['Generated DIR']}/${fileName}`
+      `${accountId}/${adGroupId}/${fromDir}/${fileName}`
     );
     const toObject = encodeURIComponent(
-      `${accountId}/${adGroupId}/${CONFIG['Uploaded DIR']}/${fileName}`
+      `${accountId}/${adGroupId}/${toDir}/${fileName}`
     );
     const url = `${this._BASE_PATH}/storage/v1/b/${this._bucket}/o/${fromObject}/rewriteTo/b/${this._bucket}/o/${toObject}`;
     const accessToken = ScriptApp.getOAuthToken();
@@ -151,10 +176,12 @@ export class GcsApi {
   moveImages(
     accountId: string,
     adGroupId: string,
-    images: GoogleCloud.Storage.Image[]
+    images: GoogleCloud.Storage.Image[],
+    fromDir: string,
+    toDir: string
   ) {
     for (const image of images) {
-      this._moveImage(accountId, adGroupId, image.name);
+      this.moveImage(accountId, adGroupId, image.name, fromDir, toDir);
     }
   }
 
