@@ -40,25 +40,25 @@ export class ExperimentsService {
     );
 
     // Since it is not possible to create experiments for the campaigns under
-    // runnign experiments we filter out those campaigns.
-    const eligableCampaigns =
+    // running experiments we filter out those campaigns.
+    const eligibleCampaigns =
       this._googleAdsApi.filterOutCampaignsWithExperiments(this._campaigns);
     Logger.log(
-      `Found ${eligableCampaigns.length} eligable campaigns: (${eligableCampaigns})`
+      `Found ${eligibleCampaigns.length} eligible campaigns: (${eligibleCampaigns})`
     );
 
-    const notEligableCampaigns = this._campaigns.filter(
-      e => !eligableCampaigns.includes(e)
+    const notEligibleCampaigns = this._campaigns.filter(
+      e => !eligibleCampaigns.includes(e)
     );
-    if (notEligableCampaigns) {
+    if (notEligibleCampaigns) {
       Logger.log(
-        `*Note*: Experiments for the campaigns "${notEligableCampaigns}" already 
+        `*Note*: Experiments for the campaigns "${notEligibleCampaigns}" already 
         exist, cannot create new ones. Try switching off the experiments or wait 
         untill they are finished`
       );
     }
 
-    for (const campaignId of eligableCampaigns) {
+    for (const campaignId of eligibleCampaigns) {
       Logger.log(`Creating experiment for campaign ${campaignId}.`);
 
       const experiment = this._googleAdsApi.createExperiment(campaignId);

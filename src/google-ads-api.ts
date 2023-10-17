@@ -315,7 +315,7 @@ export class GoogleAdsApi {
       // Name must be unique.
       name: `Adios Experiment for campaignId ${campaignId} (timestamp:${Date.now()})`,
       type: 'SEARCH_CUSTOM',
-      suffix: '[Adios experiment]',
+      suffix: '[Adios Experiment]',
       status: 'SETUP',
     };
 
