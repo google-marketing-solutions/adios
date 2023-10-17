@@ -61,60 +61,13 @@ export class ImageExtensionService {
         e => !e.feedItemResourceName && uploadedImages.includes(e.name)
       );
       Logger.log(
-        `Creating ${assetsWithoutExtensionFeedItem.length} extension feed items...`
+        `Creating ${assetsWithoutExtensionFeedItem.length} ad group assets...`
       );
-      this._createExtensionFeedItems(assetsWithoutExtensionFeedItem);
-      const imageExtension = this._googleAdsApi.executeSearch(
-        GoogleAdsApi.QUERIES.ADGROUP_EXTENSION_SETTINGS +
-          ` AND ad_group.id = ${adGroup.adGroup.id}`
+
+      this._googleAdsApi.createAdGroupAssets(
+        adGroup.adGroup.resourceName,
+        assetsWithoutExtensionFeedItem
       );
-      if (imageExtension.length === 0) {
-        // Create image extension
-        Logger.log(
-          `Creating Ad Group Extension Setting with ${assets.length} images...`
-        );
-        Logger.log(
-          this._googleAdsApi.createAdGroupExtensionSetting(
-            adGroup.adGroup.id,
-            assets.map(e => e.feedItemResourceName)
-          )
-        );
-      } else {
-        // Ensure that the images are synced
-        const feedItemsSet = new Set();
-        for (const asset of assets) {
-          feedItemsSet.add(asset.feedItemResourceName);
-        }
-
-        if (imageExtension[0]?.adGroupExtensionSetting?.extensionFeedItems) {
-          for (const feedItemResourceName of imageExtension[0]
-            .adGroupExtensionSetting.extensionFeedItems) {
-            feedItemsSet.add(feedItemResourceName);
-          }
-        }
-
-        const extensionFeedItemsLength =
-          imageExtension[0]?.adGroupExtensionSetting?.extensionFeedItems
-            ?.length ?? 0;
-        if (
-          feedItemsSet.size !== assets.length ||
-          feedItemsSet.size !== extensionFeedItemsLength
-        ) {
-          // Update Ad Group Extension setting with new images
-          Logger.log(
-            `Updating Ad Group Extension Setting with ${assets.length} images...`
-          );
-          // TODO: If assets length is 0 should we delete the AdGroupExtensionSetting?
-          Logger.log(
-            this._googleAdsApi.updateAdGroupExtensionSetting(
-              imageExtension[0].adGroupExtensionSetting.resourceName,
-              assets.map(e => e.feedItemResourceName)
-            )
-          );
-        } else {
-          Logger.log('Nothing to update in Ad Group Extension Setting.');
-        }
-      }
     }
   }
 }

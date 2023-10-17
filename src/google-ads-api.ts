@@ -120,6 +120,24 @@ export class GoogleAdsApi {
     });
   }
 
+  createAdGroupAssets(
+    adGroup: string,
+    imageAssets: GoogleAds.Entities.Asset[]
+  ) {
+    const operations = imageAssets.map(e => ({
+      create: {
+        ad_group: adGroup,
+        asset: e.resourceName,
+        field_type: 'AD_IMAGE',
+      },
+    }));
+
+    return this.post('/adGroupAssets:mutate', {
+      customer_id: this._customerId,
+      operations,
+    });
+  }
+
   deleteExtensionFeedItem(resourceName?: string) {
     if (!resourceName) {
       return;
