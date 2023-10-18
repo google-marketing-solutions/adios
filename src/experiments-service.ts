@@ -24,7 +24,7 @@ export class ExperimentsService {
   constructor(private readonly _campaignsCsv: string) {
     this._campaigns = this._campaignsCsv
       .split(',')
-      .map(e => '' + parseInt(e.trim()))
+      .map(e => e.trim())
       .filter(e => e);
 
     this._googleAdsApi = new GoogleAdsApi(
