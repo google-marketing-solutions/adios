@@ -30,44 +30,46 @@ export class ImageExtensionService {
     );
   }
 
-  _createExtensionFeedItems(assets: GoogleAds.Entities.Asset[]) {
-    for (const asset of assets) {
-      asset.feedItemResourceName = this._googleAdsApi.createExtensionFeedItem(
-        asset.resourceName
-      )?.results[0]?.resourceName;
-    }
-  }
-
-  _deleteExtensionFeedItems(assets: GoogleAds.Entities.Asset[]) {
-    for (const asset of assets) {
-      this._googleAdsApi.deleteExtensionFeedItem(asset.feedItemResourceName);
-      asset.feedItemResourceName = undefined;
-    }
-  }
-
   run() {
     const adGroups = this._googleAdsApi.getAdGroups();
     Logger.log(adGroups);
     for (const adGroup of adGroups) {
-      const uploadedImages = this._gcsApi
+      const uploadedToGcsImages = this._gcsApi
         .listImages(CONFIG['Account ID'], adGroup.adGroup.id, [
           CONFIG['Uploaded DIR'],
         ])
         ?.items?.map(e => e.name.split('/').slice(-1)[0]);
       const assets = this._googleAdsApi
         .getAssets(adGroup.adGroup.id)
-        .filter(e => uploadedImages.includes(e.name));
-      const assetsWithoutExtensionFeedItem = assets.filter(
-        e => !e.feedItemResourceName && uploadedImages.includes(e.name)
-      );
-      Logger.log(
-        `Creating ${assetsWithoutExtensionFeedItem.length} ad group assets...`
+        .filter(e => uploadedToGcsImages.includes(e.name));
+      const notLinkedAssets = assets.filter(
+        e => !e.adGroupAssetResourceName && uploadedToGcsImages.includes(e.name)
       );
 
+      // Adding images from GCS to Ad Groups
+      Logger.log(
+        `Creating ${notLinkedAssets.length} ad group assets for ad group ${adGroup.adGroup.id}...`
+      );
       this._googleAdsApi.createAdGroupAssets(
         adGroup.adGroup.resourceName,
-        assetsWithoutExtensionFeedItem
+        notLinkedAssets
       );
+
+      // Removing ad group assets which are not on GCS anymore
+      const adGroupAssetsToDelete = this._googleAdsApi
+        .getAdGroupAssetsForAdGroup(adGroup.adGroup.id)
+        .filter(
+          e =>
+            !uploadedToGcsImages || !uploadedToGcsImages.includes(e.asset.name)
+        )
+        .map(e => e.adGroupAsset.resourceName);
+
+      if (adGroupAssetsToDelete) {
+        Logger.log(
+          `Deleting ${adGroupAssetsToDelete.length} ad group assets for ad group ${adGroup.adGroup.id}...`
+        );
+        this._googleAdsApi.deleteAdGroupAssets(adGroupAssetsToDelete);
+      }
     }
   }
 }

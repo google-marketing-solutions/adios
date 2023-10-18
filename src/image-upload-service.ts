@@ -54,23 +54,24 @@ export class ImageUploadService {
       // Remove images
       const assets = this._googleAdsApi
         .getAssets(adGroup.adGroup.id)
-        .filter(e => e.feedItemResourceName);
+        .filter(e => e.adGroupAssetResourceName);
       const uploadedImages = this._gcsApi
         .listImages(CONFIG['Account ID'], adGroup.adGroup.id, [
           CONFIG['Uploaded DIR'],
         ])
         ?.items?.map(e => e.name.split('/').slice(-1)[0]);
+
+      const adGroupAssetsToDelete = [];
       for (const asset of assets) {
         if (!uploadedImages.includes(asset.name)) {
           Logger.log(
             `Removing image ${asset.name} from the image extensions...`
           );
-          this._googleAdsApi.deleteExtensionFeedItem(
-            asset.feedItemResourceName
-          );
-          asset.feedItemResourceName = null;
+          adGroupAssetsToDelete.push(asset.adGroupAssetResourceName);
+          asset.adGroupAssetResourceName = null;
         }
       }
+      this._googleAdsApi.deleteAdGroupAssets(adGroupAssetsToDelete);
     }
     Logger.log('Finished uploading images.');
   }

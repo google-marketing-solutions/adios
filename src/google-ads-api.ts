@@ -106,20 +106,6 @@ export class GoogleAdsApi {
     Logger.log(JSON.stringify(response, null, 2));
   }
 
-  createExtensionFeedItem(imageAsset: string) {
-    return this.post('/extensionFeedItems:mutate', {
-      operations: [
-        {
-          create: {
-            imageFeedItem: {
-              imageAsset,
-            },
-          },
-        },
-      ],
-    });
-  }
-
   createAdGroupAssets(
     adGroup: string,
     imageAssets: GoogleAds.Entities.Asset[]
@@ -130,6 +116,17 @@ export class GoogleAdsApi {
         asset: e.resourceName,
         field_type: 'AD_IMAGE',
       },
+    }));
+
+    return this.post('/adGroupAssets:mutate', {
+      customer_id: this._customerId,
+      operations,
+    });
+  }
+
+  deleteAdGroupAssets(resourceNames: string[]) {
+    const operations = resourceNames.map(e => ({
+      remove: e,
     }));
 
     return this.post('/adGroupAssets:mutate', {
@@ -186,24 +183,28 @@ export class GoogleAdsApi {
   }
 
   getAssets(adGroupId: string) {
-    const feedItems = this.executeSearch(
-      GoogleAdsApi.QUERIES.FEED_ITEMS
+    const adGroupAssets = this.executeSearch(
+      GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replace(
+        '<ad_group_id>',
+        adGroupId
+      )
     ).reduce((acc, e) => {
       return {
         ...acc,
-        [e.extensionFeedItem.imageFeedItem.imageAsset]:
-          e.extensionFeedItem.resourceName,
+        [e.adGroupAsset.asset.resourceName]: e.adGroupAsset.resourceName,
       };
     }, {});
+
     const assets = this.executeSearch(
       GoogleAdsApi.QUERIES.ASSETS + ` AND asset.name LIKE '${adGroupId}%'`
     ).map(e => {
       return {
         name: e.asset.name,
         resourceName: e.asset.resourceName,
-        feedItemResourceName: feedItems[e.asset.resourceName],
+        adGroupAssetResourceName: adGroupAssets[e.asset.resourceName],
       };
     });
+
     return assets;
   }
 
@@ -278,9 +279,8 @@ export class GoogleAdsApi {
       `,
       AD_GROUP_ASSETS_FOR_CAMPAIGN_ID: `
         SELECT
-          ad_group_asset.asset,
-          campaign.id,
-          ad_group.id
+          ad_group_asset.resource_name,
+          campaign.id
         FROM 
           ad_group_asset
         WHERE
@@ -288,6 +288,18 @@ export class GoogleAdsApi {
           AND campaign.id = <campaign_id>
         
         PARAMETERS include_drafts=true
+      `,
+      AD_GROUP_ASSETS_FOR_AD_GROUP_ID: `
+        SELECT
+          ad_group.id,
+          ad_group_asset.resource_name,
+          ad_group_asset.asset,
+          asset.name
+        FROM
+          ad_group_asset
+        WHERE
+          ad_group_asset.field_type = 'AD_IMAGE'
+          AND ad_group.id = <ad_group_id>
       `,
       ASSETS: `
         SELECT asset.resource_name, asset.name FROM asset WHERE asset.type = 'IMAGE'
@@ -415,6 +427,20 @@ export class GoogleAdsApi {
     const query = GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_CAMPAIGN_ID.replace(
       '<campaign_id>',
       campaignId
+    );
+
+    return this.executeSearch(query);
+  }
+
+  /**
+   * Returns the list of ad group level assets for the specific ad group
+   *
+   * @param adGroupResourceName Resource name
+   */
+  getAdGroupAssetsForAdGroup(adGroupId: string) {
+    const query = GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replace(
+      '<ad_group_id>',
+      adGroupId
     );
 
     return this.executeSearch(query);
