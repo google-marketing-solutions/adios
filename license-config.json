@@ -1,12 +1,13 @@
 {
   "ignore": [
-    ".claspignore",
-    ".editorconfig",
-    ".eslintignore",
-    ".gitignore",
-    ".prettierignore",
-    "*.txt",
-    ".github",
+    "**/.claspignore",
+    "**/.editorconfig",
+    "**/.eslintignore",
+    "**/.gitignore",
+    "**/.gitkeep",
+    "**/.prettierignore",
+    "**/*.txt",
+    "**/.github",
     "CONTRIBUTING",
     "build",
     "dist"

@@ -31,6 +31,8 @@ interface Config {
   'Bad performance DIR': string;
   'Uploaded DIR': string;
   'Generated DIR': string;
+  'Validated DIR': string;
+  'Rejected DIR': string;
   'Ad Group Name Regex': string;
 }
 
@@ -53,6 +55,8 @@ const DEFAULT_CONFIG = {
   'Bad performance DIR': '',
   'Uploaded DIR': '',
   'Generated DIR': '',
+  'Validated DIR': '',
+  'Rejected DIR': '',
   'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default
 };
 
