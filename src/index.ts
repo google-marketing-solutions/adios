@@ -18,6 +18,7 @@ import { menu } from './menu';
 import { ImageExtensionService } from './image-extension-service';
 import { ImageGenerationService } from './image-generation-service';
 import { ImageUploadService } from './image-upload-service';
+import { ExperimentsService } from './experiments-service';
 import { FRONTEND_HELPER } from './frontend-helper';
 import { uiHelper } from './ui-helper';
 
@@ -25,5 +26,6 @@ menu;
 ImageExtensionService;
 ImageGenerationService;
 ImageUploadService;
+ExperimentsService;
 FRONTEND_HELPER;
 uiHelper;
