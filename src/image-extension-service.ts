@@ -40,7 +40,7 @@ export class ImageExtensionService {
         ])
         ?.items?.map(e => e.name.split('/').slice(-1)[0]);
       const assets = this._googleAdsApi
-        .getAssets(adGroup.adGroup.id)
+        .getAssetsForAdGroup(adGroup.adGroup.id)
         .filter(e => uploadedToGcsImages.includes(e.name));
       const notLinkedAssets = assets.filter(
         e => !e.adGroupAssetResourceName && uploadedToGcsImages.includes(e.name)

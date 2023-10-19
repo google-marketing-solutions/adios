@@ -182,28 +182,27 @@ export class GoogleAdsApi {
     });
   }
 
-  getAssets(adGroupId: string) {
+  getAssetsForAdGroup(adGroupId: string) {
     const adGroupAssets = this.executeSearch(
       GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replace(
         '<ad_group_id>',
         adGroupId
       )
-    ).reduce((acc, e) => {
-      return {
+    ).reduce(
+      (acc, e) => ({
         ...acc,
-        [e.adGroupAsset.asset.resourceName]: e.adGroupAsset.resourceName,
-      };
-    }, {});
+        [e.adGroupAsset.asset]: e.adGroupAsset.resourceName,
+      }),
+      {}
+    );
 
     const assets = this.executeSearch(
       GoogleAdsApi.QUERIES.ASSETS + ` AND asset.name LIKE '${adGroupId}%'`
-    ).map(e => {
-      return {
-        name: e.asset.name,
-        resourceName: e.asset.resourceName,
-        adGroupAssetResourceName: adGroupAssets[e.asset.resourceName],
-      };
-    });
+    ).map(e => ({
+      name: e.asset.name,
+      resourceName: e.asset.resourceName,
+      adGroupAssetResourceName: adGroupAssets[e.asset.resourceName],
+    }));
 
     return assets;
   }
@@ -299,6 +298,7 @@ export class GoogleAdsApi {
           ad_group_asset
         WHERE
           ad_group_asset.field_type = 'AD_IMAGE'
+          AND ad_group_asset.primary_status != 'REMOVED'
           AND ad_group.id = <ad_group_id>
       `,
       ASSETS: `
