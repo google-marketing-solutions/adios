@@ -13,19 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { ApiCallsService } from '../app/api-calls/api-calls.service';
 
-import { menu } from './menu';
-import { ImageExtensionService } from './image-extension-service';
-import { ImageGenerationService } from './image-generation-service';
-import { ImageUploadService } from './image-upload-service';
-import { ExperimentsService } from './experiments-service';
-import { FRONTEND_HELPER } from './frontend-helper';
-import { uiHelper } from './ui-helper';
-
-menu;
-ImageExtensionService;
-ImageGenerationService;
-ImageUploadService;
-ExperimentsService;
-FRONTEND_HELPER;
-uiHelper;
+export const environment = {
+  production: true,
+  providers: [{ provide: ApiCallsService }],
+};
