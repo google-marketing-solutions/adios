@@ -21,7 +21,7 @@ limitations under the License.
 
 ## Getting Started
 
-1. Make a copy of the [template Spreadsheet](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/copy)
+1. Make a copy of the [template Spreadsheet](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/copy?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug)
 
 1. Create or use an existing [Google Cloud Platform](https://console.cloud.google.com/) (GCP) project
 
@@ -65,7 +65,7 @@ If you'd like to make your own changes to the solution or contribute to it, you 
     npm install
     ```
 
-1. Make a copy of the [template Spreadsheet](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/copy)
+1. Make a copy of the [template Spreadsheet](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/copy?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug)
 
 1. On the copied Spreadsheet, open Extensions > Apps Script
 
