@@ -93,10 +93,10 @@ export class ImageGenerationService {
         continue;
       }
       for (const image of images) {
-        // TODO: Check for slashes in the Ad Group name
-        const filename = `${adGroup.adGroup.id}|${
+        const filename = this.generateImageFileName(
+          adGroup.adGroup.id,
           adGroup.adGroup.name
-        }|${Date.now()}`;
+        );
         const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG[
           'Generated DIR'
         ]!}`;
@@ -109,6 +109,33 @@ export class ImageGenerationService {
       }
     }
     Logger.log('Finished generating.');
+  }
+  /**
+   * Create the image file name.
+   *
+   * Google Ads filenames can be up to 128 characters long. If a long ad group
+   * name is provided as an argument, this will be trimmed so that the final
+   * name does not exceed this.
+   *
+   * @param {number} adGroupId: the ID of the ad group
+   * @param {string} adGroupName: the name of the ad group
+   * @returns {string} a file name that's less than 128 characters long, that
+   *   takes the form `adGroupId|adGroupName|timestamp`
+   */
+  generateImageFileName(adGroupId: number, adGroupName: string) {
+    // Remove any slashes in the ad group name as that would be problematic with
+    // the file path
+    adGroupName = adGroupName.replaceAll('/', '');
+    // Some ad group names can be very long. Trim them to stay within the 128
+    // character limit.
+    const fileNameLimit = 128;
+    const now = Date.now().toString();
+    // These are the | characters added to the final string.
+    const extraChars = 2;
+    const adGroupNameLimit =
+      fileNameLimit - now.length - adGroupId.toString().length - extraChars;
+    const trimmedAdGroupName = adGroupName.slice(0, adGroupNameLimit);
+    return `${adGroupId}|${trimmedAdGroupName}|${Date.now()}`;
   }
   /**
    * For a given string & regex return the match groups if they exist else null
