@@ -13,11 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-# Adios: One-stop solution for image assets management
+# Adios: One-stop solution for Google Ads image assets management
 
 ## Overview
 
-**Adios** is an open-source solution that uses Google Cloud's [Vertex AI image generation API](https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview) to generate and upload image assets for your Google Ads Ad Groups.
+**Adios** is an open-source solution that can generate and/or upload image assets for your Ad Groups. If you already have images Adios will be able to upload them to the Google Ads asset library and link to the corresponding ad groups in bulk. If you don't, then Adios will use AI to generate personalised images based on the specified ad group context (e.g. based on the ad group name).
+
+To generate images Adios uses Google Cloud's [Vertex AI image generation API](https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview).
 
 ## Getting Started
 
@@ -71,7 +73,7 @@ If you'd like to make your own changes to the solution or contribute to it, you 
 
 1. Copy the Apps Script ID. For example:
 
-    > script.google.com/[...]/projects/**123456ABCDEF**/edit
+    > script.google.com/[...]/projects/*<SCRIPT_ID>*/edit
 
 1. Enable the Google Apps Script API (if you haven't done it before)
   <https://script.google.com/home/usersettings>
@@ -98,7 +100,7 @@ If you'd like to make your own changes to the solution or contribute to it, you 
 
     It is possible to run the Angular validation UI locally.
 
-    However, the functions which are supposed to run on the Apps Script back-end (`google.script.run`) cannot run locally, so there is a service for API calls (`api-calls.mock.service.ts`) which also provides mock responses to test locally.
+    However, the functions which are supposed to run on the Apps Script back-end (`google.script.run`) cannot run locally, so there is a mock service for API calls ([api-calls.mock.service.ts](src/ui/src/app/api-calls/api-calls.mock.service.ts)) which mocks API responses (e.g. from Google Ads API) to test locally.
 
     Start the UI locally by running:
 
