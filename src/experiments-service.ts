@@ -1,4 +1,3 @@
-import { transpileModule } from 'typescript';
 /**
  * Copyright 2023 Google LLC
  *

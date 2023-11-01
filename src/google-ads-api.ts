@@ -284,6 +284,7 @@ export class GoogleAdsApi {
           ad_group_asset
         WHERE
           ad_group_asset.field_type = 'AD_IMAGE'
+          AND ad_group_asset.primary_status != 'REMOVED'
           AND campaign.id = <campaign_id>
         
         PARAMETERS include_drafts=true
@@ -435,7 +436,7 @@ export class GoogleAdsApi {
   /**
    * Returns the list of ad group level assets for the specific ad group
    *
-   * @param adGroupResourceName Resource name
+   * @param adGroupId Ad Group ID
    */
   getAdGroupAssetsForAdGroup(adGroupId: string) {
     const query = GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replace(
