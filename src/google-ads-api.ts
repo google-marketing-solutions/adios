@@ -102,8 +102,7 @@ export class GoogleAdsApi {
     const operations = files.map(e => {
       return GoogleAdsApi.getCreateImageOperation(null, e.name, e.content);
     });
-    const response = this._executeMutateOperations(operations);
-    Logger.log(JSON.stringify(response, null, 2));
+    this._executeMutateOperations(operations);
   }
 
   createAdGroupAssets(
@@ -262,31 +261,31 @@ export class GoogleAdsApi {
           AND ad_group_ad.status != REMOVED
         `,
       FEED_ITEMS: `
-        SELECT 
-          extension_feed_item.image_feed_item.image_asset, 
-          extension_feed_item.resource_name, 
-          extension_feed_item.status, 
+        SELECT
+          extension_feed_item.image_feed_item.image_asset,
+          extension_feed_item.resource_name,
+          extension_feed_item.status,
           extension_feed_item.targeted_campaign,
           extension_feed_item.targeted_ad_group,
-          metrics.ctr, 
-          metrics.impressions 
-        FROM 
-          extension_feed_item 
-        WHERE 
-          extension_feed_item.extension_type = 'IMAGE' 
+          metrics.ctr,
+          metrics.impressions
+        FROM
+          extension_feed_item
+        WHERE
+          extension_feed_item.extension_type = 'IMAGE'
           AND extension_feed_item.status != 'REMOVED'
       `,
       AD_GROUP_ASSETS_FOR_CAMPAIGN_ID: `
         SELECT
           ad_group_asset.resource_name,
           campaign.id
-        FROM 
+        FROM
           ad_group_asset
         WHERE
           ad_group_asset.field_type = 'AD_IMAGE'
           AND ad_group_asset.primary_status != 'REMOVED'
           AND campaign.id = <campaign_id>
-        
+
         PARAMETERS include_drafts=true
       `,
       AD_GROUP_ASSETS_FOR_AD_GROUP_ID: `
