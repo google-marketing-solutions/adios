@@ -65,7 +65,7 @@ export class ImageUploadService {
 
       const adGroupAssetsToDelete = [];
       for (const asset of assets) {
-        if (!uploadedImages.includes(asset.name)) {
+        if (!uploadedImages?.includes(asset.name)) {
           Logger.log(
             `Removing image ${asset.name} from the image extensions...`
           );
@@ -73,7 +73,9 @@ export class ImageUploadService {
           asset.adGroupAssetResourceName = null;
         }
       }
-      this._googleAdsApi.deleteAdGroupAssets(adGroupAssetsToDelete);
+      if (adGroupAssetsToDelete.length > 0) {
+        this._googleAdsApi.deleteAdGroupAssets(adGroupAssetsToDelete);
+      }
     }
     Logger.log('Finished uploading images.');
   }
