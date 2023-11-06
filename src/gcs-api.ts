@@ -129,9 +129,14 @@ export class GcsApi {
     return images;
   }
 
-  _deleteImage(accountId: string, adGroupId: string, fileName: string) {
+  _deleteImage(
+    accountId: string,
+    adGroupId: string,
+    fromDir: string,
+    fileName: string
+  ) {
     const objectPath = encodeURIComponent(
-      `${accountId}/${adGroupId}/${CONFIG['Generated DIR']}/${fileName}`
+      `${accountId}/${adGroupId}/${fromDir}/${fileName}`
     );
     const url = `${this._BASE_PATH}/storage/v1/b/${this._bucket}/o/${objectPath}`;
     const accessToken = ScriptApp.getOAuthToken();
@@ -169,7 +174,7 @@ export class GcsApi {
       },
     });
     if (response.getResponseCode() === 200) {
-      return this._deleteImage(accountId, adGroupId, fileName);
+      return this._deleteImage(accountId, adGroupId, fromDir, fileName);
     }
   }
 

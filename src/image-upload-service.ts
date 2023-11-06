@@ -33,6 +33,9 @@ export class ImageUploadService {
   run() {
     const adGroups = this._googleAdsApi.getAdGroups();
     for (const adGroup of adGroups) {
+      Logger.log(
+        `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
+      );
       const imgFolder = CONFIG['Validated DIR'] || CONFIG['Generated DIR'];
       const images = this._gcsApi.getImages(
         CONFIG['Account ID'],
@@ -65,7 +68,7 @@ export class ImageUploadService {
 
       const adGroupAssetsToDelete = [];
       for (const asset of assets) {
-        if (!uploadedImages.includes(asset.name)) {
+        if (!uploadedImages?.includes(asset.name)) {
           Logger.log(
             `Removing image ${asset.name} from the image extensions...`
           );
@@ -73,7 +76,9 @@ export class ImageUploadService {
           asset.adGroupAssetResourceName = null;
         }
       }
-      this._googleAdsApi.deleteAdGroupAssets(adGroupAssetsToDelete);
+      if (adGroupAssetsToDelete.length > 0) {
+        this._googleAdsApi.deleteAdGroupAssets(adGroupAssetsToDelete);
+      }
     }
     Logger.log('Finished uploading images.');
   }
