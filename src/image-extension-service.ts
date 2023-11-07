@@ -41,9 +41,10 @@ export class ImageExtensionService {
         ?.items?.map(e => e.name.split('/').slice(-1)[0]);
       const assets = this._googleAdsApi
         .getAssetsForAdGroup(adGroup.adGroup.id)
-        .filter(e => uploadedToGcsImages.includes(e.name));
+        .filter(e => uploadedToGcsImages?.includes(e.name));
       const notLinkedAssets = assets.filter(
-        e => !e.adGroupAssetResourceName && uploadedToGcsImages.includes(e.name)
+        e =>
+          !e.adGroupAssetResourceName && uploadedToGcsImages?.includes(e.name)
       );
 
       // Adding images from GCS to Ad Groups
@@ -58,10 +59,7 @@ export class ImageExtensionService {
       // Removing ad group assets which are not on GCS anymore
       const adGroupAssetsToDelete = this._googleAdsApi
         .getAdGroupAssetsForAdGroup(adGroup.adGroup.id)
-        .filter(
-          e =>
-            !uploadedToGcsImages || !uploadedToGcsImages.includes(e.asset.name)
-        )
+        .filter(e => !uploadedToGcsImages?.includes(e.asset.name))
         .map(e => e.adGroupAsset.resourceName);
 
       if (adGroupAssetsToDelete) {
