@@ -23,6 +23,7 @@ function onOpen() {
         .addItem('Image generation', 'runImageGeneration')
         .addItem('Image upload', 'runImageUploadService')
         .addItem('Image extension linking', 'runImageExtensionService')
+        .addItem('Create experiments', 'runExperimentsService')
     )
     .addSubMenu(
       ui
