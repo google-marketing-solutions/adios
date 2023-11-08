@@ -33,6 +33,9 @@ export class ImageExtensionService {
   run() {
     const adGroups = this._googleAdsApi.getAdGroups();
     for (const adGroup of adGroups) {
+      Logger.log(
+        `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
+      );
       const uploadedToGcsImages = this._gcsApi
         .listImages(CONFIG['Account ID'], adGroup.adGroup.id, [
           CONFIG['Uploaded DIR'],
