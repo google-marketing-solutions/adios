@@ -295,7 +295,7 @@ export class GoogleAdsApi {
           ad_group_asset.field_type = 'AD_IMAGE'
           AND ad_group_asset.primary_status != 'REMOVED'
           AND ad_group.id = <ad_group_id>
-          AND asset.name LIKE '<ad_group_id>|%' "
+          AND asset.name LIKE '<ad_group_id>|%'
       `,
       ASSETS: `
         SELECT asset.resource_name, asset.name FROM asset WHERE asset.type = 'IMAGE'
