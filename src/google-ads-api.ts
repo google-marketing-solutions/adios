@@ -182,12 +182,7 @@ export class GoogleAdsApi {
   }
 
   getAssetsForAdGroup(adGroupId: string) {
-    const adGroupAssets = this.executeSearch(
-      GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replace(
-        '<ad_group_id>',
-        adGroupId
-      )
-    ).reduce(
+    const adGroupAssets = this.getAdGroupAssetsForAdGroup(adGroupId).reduce(
       (acc, e) => ({
         ...acc,
         [e.adGroupAsset.asset]: e.adGroupAsset.resourceName,
@@ -196,7 +191,7 @@ export class GoogleAdsApi {
     );
 
     const assets = this.executeSearch(
-      GoogleAdsApi.QUERIES.ASSETS + ` AND asset.name LIKE '${adGroupId}%'`
+      GoogleAdsApi.QUERIES.ASSETS + ` AND asset.name LIKE '${adGroupId}|%'`
     ).map(e => ({
       name: e.asset.name,
       resourceName: e.asset.resourceName,
@@ -300,6 +295,7 @@ export class GoogleAdsApi {
           ad_group_asset.field_type = 'AD_IMAGE'
           AND ad_group_asset.primary_status != 'REMOVED'
           AND ad_group.id = <ad_group_id>
+          AND asset.name LIKE '<ad_group_id>|%' "
       `,
       ASSETS: `
         SELECT asset.resource_name, asset.name FROM asset WHERE asset.type = 'IMAGE'
@@ -438,10 +434,11 @@ export class GoogleAdsApi {
    * @param adGroupId Ad Group ID
    */
   getAdGroupAssetsForAdGroup(adGroupId: string) {
-    const query = GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replace(
-      '<ad_group_id>',
-      adGroupId
-    );
+    const query =
+      GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replaceAll(
+        '<ad_group_id>',
+        adGroupId
+      );
 
     return this.executeSearch(query);
   }

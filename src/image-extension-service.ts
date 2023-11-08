@@ -41,10 +41,7 @@ export class ImageExtensionService {
       const assets = this._googleAdsApi
         .getAssetsForAdGroup(adGroup.adGroup.id)
         .filter(e => uploadedToGcsImages?.includes(e.name));
-      const notLinkedAssets = assets.filter(
-        e =>
-          !e.adGroupAssetResourceName && uploadedToGcsImages?.includes(e.name)
-      );
+      const notLinkedAssets = assets.filter(e => !e.adGroupAssetResourceName);
 
       // Adding images from GCS to Ad Groups
       Logger.log(
