@@ -39,6 +39,9 @@ export class ImageGenerationService {
   run() {
     const adGroups = this._googleAdsApi.getAdGroups();
     for (const adGroup of adGroups) {
+      Logger.log(
+        `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
+      );
       // TODO: Add logic to only generate images if < "Max. bad images"
       const existingImgCount = this._gcsApi.countImages(
         adGroup.customer.id,

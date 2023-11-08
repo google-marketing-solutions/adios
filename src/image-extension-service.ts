@@ -33,6 +33,9 @@ export class ImageExtensionService {
   run() {
     const adGroups = this._googleAdsApi.getAdGroups();
     for (const adGroup of adGroups) {
+      Logger.log(
+        `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
+      );
       const uploadedToGcsImages = this._gcsApi
         .listImages(CONFIG['Account ID'], adGroup.adGroup.id, [
           CONFIG['Uploaded DIR'],
@@ -41,10 +44,7 @@ export class ImageExtensionService {
       const assets = this._googleAdsApi
         .getAssetsForAdGroup(adGroup.adGroup.id)
         .filter(e => uploadedToGcsImages?.includes(e.name));
-      const notLinkedAssets = assets.filter(
-        e =>
-          !e.adGroupAssetResourceName && uploadedToGcsImages?.includes(e.name)
-      );
+      const notLinkedAssets = assets.filter(e => !e.adGroupAssetResourceName);
 
       // Adding images from GCS to Ad Groups
       Logger.log(
@@ -61,7 +61,7 @@ export class ImageExtensionService {
         .filter(e => !uploadedToGcsImages?.includes(e.asset.name))
         .map(e => e.adGroupAsset.resourceName);
 
-      if (adGroupAssetsToDelete) {
+      if (adGroupAssetsToDelete?.length > 0) {
         Logger.log(
           `Deleting ${adGroupAssetsToDelete.length} ad group assets for ad group ${adGroup.adGroup.id}...`
         );
