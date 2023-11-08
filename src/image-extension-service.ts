@@ -61,7 +61,7 @@ export class ImageExtensionService {
         .filter(e => !uploadedToGcsImages?.includes(e.asset.name))
         .map(e => e.adGroupAsset.resourceName);
 
-      if (adGroupAssetsToDelete) {
+      if (adGroupAssetsToDelete?.length > 0) {
         Logger.log(
           `Deleting ${adGroupAssetsToDelete.length} ad group assets for ad group ${adGroup.adGroup.id}...`
         );
