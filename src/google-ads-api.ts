@@ -297,6 +297,19 @@ export class GoogleAdsApi {
           AND ad_group.id = <ad_group_id>
           AND asset.name LIKE '<ad_group_id>|%'
       `,
+      ALL_AD_GROUP_ASSETS_FOR_AD_GROUP_ID: `
+        SELECT
+          ad_group.id,
+          ad_group_asset.resource_name,
+          ad_group_asset.asset,
+          asset.name
+        FROM
+          ad_group_asset
+        WHERE
+          ad_group_asset.field_type = 'AD_IMAGE'
+          AND ad_group_asset.primary_status != 'REMOVED'
+          AND ad_group.id = <ad_group_id>
+      `,
       ASSETS: `
         SELECT asset.resource_name, asset.name FROM asset WHERE asset.type = 'IMAGE'
       `,
@@ -429,13 +442,30 @@ export class GoogleAdsApi {
   }
 
   /**
-   * Returns the list of ad group level assets for the specific ad group
+   * Returns the list of Adios-managed ad group level assets for the specific
+   * ad group
    *
    * @param adGroupId Ad Group ID
    */
   getAdGroupAssetsForAdGroup(adGroupId: string) {
     const query =
       GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replaceAll(
+        '<ad_group_id>',
+        adGroupId
+      );
+
+    return this.executeSearch(query);
+  }
+
+  /**
+   * Returns the list of all (including non-Adios-managed) ad group level assets
+   * for the specific ad group
+   *
+   * @param adGroupId Ad Group ID
+   */
+  getAllAdGroupAssetsForAdGroup(adGroupId: string) {
+    const query =
+      GoogleAdsApi.QUERIES.ALL_AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replaceAll(
         '<ad_group_id>',
         adGroupId
       );

@@ -18,6 +18,8 @@ import { GcsApi } from './gcs-api';
 import { GoogleAdsApi } from './google-ads-api';
 
 export class ImageExtensionService {
+  private readonly MAX_AD_GROUP_ASSETS = 20;
+
   private readonly _gcsApi;
   private readonly _googleAdsApi;
 
@@ -44,16 +46,37 @@ export class ImageExtensionService {
       const assets = this._googleAdsApi
         .getAssetsForAdGroup(adGroup.adGroup.id)
         .filter(e => uploadedToGcsImages?.includes(e.name));
-      const notLinkedAssets = assets.filter(e => !e.adGroupAssetResourceName);
+      const existingAssets = this._googleAdsApi.getAllAdGroupAssetsForAdGroup(
+        adGroup.adGroup.id
+      );
+      const notLinkedAssets = assets
+        .filter(e => !e.adGroupAssetResourceName)
+        .sort((a, b) => {
+          const assetNameA = a.name.toUpperCase();
+          const assetNameB = b.name.toUpperCase();
+          if (assetNameA < assetNameB) {
+            return -1;
+          }
+          if (assetNameA > assetNameB) {
+            return 1;
+          }
+          return 0;
+        });
+      notLinkedAssets.length = Math.min(
+        notLinkedAssets.length,
+        this.MAX_AD_GROUP_ASSETS - existingAssets.length
+      );
 
       // Adding images from GCS to Ad Groups
-      Logger.log(
-        `Creating ${notLinkedAssets.length} ad group assets for ad group ${adGroup.adGroup.id}...`
-      );
-      this._googleAdsApi.createAdGroupAssets(
-        adGroup.adGroup.resourceName,
-        notLinkedAssets
-      );
+      if (notLinkedAssets?.length > 0) {
+        Logger.log(
+          `Creating ${notLinkedAssets.length} ad group assets for ad group ${adGroup.adGroup.id}...`
+        );
+        this._googleAdsApi.createAdGroupAssets(
+          adGroup.adGroup.resourceName,
+          notLinkedAssets
+        );
+      }
 
       // Removing ad group assets which are not on GCS anymore
       const adGroupAssetsToDelete = this._googleAdsApi
