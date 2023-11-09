@@ -43,14 +43,12 @@ export class ImageExtensionService {
           CONFIG['Uploaded DIR'],
         ])
         ?.items?.map(e => e.name.split('/').slice(-1)[0]);
-      const assets = this._googleAdsApi
+      const notLinkedAssets = this._googleAdsApi
         .getAssetsForAdGroup(adGroup.adGroup.id)
-        .filter(e => uploadedToGcsImages?.includes(e.name));
-      const existingAssets = this._googleAdsApi.getAllAdGroupAssetsForAdGroup(
-        adGroup.adGroup.id
-      );
-      const notLinkedAssets = assets
-        .filter(e => !e.adGroupAssetResourceName)
+        .filter(
+          e =>
+            uploadedToGcsImages?.includes(e.name) && !e.adGroupAssetResourceName
+        )
         .sort((a, b) => {
           const assetNameA = a.name.toUpperCase();
           const assetNameB = b.name.toUpperCase();
@@ -62,6 +60,9 @@ export class ImageExtensionService {
           }
           return 0;
         });
+      const existingAssets = this._googleAdsApi.getAllAdGroupAssetsForAdGroup(
+        adGroup.adGroup.id
+      );
       notLinkedAssets.length = Math.min(
         notLinkedAssets.length,
         this.MAX_AD_GROUP_ASSETS - existingAssets.length
