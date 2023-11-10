@@ -49,17 +49,7 @@ export class ImageExtensionService {
           e =>
             uploadedToGcsImages?.includes(e.name) && !e.adGroupAssetResourceName
         )
-        .sort((a, b) => {
-          const assetNameA = a.name.toUpperCase();
-          const assetNameB = b.name.toUpperCase();
-          if (assetNameA < assetNameB) {
-            return -1;
-          }
-          if (assetNameA > assetNameB) {
-            return 1;
-          }
-          return 0;
-        });
+        .sort((a, b) => a.name.localeCompare(b.name));
       const existingAssets = this._googleAdsApi.getAllAdGroupAssetsForAdGroup(
         adGroup.adGroup.id
       );
