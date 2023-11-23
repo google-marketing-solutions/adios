@@ -16,6 +16,15 @@ limitations under the License.
 <mat-toolbar color="primary">
   <span>Adios</span>
   <span class="spacer"></span>
+  <mat-slider color="accent"
+    id="image-slider"
+    min="1"
+    max="5"
+    step="1"
+    (value)="imageSize"
+    (change)="resizeImages($event)">
+    <input matSliderThumb>
+  </mat-slider>
   <button
     mat-icon-button
     matTooltip="Validate selected images"
@@ -61,6 +70,7 @@ limitations under the License.
         <image-extension
           *ngFor="let img of row.images"
           [image]="img"
+          [imageSize]="imageSize"
           (click)="toggleImage(img)"
         />
       </mat-card-content>

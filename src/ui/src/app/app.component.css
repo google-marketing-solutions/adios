@@ -44,3 +44,7 @@ mat-toolbar {
   top: 0;
   z-index: 1000;
 }
+
+mat-slider {
+  width: 150px;
+}

@@ -28,6 +28,7 @@ import { Image, IMAGE_STATUS } from '../api-calls/api-calls.service.interface';
 })
 export class ImageExtensionComponent {
   @Input({ required: true }) image!: Image;
+  @Input() imageSize: number = 1;
 
   getIcon = (status: IMAGE_STATUS) => {
     switch (status) {
@@ -67,5 +68,10 @@ export class ImageExtensionComponent {
     return `
       Image: ${image.filename}
       Status: ${image.status}`;
+  };
+
+  getImageSize = () => {
+    const baseSize = 128;
+    return `${baseSize * this.imageSize}px`;
   };
 }
