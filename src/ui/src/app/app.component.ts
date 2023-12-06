@@ -25,6 +25,7 @@ import {
   PageEvent,
 } from '@angular/material/paginator';
 import { MatCardModule } from '@angular/material/card';
+import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiCallsService } from './api-calls/api-calls.service';
 import { environment } from '../environments/environment';
@@ -45,6 +46,7 @@ import { ImageExtensionComponent } from './image-extension/image-extension.compo
     MatIconModule,
     MatPaginatorModule,
     MatProgressBarModule,
+    MatSliderModule,
     MatToolbarModule,
     MatTooltipModule,
     ImageExtensionComponent,
@@ -59,6 +61,7 @@ export class AppComponent implements OnInit {
   adGroups: AdGroup[] = [];
   data: AdGroup[] = [];
   selectedImages: Image[] = [];
+  imageSize: number = 1;
 
   constructor(private apiCallsService: ApiCallsService) {
     this.env = environment.production;
@@ -132,5 +135,9 @@ export class AppComponent implements OnInit {
       e.pageIndex * e.pageSize,
       (e.pageIndex + 1) * e.pageSize
     );
+  };
+
+  resizeImages = (e: Event) => {
+    this.imageSize = (e.target as HTMLInputElement).valueAsNumber;
   };
 }

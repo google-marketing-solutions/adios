@@ -4,7 +4,8 @@
     "module": "es2020",
     "lib": [
       "es2020",
-      "ES2021.String"
+      "ES2021.String",
+      "dom"
     ],
     "moduleResolution": "node",
     "outDir": "dist",
