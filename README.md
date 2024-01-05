@@ -49,7 +49,9 @@ Adios provides an optional UI for users to check the generated images and approv
 
 You can use it as folows:
 
-1. Ensure that there is a set `Validated DIR` in the configuration Spreadsheet
+1. Ensure that there is a set `Validated DIR` in the configuration Spreadsheet (e.g. `VALIDATED`)
+
+    This is the name for the directory in the GCS bucket, where approved images will be saved. Disapproved images will be saved to the directory specified in `Disapproved DIR`.
 
 1. In the Spreadsheet, open Extensions > Apps Script
 
