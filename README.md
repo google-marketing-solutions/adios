@@ -20,6 +20,11 @@ limitations under the License.
 [![GitHub last commit](https://img.shields.io/github/last-commit/google-marketing-solutions/adios)](https://github.com/google-marketing-solutions/adios/commits)
 [![Code Style: Google](https://img.shields.io/badge/code%20style-google-blueviolet.svg)](https://github.com/google/gts)
 
+
+https://github.com/google-marketing-solutions/adios/assets/3335483/71be79f8-8393-444f-961a-ced8316df6d2
+
+
+
 ## Overview
 
 **Adios** is an open-source solution that can generate and/or upload image assets for your Ad Groups. If you already have images Adios will be able to upload them to the Google Ads asset library and link to the corresponding ad groups in bulk. If you don't, then Adios will use AI to generate personalised images based on the specified ad group context (e.g. based on the ad group name).
