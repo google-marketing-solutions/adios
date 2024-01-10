@@ -46,7 +46,7 @@ More specifically the challenges are to:
 
 Our team in a close collaboration with several advertisers developed a custom solution **Adios**.
 
-## The solution
+## The Solution
 
 Here are some of the main features of the solution:
 
