@@ -79,6 +79,38 @@ Here are some of the main features of the solution:
 
 1. Now you can run or schedule the Adios services using the Adios menu
 
+## Testing performance of the generated assets
+
+Many advertisers want to measure the impact of adding generated assets.
+This can be properly done only with an A/B test where the traffic is split between:
+
+- Variant A: generated assets are added on the ad group level
+- Variant B: previous ads configuration (most probably one of the following: no image assets at all or image assets added on campaign/account level)
+
+Adios can create such tests for you in the form of
+[Google Ads Experiments](https://support.google.com/google-ads/answer/6261395?hl=en) with a click of a button.
+
+### How to implement
+
+- Step 1: Generate new image assets, upload them to the assets library and link
+  them to the ad groups (please check the main menu "Adios > Run > ...")
+- Step 2: Create experiments (one for each campaign configured in the `Campaign IDs` of "Config" sheet) by running "Adios > Run > Create experiments"
+
+As a result you will be able to see newly created experiments in the
+[Experiments](https://ads.google.com/aw/experiments/all) section of your Google Ads account.
+
+### Keep in mind
+
+1. Please consider the limitations of Google Ads experiments,
+   especially remember that you can run only one experiment per campaign simultaneously.
+   So if you already have running experiments for the selected campaigns, you won't
+   be able to run a new one for those campaigns. You can check running experiments
+   [here](https://ads.google.com/aw/experiments/all).
+
+2. If you make changes to your original campaign, those changes won’t be reflected
+   on your experiment. Making changes to either your original campaign or experiment
+   while your experiment is running may make it harder to interpret your results.
+
 ## Development Guide
 
 If you'd like to make your own changes to the solution or contribute to it, you can run the code as follows:
