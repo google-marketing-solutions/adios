@@ -30,7 +30,7 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/71be79f8-8393
 
 To generate images Adios uses the recent [Gemini](https://blog.google/technology/ai/google-gemini-ai/) model on Google Cloud's [Vertex AI image generation API](https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview).
 
-## Case study
+## Case Study
 
 You can find [Adios case study in German](https://www.thinkwithgoogle.com/intl/de-de/marketing-strategien/automatisierung/tourlane-generative-ki/) (or you can try [Google Translate version](https://www-thinkwithgoogle-com.translate.goog/intl/de-de/marketing-strategien/automatisierung/tourlane-generative-ki/?_x_tr_sl=de&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=in,wapp), just select your preferred language in the top menu).
 
