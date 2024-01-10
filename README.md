@@ -111,6 +111,27 @@ As a result you will be able to see newly created experiments in the
    on your experiment. Making changes to either your original campaign or experiment
    while your experiment is running may make it harder to interpret your results.
 
+## Using the Validation UI
+
+Adios provides an optional UI for users to check the generated images and approve/reject them before uploading them to the Google Ads account.
+
+You can use it as folows:
+
+1. Ensure that there is a set `Validated DIR` in the configuration Spreadsheet (e.g. `VALIDATED`)
+
+    This is the name for the directory in the GCS bucket, where approved images will be saved. Disapproved images will be saved to the directory specified in `Disapproved DIR`.
+
+1. In the Spreadsheet, open Extensions > Apps Script
+
+1. Click Deploy > Test deployments
+
+1. Open the URL under Web App
+
+
+<img src="./img/validation-ui.png"></img>
+
+You can click the images pending validation (the ones with the yellow status icon) and approve or reject them using the buttons on the top-right.
+
 ## Development Guide
 
 If you'd like to make your own changes to the solution or contribute to it, you can run the code as follows:
