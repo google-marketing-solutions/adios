@@ -51,7 +51,7 @@ Our team in a close collaboration with several advertisers developed a custom so
 Here are some of the main features of the solution:
 
 - generate thousands/millions of images with the help of Generative AI on Google Cloud (please note that with small code changes almost any Gen AI API can be used for this purpose)
-- automatically upload and manage image assets on Google Ads. If you already have the assets, this part can be used separately (without generating images).
+- automatically upload and manage image assets on Google Ads. If you already have the assets, this part can be used separately (without generating images)
 - manually validate generated images (this is optional, in case you want to double check the quality of the generated assets before uploading them to your ads)
 - create Google Ads experiment. For each selected campaign Adios can automatically create an A/B test to check if your new assets perform better compared to the previous setup (in terms of click-through rate)
 
