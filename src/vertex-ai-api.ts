@@ -39,13 +39,12 @@ export class VertexAiApi {
     };
   }
 
-  callVisionApi(prompt: string, sampleCount = 8, sampleImageSize = '1024') {
+  callVisionApi(prompt: string, sampleCount = 8) {
     console.log('prompt', prompt);
     const options = Object.assign({}, this._baseOptions);
     const payload = {
       instances: [{ prompt }],
       parameters: {
-        sampleImageSize,
         sampleCount,
       },
     };
@@ -54,6 +53,10 @@ export class VertexAiApi {
       `https://${this._apiEndpoint}/v1/projects/${this._projectId}/locations/us-central1/publishers/google/models/imagegeneration:predict`,
       options
     );
+    if (200 != result.getResponseCode()) {
+      throw `ERROR: Headers: ${result.getAllHeaders()}, Content: ${result.getContentText()}`;
+    }
+    
     const resultParsed: VisionApiResponse = JSON.parse(
       result.getContentText('UTF-8')
     );
