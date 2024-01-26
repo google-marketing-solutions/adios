@@ -28,7 +28,7 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/71be79f8-8393
 
 **Adios** is an open-source solution that can generate and/or upload image assets for your Ad Groups. If you already have images Adios will be able to upload them to the Google Ads asset library and link to the corresponding ad groups in bulk. If you don't, then Adios will use AI to generate personalized images based on the specified ad group context (e.g. based on the ad group name).
 
-To generate images Adios uses the recent [Gemini](https://blog.google/technology/ai/google-gemini-ai/) model on Google Cloud's [Vertex AI image generation API](https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview).
+To generate images Adios uses the recent [Imagen](https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview) model on Google Cloud's [Vertex AI](https://cloud.google.com/vertex-ai/) platform.
 
 ## Case Study
 
