@@ -81,11 +81,11 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1
 ## Assets generation
 Note: this step is not required if you already have the assets.
 
-
+https://github.com/google-marketing-solutions/adios/assets/3335483/72db55da-7ed1-47bb-8daf-b61d50fb1ea7
 
 ## Assets upload and linking to Add Groups
 
-
+https://github.com/google-marketing-solutions/adios/assets/3335483/da5ed888-38c2-49a2-b53d-1b0926b524c2
 
 ## Testing performance of the generated assets
 
@@ -98,9 +98,9 @@ This can be properly done only with an A/B test where the traffic is split betwe
 Adios can create such tests for you in the form of
 [Google Ads Experiments](https://support.google.com/google-ads/answer/6261395?hl=en) with a click of a button.
 
-### How to implement the experiment
+### How to implement the experiments
 
-
+https://github.com/google-marketing-solutions/adios/assets/3335483/3c7820a1-6f2e-41e3-8a77-b3204e97d280
 
 - Step 1: Generate new image assets, upload them to the assets library and link
   them to the ad groups (please check the main menu "Adios > Run > ...")
@@ -122,10 +122,9 @@ As a result you will be able to see newly created experiments in the
    while your experiment is running may make it harder to interpret your results.
 
 ## Using the Validation UI
-
-
-
 Adios provides an optional UI for users to check the generated images and approve/reject them before uploading them to the Google Ads account.
+
+https://github.com/google-marketing-solutions/adios/assets/3335483/d3b15133-6f9e-4057-8fd7-b4ac77aff954
 
 You can use it as folows:
 
@@ -138,7 +137,6 @@ You can use it as folows:
 1. Click Deploy > Test deployments
 
 1. Open the URL under Web App
-
 
 <img src="./img/validation-ui.png"></img>
 
