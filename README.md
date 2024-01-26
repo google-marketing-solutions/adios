@@ -55,7 +55,7 @@ Here are some of the main features of the solution:
 - manually validate generated images (this is optional, in case you want to double check the quality of the generated assets before uploading them to your ads)
 - create Google Ads experiments. For each selected campaign Adios can automatically create an A/B test to check if your new assets perform better compared to the previous setup (in terms of click-through rate)
 
-## Getting Started
+## Getting Started / Installation Guide
 
 1. Make a copy of the [template Spreadsheet](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/copy?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug)
 
@@ -73,7 +73,6 @@ Here are some of the main features of the solution:
 
 1. Go to Project Settings and [change the GCP project](https://developers.google.com/apps-script/guides/cloud-platform-projects).
    Learn how to [determine the project **number**](https://developers.google.com/apps-script/guides/cloud-platform-projects#determine_the_id_number_of_a_standard)
-   ![Step 3: Connect your Google Cloud project to the copied Sheet](assets/gifs/change-gcp-number.gif)
 
 1. Fill in the required configuration in the Spreadsheet, as instructed in the comments
 
