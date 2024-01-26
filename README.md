@@ -138,8 +138,6 @@ You can use it as folows:
 
 1. Open the URL under Web App
 
-<img src="./img/validation-ui.png"></img>
-
 You can click the images pending validation (the ones with the yellow status icon) and approve or reject them using the buttons on the top-right.
 
 ## Development Guide
