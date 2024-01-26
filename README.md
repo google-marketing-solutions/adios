@@ -48,7 +48,7 @@ Our team in a close collaboration with several advertisers developed a custom so
 
 ## The Solution
 
-Here are some of the main features of the solution:
+Here are some of the main features of Adios:
 
 - generate thousands/millions of images with the help of Generative AI on Google Cloud (please note that with small code changes almost any Gen AI API can be used for this purpose)
 - automatically upload and manage image assets on Google Ads. If you already have the assets, this part can be used separately (without generating images)
@@ -78,6 +78,15 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1
 
 1. Now you can run or schedule the Adios services using the Adios menu
 
+## Assets generation
+Note: this step is not required if you already have the assets.
+
+
+
+## Assets upload and linking to Add Groups
+
+
+
 ## Testing performance of the generated assets
 
 Many advertisers want to measure the impact of adding generated assets.
@@ -89,7 +98,9 @@ This can be properly done only with an A/B test where the traffic is split betwe
 Adios can create such tests for you in the form of
 [Google Ads Experiments](https://support.google.com/google-ads/answer/6261395?hl=en) with a click of a button.
 
-### How to implement
+### How to implement the experiment
+
+
 
 - Step 1: Generate new image assets, upload them to the assets library and link
   them to the ad groups (please check the main menu "Adios > Run > ...")
@@ -111,6 +122,8 @@ As a result you will be able to see newly created experiments in the
    while your experiment is running may make it harder to interpret your results.
 
 ## Using the Validation UI
+
+
 
 Adios provides an optional UI for users to check the generated images and approve/reject them before uploading them to the Google Ads account.
 
