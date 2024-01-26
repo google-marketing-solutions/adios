@@ -55,18 +55,18 @@ Here are some of the main features of the solution:
 - manually validate generated images (this is optional, in case you want to double check the quality of the generated assets before uploading them to your ads)
 - create Google Ads experiments. For each selected campaign Adios can automatically create an A/B test to check if your new assets perform better compared to the previous setup (in terms of click-through rate)
 
-## Getting Started / Installation Guide
+## Installation Guide
+
+https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1-4fdb-b366-67a33700180e
 
 1. Make a copy of the [template Spreadsheet](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/copy?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug)
 
 1. Create or use an existing [Google Cloud Platform](https://console.cloud.google.com/) (GCP) project
 
    - Ensure that billing is enabled on the project
-
    - Enable the [Google Ads API](https://console.cloud.google.com/apis/api/googleads.googleapis.com)
-
    - Enable the [Cloud Storage API](https://console.cloud.google.com/apis/api/storage.googleapis.com)
-
+   - Configure [OAuth consent](https://console.cloud.google.com/apis/credentials/consent) (if you haven't done before for this project)
    - If you would like to generate images, make sure that you have access to the [Vertex AI API](https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview)
 
 1. On the copied Spreadsheet, open Extensions > Apps Script
