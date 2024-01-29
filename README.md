@@ -48,36 +48,44 @@ Our team in a close collaboration with several advertisers developed a custom so
 
 ## The Solution
 
-Here are some of the main features of the solution:
+Here are some of the main features of Adios:
 
 - generate thousands/millions of images with the help of Generative AI on Google Cloud (please note that with small code changes almost any Gen AI API can be used for this purpose)
 - automatically upload and manage image assets on Google Ads. If you already have the assets, this part can be used separately (without generating images)
 - manually validate generated images (this is optional, in case you want to double check the quality of the generated assets before uploading them to your ads)
 - create Google Ads experiments. For each selected campaign Adios can automatically create an A/B test to check if your new assets perform better compared to the previous setup (in terms of click-through rate)
 
-## Getting Started
+## Installation Guide
+
+https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1-4fdb-b366-67a33700180e
 
 1. Make a copy of the [template Spreadsheet](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/copy?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug)
 
 1. Create or use an existing [Google Cloud Platform](https://console.cloud.google.com/) (GCP) project
 
    - Ensure that billing is enabled on the project
-
    - Enable the [Google Ads API](https://console.cloud.google.com/apis/api/googleads.googleapis.com)
-
    - Enable the [Cloud Storage API](https://console.cloud.google.com/apis/api/storage.googleapis.com)
-
+   - Configure [OAuth consent](https://console.cloud.google.com/apis/credentials/consent) (if you haven't done before for this project)
    - If you would like to generate images, make sure that you have access to the [Vertex AI API](https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview)
 
 1. On the copied Spreadsheet, open Extensions > Apps Script
 
 1. Go to Project Settings and [change the GCP project](https://developers.google.com/apps-script/guides/cloud-platform-projects).
    Learn how to [determine the project **number**](https://developers.google.com/apps-script/guides/cloud-platform-projects#determine_the_id_number_of_a_standard)
-   ![Step 3: Connect your Google Cloud project to the copied Sheet](assets/gifs/change-gcp-number.gif)
 
 1. Fill in the required configuration in the Spreadsheet, as instructed in the comments
 
 1. Now you can run or schedule the Adios services using the Adios menu
+
+## Assets generation
+Note: this step is not required if you already have the assets.
+
+https://github.com/google-marketing-solutions/adios/assets/3335483/72db55da-7ed1-47bb-8daf-b61d50fb1ea7
+
+## Assets upload and linking to Add Groups
+
+https://github.com/google-marketing-solutions/adios/assets/3335483/da5ed888-38c2-49a2-b53d-1b0926b524c2
 
 ## Testing performance of the generated assets
 
@@ -90,7 +98,9 @@ This can be properly done only with an A/B test where the traffic is split betwe
 Adios can create such tests for you in the form of
 [Google Ads Experiments](https://support.google.com/google-ads/answer/6261395?hl=en) with a click of a button.
 
-### How to implement
+### How to implement the experiments
+
+https://github.com/google-marketing-solutions/adios/assets/3335483/3c7820a1-6f2e-41e3-8a77-b3204e97d280
 
 - Step 1: Generate new image assets, upload them to the assets library and link
   them to the ad groups (please check the main menu "Adios > Run > ...")
@@ -112,8 +122,9 @@ As a result you will be able to see newly created experiments in the
    while your experiment is running may make it harder to interpret your results.
 
 ## Using the Validation UI
-
 Adios provides an optional UI for users to check the generated images and approve/reject them before uploading them to the Google Ads account.
+
+https://github.com/google-marketing-solutions/adios/assets/3335483/d3b15133-6f9e-4057-8fd7-b4ac77aff954
 
 You can use it as folows:
 
@@ -126,9 +137,6 @@ You can use it as folows:
 1. Click Deploy > Test deployments
 
 1. Open the URL under Web App
-
-
-<img src="./img/validation-ui.png"></img>
 
 You can click the images pending validation (the ones with the yellow status icon) and approve or reject them using the buttons on the top-right.
 
