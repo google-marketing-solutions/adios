@@ -67,9 +67,13 @@ export class GcsApi {
     return `https://storage.cloud.google.com/${result.bucket}/${result.name}`;
   }
 
-  listImages(accountId: string, adGroupId: string, imageStatusFolders: string[]) {
+  listImages(
+    accountId: string,
+    adGroupId: string,
+    imageStatusFolders: string[]
+  ) {
     const imageDirs = imageStatusFolders.join(',');
-    
+
     // We want to exclude *.json metadata files
     const matchGlob = `${accountId}/${adGroupId}/{${imageDirs}}/*[^jJ][^sS][^oO][^nN]`;
 
@@ -231,10 +235,8 @@ export class GcsApi {
     }
 
     for (const image of images.items) {
-      const newFileName = image.name
-        .split('/')
-        .slice(-1)[0];
-      
+      const newFileName = image.name.split('/').slice(-1)[0];
+
       const toFile = `${toAccountId}/${toAdGroupId}/${toDir}/${newFileName}`;
       Logger.log(`Copying from "${image.name}" to "${toFile}"`);
       this._copyImage(image.name, toFile);
@@ -244,5 +246,7 @@ export class GcsApi {
 
 function testGcsApi() {
   const gcsApi = new GcsApi('adios-test');
-  Logger.log(gcsApi.listImages('*', ['*']));
+  Logger.log(
+    gcsApi.listAllImages('9044713567')?.items.map(x => Logger.log(x.name))
+  );
 }

@@ -34,21 +34,6 @@ export class GeminiValidationService {
   private readonly _vertexAiApi;
 
   private readonly sheetName = 'Policies';
-  private readonly prompt = `
-You are a policy checker who checks one by one the policies on the images and highlights the issues with the images.
-Here is a list of policies (one policy per line):
-"<policies>"
-
-Please check the image and if it violates any policy please highlight those violations.
-If there are violations respond in the following JSON format (as a JSON array):
-[
-  {
-    "policy": Violated policy text,
-    "reasoning": Reason: Explnation why the image violates that policy
-  }, 
-  ...
-]
-`;
 
   constructor() {
     this._gcsApi = new GcsApi(CONFIG['GCS Bucket']);
@@ -63,10 +48,18 @@ If there are violations respond in the following JSON format (as a JSON array):
     );
   }
 
+  getPrompt() {
+    if (!CONFIG['Image Validation Prompt']) {
+      throw 'Config variable "Image Validation Prompt" should not be empty';
+    }
+
+    return CONFIG['Image Validation Prompt'];
+  }
+
   getPolicies() {
     const error = `Error: No policies are found. 
       Please write the policies in the sheet "${this.sheetName}". 
-      Remember, the first row is always the header.`;
+      Remember, the first row is always header.`;
 
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
       this.sheetName
@@ -87,7 +80,10 @@ If there are violations respond in the following JSON format (as a JSON array):
   }
 
   run() {
-    const prompt = this.prompt.replaceAll('<policies>', this.getPolicies());
+    const prompt = this.getPrompt().replaceAll(
+      '<policies>',
+      this.getPolicies()
+    );
 
     const adGroups = this._googleAdsApi.getAdGroups();
     for (const adGroup of adGroups) {
@@ -116,19 +112,14 @@ If there are violations respond in the following JSON format (as a JSON array):
 
           Logger.log('Response from Gemini:');
           Logger.log(validationResult);
-          Logger.log(JSON.parse(validationResult));
 
           if (validationResult) {
-            try {
-              const json = JSON.parse(validationResult);
-              if (json.length) {
-                violationsPerImage.push({
-                  image: image.name,
-                  violations: json,
-                });
-              }
-            } catch (e) {
-              Logger.log(e);
+            const json = this.textToJSON(validationResult);
+            if (json.length) {
+              violationsPerImage.push({
+                image: image.name,
+                violations: json,
+              });
             }
           }
         });
@@ -136,17 +127,24 @@ If there are violations respond in the following JSON format (as a JSON array):
         if (violationsPerImage.length) {
           const jsonPath = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}/policyViolations.json`;
           Logger.log(`Saving violations on GCS: ${jsonPath}`);
-
-          Logger.log(jsonPath);
-          Logger.log(violationsPerImage);
-          Logger.log(JSON.stringify(violationsPerImage));
-
           this._gcsApi.uploadFile(JSON.stringify(violationsPerImage), jsonPath);
         }
       }
     }
 
     Logger.log('Finished validating images.');
+  }
+
+  textToJSON(text: string) {
+    try {
+      const escapedText = text.replaceAll('```json', '').replaceAll('```', '');
+
+      return JSON.parse(escapedText);
+    } catch (e) {
+      Logger.log(e);
+    }
+
+    return {};
   }
 }
 
