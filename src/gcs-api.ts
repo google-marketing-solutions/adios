@@ -25,6 +25,24 @@ export class GcsApi {
     this._bucket = bucket;
   }
 
+  uploadFile(content: string, gcsPath: string) {
+    const url = `${this._BASE_PATH}/upload/storage/v1/b/${this._bucket}/o?uploadType=media&name=${gcsPath}`;
+    const accessToken = ScriptApp.getOAuthToken();
+
+    const response = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: content,
+      muteHttpExceptions: true,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const result = JSON.parse(response.getContentText());
+    return `https://storage.cloud.google.com/${result.bucket}/${result.name}`;
+  }
+
   uploadImage(
     blob: GoogleAppsScript.Base.Blob,
     name: string,
@@ -49,12 +67,17 @@ export class GcsApi {
     return `https://storage.cloud.google.com/${result.bucket}/${result.name}`;
   }
 
-  listAllImages(accountId: string) {
-    const matchGlob = `${accountId}/*/*/*`;
+  listImages(accountId: string, adGroupId: string, imageStatusFolders: string[]) {
+    const imageDirs = imageStatusFolders.join(',');
+    
+    // We want to exclude *.json metadata files
+    const matchGlob = `${accountId}/${adGroupId}/{${imageDirs}}/*[^jJ][^sS][^oO][^nN]`;
+
     const url = `${this._BASE_PATH}/storage/v1/b/${
       this._bucket
     }/o?matchGlob=${encodeURIComponent(matchGlob)}`;
     const accessToken = ScriptApp.getOAuthToken();
+
     const response = UrlFetchApp.fetch(url, {
       method: 'get',
       muteHttpExceptions: true,
@@ -62,32 +85,15 @@ export class GcsApi {
         Authorization: `Bearer ${accessToken}`,
       },
     });
+
     const result: GoogleCloud.Storage.ListResponse = JSON.parse(
       response.getContentText()
     );
     return result;
   }
 
-  listImages(accountId: string, adGroupId: string, imageTypes: string[]) {
-    const imageDirs = imageTypes.join(',');
-    const matchGlob = `${accountId}/${adGroupId}/{${imageDirs}}/*`;
-    const url = `${this._BASE_PATH}/storage/v1/b/${
-      this._bucket
-    }/o?matchGlob=${encodeURIComponent(matchGlob)}`;
-    const accessToken = ScriptApp.getOAuthToken();
-
-    const response = UrlFetchApp.fetch(url, {
-      method: 'get',
-      muteHttpExceptions: true,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    const result: GoogleCloud.Storage.ListResponse = JSON.parse(
-      response.getContentText()
-    );
-    return result;
+  listAllImages(accountId: string) {
+    return this.listImages(accountId, '*', ['*']);
   }
 
   _getImage(fileName: string) {
@@ -227,11 +233,16 @@ export class GcsApi {
     for (const image of images.items) {
       const newFileName = image.name
         .split('/')
-        .slice(-1)[0]
-        .replace(/_br\|/, '_ph|');
+        .slice(-1)[0];
+      
       const toFile = `${toAccountId}/${toAdGroupId}/${toDir}/${newFileName}`;
       Logger.log(`Copying from "${image.name}" to "${toFile}"`);
       this._copyImage(image.name, toFile);
     }
   }
+}
+
+function testGcsApi() {
+  const gcsApi = new GcsApi('adios-test');
+  Logger.log(gcsApi.listImages('*', ['*']));
 }
