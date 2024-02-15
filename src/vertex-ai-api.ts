@@ -53,7 +53,7 @@ export class VertexAiApi {
       `https://${this._apiEndpoint}/v1/projects/${this._projectId}/locations/us-central1/publishers/google/models/imagegeneration:predict`,
       options
     );
-    if (200 != result.getResponseCode()) {
+    if (200 !== result.getResponseCode()) {
       throw `ERROR: Headers: ${result.getAllHeaders()}, Content: ${result.getContentText()}`;
     }
     
