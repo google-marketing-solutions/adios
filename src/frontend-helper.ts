@@ -1,5 +1,6 @@
 import { CONFIG } from './config';
 import { GcsApi } from './gcs-api';
+import { POLICY_VIOLATIONS_FILE } from './gemini-validation-service';
 
 /**
  * Copyright 2023 Google LLC
@@ -84,6 +85,7 @@ const getData = () => {
       filename,
       url: `https://storage.mtls.cloud.google.com/${CONFIG['GCS Bucket']}/${e.name}`,
       status,
+      policyViolations: gcsApi.getJSONFromFile(`${CONFIG['Account ID']}/${adGroupId}/${POLICY_VIOLATIONS_FILE}`),
     });
   });
   const result: AdGroup[] = [];

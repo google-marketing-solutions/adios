@@ -18,6 +18,8 @@ import { GcsApi } from './gcs-api';
 import { GoogleAdsApi } from './google-ads-api';
 import { VertexAiApi } from './vertex-ai-api';
 
+export const POLICY_VIOLATIONS_FILE = "policyViolations.json";
+
 interface PolicyViolation {
   policy: string;
   reasoning: string;
@@ -125,7 +127,7 @@ export class GeminiValidationService {
         });
 
         if (violationsPerImage.length) {
-          const jsonPath = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}/policyViolations.json`;
+          const jsonPath = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}/`;
           Logger.log(`Saving violations on GCS: ${jsonPath}`);
           this._gcsApi.uploadFile(JSON.stringify(violationsPerImage), jsonPath);
         }
