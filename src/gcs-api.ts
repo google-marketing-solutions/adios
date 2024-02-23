@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import { CONFIG } from './config';
-
 export class GcsApi {
   private readonly _BASE_PATH: string;
   private readonly _bucket: string;
@@ -100,7 +98,7 @@ export class GcsApi {
     return this.listImages(accountId, '*', ['*']);
   }
 
-  _getImage(fileName: string) {
+  getFile(fileName: string, isTextFile = false) {
     const url = `${this._BASE_PATH}/storage/v1/b/${
       this._bucket
     }/o/${encodeURIComponent(fileName)}?alt=media`;
@@ -112,6 +110,11 @@ export class GcsApi {
         Authorization: `Bearer ${accessToken}`,
       },
     });
+
+    if (isTextFile) {
+      return response.getContentText();
+    }
+
     return response.getContent();
   }
 
@@ -133,7 +136,7 @@ export class GcsApi {
       return {
         name: e.name.split('/').slice(-1)[0],
         fullName: e.name,
-        content: this._getImage(e.name),
+        content: this.getFile(e.name),
       };
     });
     return images;

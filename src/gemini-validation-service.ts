@@ -18,14 +18,14 @@ import { GcsApi } from './gcs-api';
 import { GoogleAdsApi } from './google-ads-api';
 import { VertexAiApi } from './vertex-ai-api';
 
-export const POLICY_VIOLATIONS_FILE = "policyViolations.json";
+export const POLICY_VIOLATIONS_FILE = 'policyViolations.json';
 
-interface PolicyViolation {
+export interface PolicyViolation {
   policy: string;
   reasoning: string;
 }
 
-interface ImagePolicyViolations {
+export interface ImagePolicyViolations {
   image: string;
   violations: PolicyViolation[];
 }

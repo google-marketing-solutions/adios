@@ -1,7 +1,3 @@
-import { CONFIG } from './config';
-import { GcsApi } from './gcs-api';
-import { POLICY_VIOLATIONS_FILE } from './gemini-validation-service';
-
 /**
  * Copyright 2023 Google LLC
  *
@@ -17,6 +13,14 @@ import { POLICY_VIOLATIONS_FILE } from './gemini-validation-service';
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { CONFIG } from './config';
+import { GcsApi } from './gcs-api';
+import {
+  POLICY_VIOLATIONS_FILE,
+  ImagePolicyViolations,
+  PolicyViolation,
+} from './gemini-validation-service';
+
 export const FRONTEND_HELPER = null;
 
 export enum IMAGE_STATUS {
@@ -34,20 +38,28 @@ export interface AdGroup {
   images: Image[];
 }
 
+export interface ImageIssue {
+  message: string;
+  description: string;
+}
+
 export interface Image {
   filename: string;
   url: string;
   status: IMAGE_STATUS;
   selected?: boolean;
+  issues?: ImageIssue[];
 }
 
+const gcsApi = new GcsApi(CONFIG['GCS Bucket']);
+
 const getData = () => {
-  const gcsApi = new GcsApi(CONFIG['GCS Bucket']);
   const gcsImages = gcsApi.listAllImages(CONFIG['Account ID']);
   const adGroups: { [id: string]: Image[] } = {};
   if (!gcsImages.items) {
     return [];
   }
+
   gcsImages.items.forEach(e => {
     const statusFolder = e.name.split('/')[2];
     let status: IMAGE_STATUS | null = null;
@@ -81,11 +93,16 @@ const getData = () => {
     if (!adGroups[adGroupId]) {
       adGroups[adGroupId] = [];
     }
+
+    const issues = policyStatusByAdGroup.getIssues(adGroupId, filename);
+    Logger.log('issues');
+    Logger.log(issues);
+
     adGroups[adGroupId].push({
       filename,
       url: `https://storage.mtls.cloud.google.com/${CONFIG['GCS Bucket']}/${e.name}`,
       status,
-      policyViolations: gcsApi.getJSONFromFile(`${CONFIG['Account ID']}/${adGroupId}/${POLICY_VIOLATIONS_FILE}`),
+      issues,
     });
   });
   const result: AdGroup[] = [];
@@ -114,3 +131,58 @@ const setImageStatus = (images: Image[], status: IMAGE_STATUS) => {
     );
   });
 };
+
+class policyStatusByAdGroup {
+  // adGroupIssues[adGroupId][filename]
+  static adGroupIssues: {
+    [key: string]: { [key: string]: PolicyViolation[] };
+  } = {};
+
+  static getIssues(adGroupId: string, filename: string) {
+    if (!(adGroupId in policyStatusByAdGroup.adGroupIssues)) {
+      policyStatusByAdGroup.adGroupIssues[adGroupId] =
+        policyStatusByAdGroup.getIssuesFromJSON(adGroupId);
+
+      Logger.log('getIssues');
+      Logger.log(policyStatusByAdGroup.adGroupIssues[adGroupId]);
+    }
+
+    return filename in policyStatusByAdGroup.adGroupIssues[adGroupId]
+      ? policyStatusByAdGroup.policyViolationsToImageIssues(
+          policyStatusByAdGroup.adGroupIssues[adGroupId][filename]
+        )
+      : [];
+  }
+
+  static policyViolationsToImageIssues(policyViolations: PolicyViolation[]) {
+    return policyViolations.map(pv => ({
+      message: `Policy violation: "${pv.policy}"`,
+      description: pv.reasoning,
+    }));
+  }
+
+  static getIssuesFromJSON(adGroupId: string): {
+    [key: string]: PolicyViolation[];
+  } {
+    const fullName = `${CONFIG['Account ID']}/${adGroupId}/${CONFIG['Generated DIR']}/${POLICY_VIOLATIONS_FILE}`;
+    Logger.log('getFile');
+    Logger.log(gcsApi.getFile(fullName, true));
+
+    try {
+      const json = JSON.parse(gcsApi.getFile(fullName, true).toString());
+      Logger.log('getIssuesFromJSON');
+      Logger.log(json);
+
+      return json.reduce(
+        (accumulator: any, currentValue: ImagePolicyViolations) => ({
+          ...accumulator,
+          [currentValue.image]: currentValue.violations,
+        }),
+        {}
+      );
+    } catch (e) {
+      Logger.log(e);
+      return {};
+    }
+  }
+}
