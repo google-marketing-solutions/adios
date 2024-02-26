@@ -127,7 +127,7 @@ export class GeminiValidationService {
         });
 
         if (violationsPerImage.length) {
-          const jsonPath = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}/`;
+          const jsonPath = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}/${POLICY_VIOLATIONS_FILE}`;
           Logger.log(`Saving violations on GCS: ${jsonPath}`);
           this._gcsApi.uploadFile(JSON.stringify(violationsPerImage), jsonPath);
         }
@@ -140,13 +140,12 @@ export class GeminiValidationService {
   textToJSON(text: string) {
     try {
       const escapedText = text.replaceAll('```json', '').replaceAll('```', '');
-
       return JSON.parse(escapedText);
     } catch (e) {
       Logger.log(e);
     }
 
-    return {};
+    return [];
   }
 }
 
