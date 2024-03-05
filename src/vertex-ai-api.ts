@@ -56,7 +56,7 @@ export class VertexAiApi {
     if (200 !== result.getResponseCode()) {
       throw `ERROR: Headers: ${result.getAllHeaders()}, Content: ${result.getContentText()}`;
     }
-    
+
     const resultParsed: VisionApiResponse = JSON.parse(
       result.getContentText('UTF-8')
     );

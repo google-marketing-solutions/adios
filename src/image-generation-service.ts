@@ -82,6 +82,10 @@ export class ImageGenerationService {
         prompt = CONFIG['ImgGen Prompt'];
       }
 
+      if (CONFIG['Prompt translations sheet']) {
+        prompt = this.applyTranslations(prompt);
+      }
+
       if (CONFIG['ImgGen Prompt Suffix']) {
         prompt += ', ' + CONFIG['ImgGen Prompt Suffix'];
       }
@@ -164,6 +168,34 @@ export class ImageGenerationService {
       prompt = prompt.replaceAll('${' + key + '}', value);
     }
     return prompt;
+  }
+  /**
+   * Simple text replacer
+   *
+   * @param prompt
+   */
+  applyTranslations(prompt: string) {
+    const error = `Error: No translations are found.
+      Please check that sheet "${CONFIG['Prompt translations sheet']}" exists 
+      and contains the translations. Remember, the first row is always header.`;
+
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
+      CONFIG['Prompt translations sheet']
+    );
+    if (!sheet) {
+      throw error;
+    }
+
+    const translations = sheet.getDataRange().getValues().slice(1); // Removing the header
+    if (!translations) {
+      throw error;
+    }
+
+    let result = prompt;
+    translations.forEach(t => {
+      result = result.replaceAll(t[0], t[1]);
+    });
+    return result;
   }
 }
 

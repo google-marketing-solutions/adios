@@ -34,6 +34,7 @@ interface Config {
   'Validated DIR': string;
   'Rejected DIR': string;
   'Ad Group Name Regex': string;
+  'Prompt translations sheet': string;
 }
 
 const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config');
@@ -58,6 +59,7 @@ const DEFAULT_CONFIG = {
   'Validated DIR': '',
   'Rejected DIR': '',
   'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default
+  'Prompt translations sheet': '',
 };
 
 export const CONFIG: Config =
