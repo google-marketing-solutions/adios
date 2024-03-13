@@ -35,6 +35,7 @@ interface Config {
   'Rejected DIR': string;
   'Ad Group Name Regex': string;
   'Image Validation Prompt': string;
+  'Mock Ad Groups Sheet': string;
 }
 
 const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config');
@@ -60,6 +61,7 @@ const DEFAULT_CONFIG = {
   'Rejected DIR': '',
   'Image Validation Prompt': '',
   'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default
+  'Mock Ad Groups Sheet': '',
 };
 
 export const CONFIG: Config =

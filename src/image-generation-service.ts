@@ -36,8 +36,43 @@ export class ImageGenerationService {
     );
   }
 
+  getMockedAdGroups(sheetName: string) {
+    const error = `Error: No policies are found. 
+        Please write the policies in the sheet "${sheetName}". 
+        Remember, the first row is always header.`;
+
+    const sheet =
+      SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+    if (!sheet) {
+      throw error;
+    }
+
+    const sheetData = sheet.getDataRange().getDisplayValues();
+    if (!sheetData) {
+      throw error;
+    }
+
+    return sheetData
+      .slice(1) // Removing the header
+      .map((x, index) => ({
+        adGroup: {
+          id: x[0],
+          name: x[0],
+        },
+        customer: { id: 'mocked' },
+      })); // Only the first column contains the policy text
+  }
+
+  getAdGroups() {
+    if (CONFIG['Mock Ad Groups Sheet']) {
+      return this.getMockedAdGroups(CONFIG['Mock Ad Groups Sheet']);
+    }
+
+    return this._googleAdsApi.getAdGroups();
+  }
+
   run() {
-    const adGroups = this._googleAdsApi.getAdGroups();
+    const adGroups = this.getAdGroups();
     for (const adGroup of adGroups) {
       Logger.log(
         `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
