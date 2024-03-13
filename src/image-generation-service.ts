@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG } from './config';
+import { ADIOS_MODES, CONFIG } from './config';
 import { GcsApi } from './gcs-api';
 import { GoogleAdsApi } from './google-ads-api';
 import { VertexAiApi } from './vertex-ai-api';
@@ -37,11 +37,14 @@ export class ImageGenerationService {
   }
 
   run() {
+    const MAX_TRIES = 3;
     const adGroups = this._googleAdsApi.getAdGroups();
     for (const adGroup of adGroups) {
       Logger.log(
         `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
       );
+      let generatedImages = 0;
+      let numTries = 0;
       // TODO: Add logic to only generate images if < "Max. bad images"
       const existingImgCount = this._gcsApi.countImages(
         adGroup.customer.id,
@@ -58,57 +61,117 @@ export class ImageGenerationService {
         );
         continue;
       }
-      // Generate images
-      let imgCount =
-        CONFIG['Number of images per Ad Group']! - existingImgCount;
-      if (imgCount > CONFIG['Number of images per API call']) {
-        imgCount = CONFIG['Number of images per API call'];
-      }
+      // Calculate how many images have to be generated for this Ad Group in the whole execution, in batches
+      const adGroupImgCount =
+        CONFIG['Number of images per Ad Group'] - existingImgCount;
       Logger.log(
-        `Generating ${imgCount} images for ${adGroup.adGroup.name}(${adGroup.adGroup.id})...`
+        `Generating ${adGroupImgCount} images for ${adGroup.adGroup.name}(${adGroup.adGroup.id})...`
       );
-      if (imgCount === 0) {
-        continue;
-      }
-      const regex = new RegExp(CONFIG['Ad Group Name Regex']);
-      const matchGroups = this.getRegexMatchGroups(adGroup.adGroup.name, regex);
-      let prompt;
-      if (matchGroups) {
-        prompt = this.createPrompt(matchGroups);
-      } else {
+
+      // Process it in batches of max VISION_API_LIMIT images (as for now, 4)
+      while (generatedImages < adGroupImgCount && numTries <= MAX_TRIES) {
+        const imgCount = Math.min(
+          this._vertexAiApi.VISION_API_LIMIT,
+          adGroupImgCount - generatedImages
+        );
+
+        let gAdsData = ''; // Kwds or AdGroup data
+        let imgPrompt = ''; // Prompt that will be sent to Vision API (Imagen)
+
+        switch (CONFIG['Adios Mode']) {
+          case ADIOS_MODES.AD_GROUP: {
+            const regex = new RegExp(CONFIG['Ad Group Name Regex']);
+            const matchGroups = this.getRegexMatchGroups(
+              adGroup.adGroup.name,
+              regex
+            );
+
+            if (matchGroups) {
+              gAdsData = this.createPrompt(matchGroups);
+            } else {
+              Logger.log(
+                `No matching groups found for ${adGroup.adGroup.name} with ${regex}. Using full prompt.`
+              );
+              gAdsData = CONFIG['ImgGen Prompt'];
+            }
+            break;
+          }
+          case ADIOS_MODES.KEYWORDS: {
+            const keywordInfo = this._googleAdsApi.getKeywordsForAdGroup(
+              adGroup.adGroup.id
+            );
+            // Set to avoid duplicated text in keywords
+            const keywordList = [
+              ...new Set(
+                keywordInfo.map(x => {
+                  return x.adGroupCriterion.keyword.text;
+                })
+              ),
+            ];
+            Logger.log('Positive keyword list :' + keywordList.join());
+
+            if (!keywordList.length) {
+              Logger.log(
+                `Skip AdGroup ${adGroup.adGroup.id} - No positive keywords`
+              );
+              continue;
+            }
+            gAdsData = keywordList.join();
+            break;
+          }
+          default:
+            // TODO: Prevent execution if Config is not correctly filled
+            console.error(`Unknown mode: ${CONFIG['Adios Mode']}`);
+        }
+
+        // Keywords mode -> generate Imagen Prompt through Gemini API
+        if (CONFIG['Adios Mode'] === ADIOS_MODES.AD_GROUP) {
+          imgPrompt = gAdsData;
+        } else {
+          // Call Gemini to generate the Img Prompt
+          const promptContext = CONFIG['Text Prompt Context'];
+          let textPrompt = `${promptContext} ${CONFIG['Text Prompt']} ${gAdsData}`;
+
+          if (CONFIG['Text Prompt Suffix']) {
+            textPrompt += ' ' + CONFIG['Text Prompt Suffix'];
+          }
+          Logger.log('Prompt to generate Imagen Prompt: ' + textPrompt);
+          imgPrompt = this._vertexAiApi.callGeminiApi(textPrompt);
+        }
+
+        if (CONFIG['ImgGen Prompt Suffix']) {
+          imgPrompt += ' ' + CONFIG['ImgGen Prompt Suffix'];
+        }
+
         Logger.log(
-          `No matching groups found for ${adGroup.adGroup.name} with ${regex}. Using full prompt.`
+          `Imagen Prompt for AdGroup ${adGroup.adGroup.name}: "${imgPrompt}"`
         );
-        prompt = CONFIG['ImgGen Prompt'];
-      }
+        const images = this._vertexAiApi.callVisionApi(imgPrompt, imgCount);
+        Logger.log(
+          `Received ${images?.length || 0} images for ${adGroup.adGroup.name}(${
+            adGroup.adGroup.id
+          })...`
+        );
+        if (!images || !images.length) {
+          numTries++;
+          continue;
+        }
+        for (const image of images) {
+          const filename = this.generateImageFileName(
+            adGroup.adGroup.id,
+            adGroup.adGroup.name
+          );
+          const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}`;
+          const imageBlob = Utilities.newBlob(
+            Utilities.base64Decode(image),
+            'image/png',
+            filename
+          );
+          this._gcsApi.uploadImage(imageBlob, filename, folder);
+        }
 
-      if (CONFIG['ImgGen Prompt Suffix']) {
-        prompt += ', ' + CONFIG['ImgGen Prompt Suffix'];
-      }
-
-      const images = this._vertexAiApi.callVisionApi(prompt, imgCount);
-      Logger.log(
-        `Received ${images?.length || 0} images for ${adGroup.adGroup.name}(${
-          adGroup.adGroup.id
-        })...`
-      );
-      if (!images) {
-        continue;
-      }
-      for (const image of images) {
-        const filename = this.generateImageFileName(
-          adGroup.adGroup.id,
-          adGroup.adGroup.name
-        );
-        const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG[
-          'Generated DIR'
-        ]!}`;
-        const imageBlob = Utilities.newBlob(
-          Utilities.base64Decode(image),
-          'image/png',
-          filename
-        );
-        this._gcsApi.uploadImage(imageBlob, filename, folder);
+        // Update generatedImages to finish the while loop
+        generatedImages += images.length;
       }
     }
     Logger.log('Finished generating.');

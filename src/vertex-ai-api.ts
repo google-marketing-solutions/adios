@@ -25,6 +25,7 @@ export class VertexAiApi {
   private readonly _apiEndpoint: string;
   private readonly _projectId: string;
   private readonly _baseOptions: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions;
+  readonly VISION_API_LIMIT = 4;
 
   constructor(apiEndpoint: string, projectId: string) {
     this._apiEndpoint = apiEndpoint;
@@ -39,7 +40,7 @@ export class VertexAiApi {
     };
   }
 
-  callVisionApi(prompt: string, sampleCount = 8) {
+  callVisionApi(prompt: string, sampleCount = 4) {
     console.log('prompt', prompt);
     const options = Object.assign({}, this._baseOptions);
     const payload = {
@@ -56,10 +57,48 @@ export class VertexAiApi {
     if (200 !== result.getResponseCode()) {
       throw `ERROR: Headers: ${result.getAllHeaders()}, Content: ${result.getContentText()}`;
     }
-    
+
     const resultParsed: VisionApiResponse = JSON.parse(
       result.getContentText('UTF-8')
     );
     return resultParsed.predictions?.map(e => e.bytesBase64Encoded);
+  }
+
+  callGeminiApi(text: string) {
+    const GEMINI_URI = `https://${this._apiEndpoint}/v1/projects/${this._projectId}/locations/us-central1/publishers/google/models/gemini-pro-vision:streamGenerateContent`;
+    const options = Object.assign({}, this._baseOptions);
+    const parts = [
+      {
+        text,
+      },
+    ];
+    const payload = {
+      contents: {
+        role: 'user',
+        parts: parts,
+      },
+      safety_settings: {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+      generation_config: {
+        temperature: 0.4,
+        topP: 1,
+        topK: 10,
+        maxOutputTokens: 2048,
+      },
+    };
+    options.payload = JSON.stringify(payload);
+    const result = UrlFetchApp.fetch(GEMINI_URI, options);
+    if (200 !== result.getResponseCode()) {
+      throw `ERROR: Headers: ${result.getAllHeaders()}, Content: ${result.getContentText()}`;
+    }
+    const resultParsed = JSON.parse(result.getContentText('UTF-8'));
+    let geminiResponse = '';
+    resultParsed.forEach((geminiItem: any) => {
+      geminiResponse +=
+        geminiItem['candidates'][0]['content']['parts'][0]['text'];
+    });
+    return geminiResponse;
   }
 }

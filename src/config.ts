@@ -23,7 +23,6 @@ interface Config {
   'ImgGen Prompt': string;
   'ImgGen Prompt Suffix': string;
   'Number of images per Ad Group': number;
-  'Number of images per API call': number;
   'GCP Project': string;
   'GCS Bucket': string;
   'Max. bad images': number;
@@ -34,9 +33,14 @@ interface Config {
   'Validated DIR': string;
   'Rejected DIR': string;
   'Ad Group Name Regex': string;
+  'Adios Mode': string;
+  'Text Prompt Context': string;
+  'Text Prompt': string;
+  'Text Prompt Suffix': string;
 }
 
-const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config');
+export const sheet =
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config')!;
 const DEFAULT_CONFIG = {
   'Ads API Key': '',
   'Manager ID': '',
@@ -47,7 +51,6 @@ const DEFAULT_CONFIG = {
   'ImgGen Prompt': '${name}',
   'ImgGen Prompt Suffix': 'HDR, taken by professional',
   'Number of images per Ad Group': 0,
-  'Number of images per API call': 0,
   'GCP Project': '',
   'GCS Bucket': '',
   'Max. bad images': 0,
@@ -57,8 +60,18 @@ const DEFAULT_CONFIG = {
   'Generated DIR': '',
   'Validated DIR': '',
   'Rejected DIR': '',
-  'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default
+  'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default,
+  'Adios Mode': '',
+  'Text Prompt Context': '',
+  'Text Prompt': '',
+  'Text Prompt Suffix': '',
 };
+
+export const ADIOS_MODES = {
+  AD_GROUP: 'AdGroup Name',
+  KEYWORDS: 'AdGroup Keywords',
+};
+export const ADIOS_MODE_CELL = 'B6';
 
 export const CONFIG: Config =
   sheet
