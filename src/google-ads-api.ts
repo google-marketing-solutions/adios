@@ -322,6 +322,15 @@ export class GoogleAdsApi {
       EXPERIMENT_ARMS: `
         SELECT experiment_arm.campaigns FROM experiment_arm WHERE experiment.status = 'ENABLED'
       `,
+      KEYWORDS_FOR_ADGROUP_ID: `
+        SELECT
+          ad_group_criterion.keyword.text
+        FROM ad_group_criterion
+        WHERE ad_group.id = <ad_group_id>
+        AND ad_group_criterion.status = 'ENABLED'
+        AND ad_group_criterion.negative = FALSE
+        LIMIT 1000
+      `,
     };
   }
 
@@ -469,6 +478,20 @@ export class GoogleAdsApi {
         '<ad_group_id>',
         adGroupId
       );
+
+    return this.executeSearch(query);
+  }
+
+  /**
+   * Returns the list of keywords for the specific ad group
+   *
+   * @param adGroupId Ad Group ID
+   */
+  getKeywordsForAdGroup(adGroupId: string) {
+    const query = GoogleAdsApi.QUERIES.KEYWORDS_FOR_ADGROUP_ID.replaceAll(
+      '<ad_group_id>',
+      adGroupId
+    );
 
     return this.executeSearch(query);
   }
