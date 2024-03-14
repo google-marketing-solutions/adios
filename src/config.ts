@@ -37,6 +37,7 @@ interface Config {
   'Text Prompt Context': string;
   'Text Prompt': string;
   'Text Prompt Suffix': string;
+  'Prompt translations sheet': string;
 }
 
 export const sheet =
@@ -65,6 +66,7 @@ const DEFAULT_CONFIG = {
   'Text Prompt Context': '',
   'Text Prompt': '',
   'Text Prompt Suffix': '',
+  'Prompt translations sheet': '',
 };
 
 export const ADIOS_MODES = {
