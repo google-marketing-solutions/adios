@@ -38,6 +38,7 @@ export class VertexAiApi {
   private readonly _apiEndpoint: string;
   private readonly _projectId: string;
   private readonly _baseOptions: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions;
+  readonly VISION_API_LIMIT = 4;
 
   constructor(apiEndpoint: string, projectId: string) {
     this._apiEndpoint = apiEndpoint;

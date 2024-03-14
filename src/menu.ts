@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import { ADIOS_MODES, ADIOS_MODE_CELL, sheet } from './config';
 export const menu = null;
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
@@ -37,6 +39,31 @@ function onOpen() {
         )
     )
     .addToUi();
+  // Show only the corresponding rows for the Adios Mode on page load
+  toggleRows(sheet.getRange(ADIOS_MODE_CELL).getValue());
+}
+
+function onEdit(e: GoogleAppsScript.Events.SheetsOnEdit) {
+  if (e.range.getA1Notation() === ADIOS_MODE_CELL) {
+    const adiosMode = sheet.getRange(ADIOS_MODE_CELL).getValue();
+    toggleRows(adiosMode);
+  }
+}
+function toggleRows(adiosMode: string) {
+  switch (adiosMode) {
+    case ADIOS_MODES.AD_GROUP:
+      // Show rows 7,8. Hide rows 9,10,11
+      sheet.showRows(7, 2);
+      sheet.hideRows(9, 3);
+      break;
+    case ADIOS_MODES.KEYWORDS:
+      // Hide rows 7,8. Show rows 9,10,11
+      sheet.showRows(9, 3);
+      sheet.hideRows(7, 2);
+      break;
+    default:
+      console.error(`Unknown mode: ${adiosMode}`);
+  }
 }
 
 const allowedFunctions = [
