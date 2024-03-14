@@ -95,8 +95,6 @@ const getData = () => {
     }
 
     const issues = policyStatusByAdGroup.getIssues(adGroupId, filename);
-    Logger.log('issues');
-    Logger.log(issues);
 
     adGroups[adGroupId].push({
       filename,
@@ -142,9 +140,6 @@ class policyStatusByAdGroup {
     if (!(adGroupId in policyStatusByAdGroup.adGroupIssues)) {
       policyStatusByAdGroup.adGroupIssues[adGroupId] =
         policyStatusByAdGroup.getIssuesFromJSON(adGroupId);
-
-      Logger.log('getIssues');
-      Logger.log(policyStatusByAdGroup.adGroupIssues[adGroupId]);
     }
 
     return filename in policyStatusByAdGroup.adGroupIssues[adGroupId]
@@ -165,13 +160,9 @@ class policyStatusByAdGroup {
     [key: string]: PolicyViolation[];
   } {
     const fullName = `${CONFIG['Account ID']}/${adGroupId}/${CONFIG['Generated DIR']}/${POLICY_VIOLATIONS_FILE}`;
-    Logger.log('getFile');
-    Logger.log(gcsApi.getFile(fullName, true));
 
     try {
       const json = JSON.parse(gcsApi.getFile(fullName, true).toString());
-      Logger.log('getIssuesFromJSON');
-      Logger.log(json);
 
       return json.reduce(
         (accumulator: any, currentValue: ImagePolicyViolations) => ({
