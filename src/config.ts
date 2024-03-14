@@ -63,7 +63,6 @@ const DEFAULT_CONFIG = {
   'Rejected DIR': '',
   'Image Validation Prompt': '',
   'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default
-  'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default,
   'Adios Mode': '',
   'Text Prompt Context': '',
   'Text Prompt': '',
