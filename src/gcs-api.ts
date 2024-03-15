@@ -246,10 +246,3 @@ export class GcsApi {
     }
   }
 }
-
-function testGcsApi() {
-  const gcsApi = new GcsApi('adios-test');
-  Logger.log(
-    gcsApi.listAllImages('9044713567')?.items.map(x => Logger.log(x.name))
-  );
-}
