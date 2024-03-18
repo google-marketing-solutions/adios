@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import { CONFIG } from './config';
-
 export class GcsApi {
   private readonly _BASE_PATH: string;
   private readonly _bucket: string;
@@ -23,6 +21,24 @@ export class GcsApi {
   constructor(bucket: string) {
     this._BASE_PATH = `https://storage.googleapis.com`;
     this._bucket = bucket;
+  }
+
+  uploadFile(content: string, gcsPath: string) {
+    const url = `${this._BASE_PATH}/upload/storage/v1/b/${this._bucket}/o?uploadType=media&name=${gcsPath}`;
+    const accessToken = ScriptApp.getOAuthToken();
+
+    const response = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: content,
+      muteHttpExceptions: true,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const result = JSON.parse(response.getContentText());
+    return `https://storage.cloud.google.com/${result.bucket}/${result.name}`;
   }
 
   uploadImage(
@@ -49,48 +65,40 @@ export class GcsApi {
     return `https://storage.cloud.google.com/${result.bucket}/${result.name}`;
   }
 
+  listImages(
+    accountId: string,
+    adGroupId: string,
+    imageStatusFolders: string[]
+  ) {
+    const imageDirs = imageStatusFolders.join(',');
+
+    // We want to exclude *.json metadata files
+    const matchGlob = `${accountId}/${adGroupId}/{${imageDirs}}/*[^jJ][^sS][^oO][^nN]`;
+
+    const url = `${this._BASE_PATH}/storage/v1/b/${
+      this._bucket
+    }/o?matchGlob=${encodeURIComponent(matchGlob)}`;
+    const accessToken = ScriptApp.getOAuthToken();
+
+    const response = UrlFetchApp.fetch(url, {
+      method: 'get',
+      muteHttpExceptions: true,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const result: GoogleCloud.Storage.ListResponse = JSON.parse(
+      response.getContentText()
+    );
+    return result;
+  }
+
   listAllImages(accountId: string) {
-    const matchGlob = `${accountId}/*/*/*`;
-    const url = `${this._BASE_PATH}/storage/v1/b/${
-      this._bucket
-    }/o?matchGlob=${encodeURIComponent(matchGlob)}`;
-    const accessToken = ScriptApp.getOAuthToken();
-    const response = UrlFetchApp.fetch(url, {
-      method: 'get',
-      muteHttpExceptions: true,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    const result: GoogleCloud.Storage.ListResponse = JSON.parse(
-      response.getContentText()
-    );
-    return result;
+    return this.listImages(accountId, '*', ['*']);
   }
 
-  listImages(accountId: string, adGroupId: string, imageTypes: string[]) {
-    const imageDirs = imageTypes.join(',');
-    const matchGlob = `${accountId}/${adGroupId}/{${imageDirs}}/*`;
-    const url = `${this._BASE_PATH}/storage/v1/b/${
-      this._bucket
-    }/o?matchGlob=${encodeURIComponent(matchGlob)}`;
-    const accessToken = ScriptApp.getOAuthToken();
-
-    const response = UrlFetchApp.fetch(url, {
-      method: 'get',
-      muteHttpExceptions: true,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    const result: GoogleCloud.Storage.ListResponse = JSON.parse(
-      response.getContentText()
-    );
-    return result;
-  }
-
-  _getImage(fileName: string) {
+  getFile(fileName: string, isTextFile = false) {
     const url = `${this._BASE_PATH}/storage/v1/b/${
       this._bucket
     }/o/${encodeURIComponent(fileName)}?alt=media`;
@@ -102,6 +110,11 @@ export class GcsApi {
         Authorization: `Bearer ${accessToken}`,
       },
     });
+
+    if (isTextFile) {
+      return response.getContentText();
+    }
+
     return response.getContent();
   }
 
@@ -123,7 +136,7 @@ export class GcsApi {
       return {
         name: e.name.split('/').slice(-1)[0],
         fullName: e.name,
-        content: this._getImage(e.name),
+        content: this.getFile(e.name),
       };
     });
     return images;
@@ -225,10 +238,8 @@ export class GcsApi {
     }
 
     for (const image of images.items) {
-      const newFileName = image.name
-        .split('/')
-        .slice(-1)[0]
-        .replace(/_br\|/, '_ph|');
+      const newFileName = image.name.split('/').slice(-1)[0];
+
       const toFile = `${toAccountId}/${toAdGroupId}/${toDir}/${newFileName}`;
       Logger.log(`Copying from "${image.name}" to "${toFile}"`);
       this._copyImage(image.name, toFile);

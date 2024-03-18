@@ -29,11 +29,17 @@ export interface AdGroup {
   images: Image[];
 }
 
+export interface ImageIssue {
+  message: string;
+  description: string;
+}
+
 export interface Image {
   filename: string;
   url: string;
   status: IMAGE_STATUS;
   selected?: boolean;
+  issues?: ImageIssue[];
 }
 
 export interface ApiCalls {

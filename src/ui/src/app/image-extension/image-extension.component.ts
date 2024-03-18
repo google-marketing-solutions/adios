@@ -17,7 +17,11 @@ import { Component, Input } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Image, IMAGE_STATUS } from '../api-calls/api-calls.service.interface';
+import {
+  Image,
+  ImageIssue,
+  IMAGE_STATUS,
+} from '../api-calls/api-calls.service.interface';
 
 @Component({
   selector: 'image-extension',
@@ -30,8 +34,12 @@ export class ImageExtensionComponent {
   @Input({ required: true }) image!: Image;
   @Input() imageSize: number = 1;
 
-  getIcon = (status: IMAGE_STATUS) => {
-    switch (status) {
+  getIcon = (image: Image) => {
+    if (image?.issues?.length) {
+      return 'error';
+    }
+
+    switch (image.status) {
       case IMAGE_STATUS.GENERATED:
         return 'pending';
       case IMAGE_STATUS.VALIDATED:
@@ -47,8 +55,12 @@ export class ImageExtensionComponent {
     }
   };
 
-  getStyle = (status: IMAGE_STATUS) => {
-    switch (status) {
+  getStyle = (image: Image) => {
+    if (image?.issues?.length) {
+      return { color: '#EA4335' };
+    }
+
+    switch (image.status) {
       case IMAGE_STATUS.GENERATED:
         return { color: '#FBBC04' };
       case IMAGE_STATUS.VALIDATED:
@@ -65,9 +77,22 @@ export class ImageExtensionComponent {
   };
 
   getTooltip = (image: Image) => {
-    return `
-      Image: ${image.filename}
-      Status: ${image.status}`;
+    let text = `Image: ${image.filename}
+    Status: ${image.status}`;
+
+    if (image?.issues?.length) {
+      text += '\n\n' + `❗ Found (${image.issues.length}) issues:`;
+      text +=
+        '\n' +
+        image.issues
+          .map(
+            issue => `⚠️ Message: "${issue.message}"
+          Description: "${issue.description}"`
+          )
+          .join('\n------------\n');
+    }
+
+    return text;
   };
 
   getImageSize = () => {
