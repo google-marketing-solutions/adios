@@ -22,9 +22,9 @@ function onOpen() {
     .addSubMenu(
       ui
         .createMenu('▶️ Run')
-        .addItem('Image generation', 'runImageGeneration')
-        .addItem('Image upload', 'runImageUploadService')
-        .addItem('Image extension linking', 'runImageExtensionService')
+        .addItem('Image generation', 'ImageGenerationService.manuallyRun')
+        .addItem('Image upload', 'ImageUploadService.manuallyRun')
+        .addItem('Image extension linking', 'ImageExtensionService.manuallyRun')
         .addItem('Create experiments', 'runExperimentsService')
     )
     .addSubMenu(
@@ -66,9 +66,9 @@ function toggleRows(adiosMode: string) {
 }
 
 const allowedFunctions = [
-  'runImageGeneration',
-  'runImageUploadService',
-  'runImageExtensionService',
+  'ImageGenerationService.manuallyRun',
+  'ImageUploadService.manuallyRun',
+  'ImageExtensionService.manuallyRun',
 ];
 class AdiosTriggers {
   /**
