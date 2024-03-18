@@ -102,11 +102,7 @@ export class ImageGenerationService {
             );
             // Set to avoid duplicated text in keywords
             const keywordList = [
-              ...new Set(
-                keywordInfo.map(x => {
-                  return x.adGroupCriterion.keyword.text;
-                })
-              ),
+              ...new Set(keywordInfo.map(x => x.adGroupCriterion.keyword.text)),
             ];
             Logger.log('Positive keyword list :' + keywordList.join());
 
@@ -137,6 +133,10 @@ export class ImageGenerationService {
           }
           Logger.log('Prompt to generate Imagen Prompt: ' + textPrompt);
           imgPrompt = this._vertexAiApi.callGeminiApi(textPrompt);
+        }
+
+        if (CONFIG['Prompt translations sheet']) {
+          imgPrompt = this.applyTranslations(imgPrompt);
         }
 
         if (CONFIG['ImgGen Prompt Suffix']) {
@@ -191,7 +191,7 @@ export class ImageGenerationService {
   generateImageFileName(adGroupId: number, adGroupName: string) {
     // Remove any slashes in the ad group name as that would be problematic with
     // the file path
-    adGroupName = adGroupName.replaceAll('/', '');
+    adGroupName = adGroupName.replaceAll('/', ''); // TODO: Escape "|"
     // Some ad group names can be very long. Trim them to stay within the 128
     // character limit.
     const fileNameLimit = 128;
@@ -227,6 +227,30 @@ export class ImageGenerationService {
       prompt = prompt.replaceAll('${' + key + '}', value);
     }
     return prompt;
+  }
+  /**
+   * Simple text replacer (based on the translations sheet data)
+   *
+   * @param prompt
+   */
+  applyTranslations(prompt: string) {
+    const error = `Error: No translations are found.
+      Please check that sheet "${CONFIG['Prompt translations sheet']}" exists
+      and contains the translations. Remember, the first row is always header.`;
+
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
+      CONFIG['Prompt translations sheet']
+    );
+    if (!sheet) {
+      throw error;
+    }
+
+    const translations = sheet.getDataRange().getDisplayValues().slice(1); // Removing the header
+    if (!translations) {
+      throw error;
+    }
+
+    return translations.reduce((acc, t) => acc.replaceAll(t[0], t[1]), prompt);
   }
 }
 
