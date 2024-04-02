@@ -94,7 +94,7 @@ const getData = () => {
       adGroups[adGroupId] = [];
     }
 
-    const issues = policyStatusByAdGroup.getIssues(adGroupId, filename);
+    const issues = PolicyStatusByAdGroup.getIssues(adGroupId, filename);
 
     adGroups[adGroupId].push({
       filename,
@@ -130,21 +130,24 @@ const setImageStatus = (images: Image[], status: IMAGE_STATUS) => {
   });
 };
 
-class policyStatusByAdGroup {
-  // adGroupIssues[adGroupId][filename]
+class PolicyStatusByAdGroup {
+  /**
+   * @property {Object} adGroupIssues Cache for the issues related to the 
+   *  specific ad group.
+   */
   static adGroupIssues: {
-    [key: string]: { [key: string]: PolicyViolation[] };
+    [adGroupId: string]: { [filename: string]: PolicyViolation[] };
   } = {};
 
   static getIssues(adGroupId: string, filename: string) {
-    if (!(adGroupId in policyStatusByAdGroup.adGroupIssues)) {
-      policyStatusByAdGroup.adGroupIssues[adGroupId] =
-        policyStatusByAdGroup.getIssuesFromJSON(adGroupId);
+    if (!(adGroupId in PolicyStatusByAdGroup.adGroupIssues)) {
+      PolicyStatusByAdGroup.adGroupIssues[adGroupId] =
+        PolicyStatusByAdGroup.getIssuesFromJson(adGroupId);
     }
 
-    return filename in policyStatusByAdGroup.adGroupIssues[adGroupId]
-      ? policyStatusByAdGroup.policyViolationsToImageIssues(
-          policyStatusByAdGroup.adGroupIssues[adGroupId][filename]
+    return filename in PolicyStatusByAdGroup.adGroupIssues[adGroupId]
+      ? PolicyStatusByAdGroup.policyViolationsToImageIssues(
+          PolicyStatusByAdGroup.adGroupIssues[adGroupId][filename]
         )
       : [];
   }
@@ -156,8 +159,8 @@ class policyStatusByAdGroup {
     }));
   }
 
-  static getIssuesFromJSON(adGroupId: string): {
-    [key: string]: PolicyViolation[];
+  static getIssuesFromJson(adGroupId: string): {
+    [filename: string]: PolicyViolation[];
   } {
     const fullName = `${CONFIG['Account ID']}/${adGroupId}/${CONFIG['Generated DIR']}/${POLICY_VIOLATIONS_FILE}`;
 
