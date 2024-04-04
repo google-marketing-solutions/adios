@@ -62,7 +62,7 @@ Here are some of the main features of Adios:
 https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64
 
 Features:
-- Automatic, AI based ([Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/overview)) image policy validation. Now you can write your brand, company, _you name it_ ads policies as a text and the generated image will be validated against those policies.
+- Automatic, AI ([Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/overview)) based image policy validation. Now you can write your brand, company, _you name it_ ads policies as a text and the generated image will be validated against those policies.
 - Ad Group names translations. Now you can translate your ad group names (or parts of them) e.g. into better text-to-image prompts.
 - Keyword based image generation. Previously you could generate images only based on the ad group names.
 
@@ -80,7 +80,7 @@ Note: these features can be used separately, e.g. you can just upload images to 
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1-4fdb-b366-67a33700180e
 
-1. Make a copy of the [template Spreadsheet: Adios v1.1](https://docs.google.com/spreadsheets/d/1IXMd0BI5LW95E84WnCK8wmSwvQVfP94GzniQYMfVXos/edit?usp=sharing) (in the main menu `File > Make a copy`). Earlier version: [Adios 1.0](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/edit?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug)
+1. Make a copy of the [template Spreadsheet: Adios v1.1](https://docs.google.com/spreadsheets/d/1A0UbhSiF1ox47WUbA4VZ4oh4WlwzbRbkuQHQshHNWiU/edit?usp=sharing&resourcekey=0-283C6nDIyps8TKhcgtxXeQ) (in the main menu `File > Make a copy`). Earlier version: [Adios 1.0](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/edit?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug).
 
 1. Create or use an existing [Google Cloud Platform](https://console.cloud.google.com/) (GCP) project
 
@@ -100,7 +100,9 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1
 1. Now you can run or schedule the Adios services using the Adios menu
 
 ## Assets generation
-Note: this step is not required if you already have the assets.
+Notes: 
+- this step is not required if you already have the assets.
+- starting from Adios v1.1 you can generate assets based on ad group keywords (check this [video](https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64)).
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/72db55da-7ed1-47bb-8daf-b61d50fb1ea7
 
