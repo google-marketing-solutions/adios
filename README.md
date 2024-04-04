@@ -19,8 +19,10 @@ limitations under the License.
 # Adios: One-stop solution for Google Ads image assets management
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/google-marketing-solutions/adios)](https://github.com/google-marketing-solutions/adios/commits)
+![GitHub Release](https://img.shields.io/github/v/release/google-marketing-solutions/adios)
 [![Code Style: Google](https://img.shields.io/badge/code%20style-google-blueviolet.svg)](https://github.com/google/gts)
 [![GitHub License](https://img.shields.io/github/license/google-marketing-solutions/adios)](https://github.com/google-marketing-solutions/adios/blob/main/LICENSE)
+[![Contributors](https://img.shields.io/github/contributors/google-marketing-solutions/adios)](https://github.com/google-marketing-solutions/adios/graphs/contributors)
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/71be79f8-8393-444f-961a-ced8316df6d2
 
@@ -54,6 +56,25 @@ Here are some of the main features of Adios:
 - automatically upload and manage image assets on Google Ads. If you already have the assets, this part can be used separately (without generating images)
 - manually validate generated images (this is optional, in case you want to double check the quality of the generated assets before uploading them to your ads)
 - create Google Ads experiments. For each selected campaign Adios can automatically create an A/B test to check if your new assets perform better compared to the previous setup (in terms of click-through rate)
+
+## Releases & features
+### Adios v1.1
+https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64
+
+Features:
+- Automatic, AI based ([Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/overview)) image policy validation. Now you can write your brand, company, _you name it_ ads policies as a text and the generated image will be validated against those policies.
+- Ad Group names translations. Now you can translate you ad group names (or parts of them) e.g. into better text-to-image prompts.
+- Keyword based image generation. Previously you could generate images only based on the ad group names.
+
+### Adios v1.0
+Features:
+- Generate image assets (ad group level) based on the ad group names
+- Image validation UI (validate manually generated images before uploading to Google Ads).
+- Upload generated assets to the Google Ads assets library.
+- Link uploaded assets to the respective ad groups.
+- One click creation of the Google Ads experiments to test performance of the uploaded assets.
+
+Note: these features can be used separetly, e.g. you can just upload images to the assets library (if you don't want to generate images, but only to sync your existing assets with your Google Ads account).
 
 ## Installation Guide
 
