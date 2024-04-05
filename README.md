@@ -19,8 +19,10 @@ limitations under the License.
 # Adios: One-stop solution for Google Ads image assets management
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/google-marketing-solutions/adios)](https://github.com/google-marketing-solutions/adios/commits)
+![GitHub Release](https://img.shields.io/github/v/release/google-marketing-solutions/adios)
 [![Code Style: Google](https://img.shields.io/badge/code%20style-google-blueviolet.svg)](https://github.com/google/gts)
 [![GitHub License](https://img.shields.io/github/license/google-marketing-solutions/adios)](https://github.com/google-marketing-solutions/adios/blob/main/LICENSE)
+[![Contributors](https://img.shields.io/github/contributors/google-marketing-solutions/adios)](https://github.com/google-marketing-solutions/adios/graphs/contributors)
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/71be79f8-8393-444f-961a-ced8316df6d2
 
@@ -55,11 +57,30 @@ Here are some of the main features of Adios:
 - manually validate generated images (this is optional, in case you want to double check the quality of the generated assets before uploading them to your ads)
 - create Google Ads experiments. For each selected campaign Adios can automatically create an A/B test to check if your new assets perform better compared to the previous setup (in terms of click-through rate)
 
+## Releases & features
+### Adios v1.1
+https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64
+
+Features:
+- Automatic, AI ([Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/overview)) based image policy validation. Now you can write your brand, company, _you name it_ ads policies as a text and the generated image will be validated against those policies.
+- Ad Group names translations. Now you can translate your ad group names (or parts of them) e.g. into better text-to-image prompts.
+- Keyword based image generation. Previously you could generate images only based on the ad group names.
+
+### Adios v1.0
+Features:
+- Generate image assets (ad group level) based on the ad group names
+- Image validation UI (validate manually generated images before uploading to Google Ads).
+- Upload generated assets to the Google Ads assets library.
+- Link uploaded assets to the respective ad groups.
+- One click creation of the Google Ads experiments to test performance of the uploaded assets.
+
+Note: these features can be used separately, e.g. you can just upload images to the assets library (if you don't want to generate images, but only to sync your existing assets with your Google Ads account).
+
 ## Installation Guide
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1-4fdb-b366-67a33700180e
 
-1. Make a copy of the [template Spreadsheet](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/edit?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug) (in the main menu `File > Make a copy`)
+1. Make a copy of the [template Spreadsheet: Adios v1.1](https://docs.google.com/spreadsheets/d/1A0UbhSiF1ox47WUbA4VZ4oh4WlwzbRbkuQHQshHNWiU/edit?usp=sharing&resourcekey=0-283C6nDIyps8TKhcgtxXeQ) (in the main menu `File > Make a copy`). Earlier version: [Adios 1.0](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/edit?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug).
 
 1. Create or use an existing [Google Cloud Platform](https://console.cloud.google.com/) (GCP) project
 
@@ -79,7 +100,9 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1
 1. Now you can run or schedule the Adios services using the Adios menu
 
 ## Assets generation
-Note: this step is not required if you already have the assets.
+Notes: 
+- this step is not required if you already have the assets.
+- starting from Adios v1.1 you can generate assets based on ad group keywords (check this [video](https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64)).
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/72db55da-7ed1-47bb-8daf-b61d50fb1ea7
 
@@ -126,7 +149,7 @@ Adios provides an optional UI for users to check the generated images and approv
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/d3b15133-6f9e-4057-8fd7-b4ac77aff954
 
-You can use it as folows:
+You can use it as follows:
 
 1. Ensure that there is a set `Validated DIR` in the configuration Spreadsheet (e.g. `VALIDATED`)
 
