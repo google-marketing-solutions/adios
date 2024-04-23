@@ -81,7 +81,7 @@ export class VertexAiApi {
   callGeminiApi(text: string, fileUri = '', image = '') {
     const GEMINI_URI =
       `https://${this._apiEndpoint}/v1/projects/${this._projectId}` +
-      `/locations/us-central1/publishers/google/models/gemini-pro-vision:streamGenerateContent`;
+      `/locations/us-central1/publishers/google/models/gemini-pro-vision:generateContent`;
     const options = Object.assign({}, this._baseOptions);
 
     const mimeType = 'image/png';
@@ -119,11 +119,11 @@ export class VertexAiApi {
       throw `ERROR: ${result.getContentText()}`;
     }
     const resultParsed = JSON.parse(result.getContentText('UTF-8'));
-    let geminiResponse = '';
-    resultParsed.forEach((geminiItem: any) => {
-      geminiResponse +=
-        geminiItem['candidates'][0]['content']['parts'][0]['text'];
-    });
+    const geminiResponse = resultParsed.candidates
+      .map((candidate: any) =>
+        candidate?.content?.parts?.map((part: any) => part?.text).join('')
+      )
+      .join('');
     return geminiResponse;
   }
 }
