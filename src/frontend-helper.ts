@@ -132,7 +132,7 @@ const setImageStatus = (images: Image[], status: IMAGE_STATUS) => {
 
 class PolicyStatusByAdGroup {
   /**
-   * @property {Object} adGroupIssues Cache for the issues related to the 
+   * @property {Object} adGroupIssues Cache for the issues related to the
    *  specific ad group.
    */
   static adGroupIssues: {
