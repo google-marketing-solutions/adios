@@ -33,10 +33,13 @@ interface Config {
   'Validated DIR': string;
   'Rejected DIR': string;
   'Ad Group Name Regex': string;
+  'Image Validation Prompt': string;
   'Adios Mode': string;
   'Text Prompt Context': string;
   'Text Prompt': string;
   'Text Prompt Suffix': string;
+  'Prompt translations sheet': string;
+  'Google Ads Mock Sheet': string;
 }
 
 export const sheet =
@@ -60,11 +63,14 @@ const DEFAULT_CONFIG = {
   'Generated DIR': '',
   'Validated DIR': '',
   'Rejected DIR': '',
-  'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default,
+  'Image Validation Prompt': '',
+  'Ad Group Name Regex': '^(?<name>.*)$', // capture everything by default
   'Adios Mode': '',
   'Text Prompt Context': '',
   'Text Prompt': '',
   'Text Prompt Suffix': '',
+  'Prompt translations sheet': '',
+  'Google Ads Mock Sheet': '',
 };
 
 export const ADIOS_MODES = {

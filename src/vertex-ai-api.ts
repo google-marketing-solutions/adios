@@ -13,12 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 interface VisionApiResponse {
   predictions: [
     {
       bytesBase64Encoded: string;
     }
   ];
+}
+
+interface GeminiRequest {
+  text?: string;
+  inlineData?: {
+    image: string;
+    mimeType: string;
+  };
+  fileData?: {
+    fileUri: string;
+    mimeType: string;
+  };
 }
 
 export class VertexAiApi {
@@ -55,7 +68,8 @@ export class VertexAiApi {
       options
     );
     if (200 !== result.getResponseCode()) {
-      throw `ERROR: Headers: ${result.getAllHeaders()}, Content: ${result.getContentText()}`;
+      Logger.log(result.getAllHeaders());
+      throw `ERROR: ${result.getContentText()}`;
     }
 
     const resultParsed: VisionApiResponse = JSON.parse(
@@ -64,14 +78,24 @@ export class VertexAiApi {
     return resultParsed.predictions?.map(e => e.bytesBase64Encoded);
   }
 
-  callGeminiApi(text: string) {
-    const GEMINI_URI = `https://${this._apiEndpoint}/v1/projects/${this._projectId}/locations/us-central1/publishers/google/models/gemini-pro-vision:streamGenerateContent`;
+  callGeminiApi(text: string, fileUri = '', image = '') {
+    const GEMINI_URI =
+      `https://${this._apiEndpoint}/v1/projects/${this._projectId}` +
+      `/locations/us-central1/publishers/google/models/gemini-pro-vision:generateContent`;
     const options = Object.assign({}, this._baseOptions);
-    const parts = [
-      {
-        text,
-      },
-    ];
+
+    const mimeType = 'image/png';
+    const parts: GeminiRequest[] = [{ text }];
+    if (image) {
+      parts.push({
+        inlineData: { image, mimeType },
+      });
+    } else if (fileUri) {
+      parts.push({
+        fileData: { fileUri, mimeType },
+      });
+    }
+
     const payload = {
       contents: {
         role: 'user',
@@ -91,14 +115,15 @@ export class VertexAiApi {
     options.payload = JSON.stringify(payload);
     const result = UrlFetchApp.fetch(GEMINI_URI, options);
     if (200 !== result.getResponseCode()) {
-      throw `ERROR: Headers: ${result.getAllHeaders()}, Content: ${result.getContentText()}`;
+      Logger.log(result.getAllHeaders());
+      throw `ERROR: ${result.getContentText()}`;
     }
     const resultParsed = JSON.parse(result.getContentText('UTF-8'));
-    let geminiResponse = '';
-    resultParsed.forEach((geminiItem: any) => {
-      geminiResponse +=
-        geminiItem['candidates'][0]['content']['parts'][0]['text'];
-    });
+    const geminiResponse = resultParsed.candidates
+      .map((candidate: any) =>
+        candidate?.content?.parts?.map((part: any) => part?.text).join('')
+      )
+      .join('');
     return geminiResponse;
   }
 }

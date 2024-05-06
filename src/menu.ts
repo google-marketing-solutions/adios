@@ -26,6 +26,7 @@ function onOpen() {
         .addItem('Image upload', 'ImageUploadService.manuallyRun')
         .addItem('Image extension linking', 'ImageExtensionService.manuallyRun')
         .addItem('Create experiments', 'runExperimentsService')
+        .addItem('Policy validation', 'runGeminiValidationService')
     )
     .addSubMenu(
       ui
