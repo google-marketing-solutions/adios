@@ -15,7 +15,12 @@
  */
 import { CONFIG } from './config';
 
-export class GoogleAdsApi {
+export abstract class GoogleAdsApiInterface {
+  abstract getAdGroups(): any[];
+  abstract getKeywordsForAdGroup(id: string): any[];
+}
+
+export class GoogleAdsApi implements GoogleAdsApiInterface {
   private readonly _developerToken: string;
   private readonly _managerId: string;
   private readonly _customerId: string;

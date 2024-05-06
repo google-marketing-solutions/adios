@@ -15,8 +15,8 @@
  */
 import { ADIOS_MODES, CONFIG } from './config';
 import { GcsApi } from './gcs-api';
-import { GoogleAdsApi } from './google-ads-api';
 import { VertexAiApi } from './vertex-ai-api';
+import { GoogleAdsApiFactory } from './google-ads-api-mock';
 
 export class ImageGenerationService {
   private readonly _gcsApi;
@@ -29,11 +29,7 @@ export class ImageGenerationService {
       'us-central1-aiplatform.googleapis.com',
       CONFIG['GCP Project']!
     );
-    this._googleAdsApi = new GoogleAdsApi(
-      CONFIG['Ads API Key'],
-      CONFIG['Manager ID'],
-      CONFIG['Account ID']
-    );
+    this._googleAdsApi = GoogleAdsApiFactory.createObject();
   }
 
   run() {

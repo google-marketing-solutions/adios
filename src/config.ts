@@ -39,6 +39,7 @@ interface Config {
   'Text Prompt': string;
   'Text Prompt Suffix': string;
   'Prompt translations sheet': string;
+  'Google Ads Mock Sheet': string;
 }
 
 export const sheet =
@@ -69,6 +70,7 @@ const DEFAULT_CONFIG = {
   'Text Prompt': '',
   'Text Prompt Suffix': '',
   'Prompt translations sheet': '',
+  'Google Ads Mock Sheet': '',
 };
 
 export const ADIOS_MODES = {
