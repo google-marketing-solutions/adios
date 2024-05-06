@@ -41,7 +41,7 @@ export class ImageUploadService {
         CONFIG['Account ID'],
         adGroup.adGroup.id,
         [imgFolder]
-      );
+      ) as GoogleCloud.Storage.Image[];
       // Upload new images
       if (images.length === 0) {
         Logger.log('No images to upload.');

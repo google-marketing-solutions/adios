@@ -20,6 +20,7 @@ import {
   ImagePolicyViolations,
   PolicyViolation,
 } from './gemini-validation-service';
+import { GoogleAdsApiFactory } from './google-ads-api-mock';
 
 export const FRONTEND_HELPER = null;
 
@@ -54,7 +55,7 @@ export interface Image {
 const gcsApi = new GcsApi(CONFIG['GCS Bucket']);
 
 const getData = () => {
-  const gcsImages = gcsApi.listAllImages(CONFIG['Account ID']);
+  const gcsImages = gcsApi.listAllImages(GoogleAdsApiFactory.getAdsAccountId());
   const adGroups: { [id: string]: Image[] } = {};
   if (!gcsImages.items) {
     return [];
@@ -119,7 +120,7 @@ const setImageStatus = (images: Image[], status: IMAGE_STATUS) => {
   images.forEach(image => {
     const adGroupId = image.filename.split('|')[0];
     gcsApi.moveImage(
-      CONFIG['Account ID'],
+      GoogleAdsApiFactory.getAdsAccountId(),
       adGroupId,
       image.filename,
       CONFIG['Generated DIR'],
@@ -162,7 +163,9 @@ class PolicyStatusByAdGroup {
   static getIssuesFromJson(adGroupId: string): {
     [filename: string]: PolicyViolation[];
   } {
-    const fullName = `${CONFIG['Account ID']}/${adGroupId}/${CONFIG['Generated DIR']}/${POLICY_VIOLATIONS_FILE}`;
+    const fullName = `${GoogleAdsApiFactory.getAdsAccountId()}/${adGroupId}/${
+      CONFIG['Generated DIR']
+    }/${POLICY_VIOLATIONS_FILE}`;
 
     try {
       const json = JSON.parse(gcsApi.getFile(fullName, true).toString());
