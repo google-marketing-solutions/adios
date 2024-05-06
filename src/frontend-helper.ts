@@ -16,9 +16,9 @@
 import { CONFIG } from './config';
 import { GcsApi } from './gcs-api';
 import {
-  POLICY_VIOLATIONS_FILE,
   ImagePolicyViolations,
   PolicyViolation,
+  POLICY_VIOLATIONS_FILE,
 } from './gemini-validation-service';
 
 export const FRONTEND_HELPER = null;
@@ -107,7 +107,7 @@ const getData = () => {
   for (const [adGroupId, images] of Object.entries(adGroups)) {
     result.push({
       id: adGroupId,
-      name: images[0].filename.split('|')[1],
+      name: images[0].filename.split('|').slice(1, -1).join('|'),
       images,
     });
   }
