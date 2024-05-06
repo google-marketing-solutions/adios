@@ -15,15 +15,17 @@
  */
 import { ADIOS_MODES, CONFIG } from './config';
 import { GcsApi } from './gcs-api';
+import { Triggerable } from './triggerable';
 import { VertexAiApi } from './vertex-ai-api';
 import { GoogleAdsApiFactory } from './google-ads-api-mock';
 
-export class ImageGenerationService {
+export class ImageGenerationService extends Triggerable {
   private readonly _gcsApi;
   private readonly _vertexAiApi;
   private readonly _googleAdsApi;
 
   constructor() {
+    super();
     this._gcsApi = new GcsApi(CONFIG['GCS Bucket']);
     this._vertexAiApi = new VertexAiApi(
       'us-central1-aiplatform.googleapis.com',
@@ -34,8 +36,32 @@ export class ImageGenerationService {
 
   run() {
     const MAX_TRIES = 3;
+    this.deleteTrigger();
     const adGroups = this._googleAdsApi.getAdGroups();
-    for (const adGroup of adGroups) {
+    const lastImageGenerationProcessedAdGroupId =
+      PropertiesService.getScriptProperties().getProperty(
+        'lastImageGenerationProcessedAdGroupId'
+      );
+    let startIndex = 0;
+    if (lastImageGenerationProcessedAdGroupId) {
+      const lastIndex = adGroups.findIndex(
+        adGroup => adGroup.adGroup.id === lastImageGenerationProcessedAdGroupId
+      );
+      startIndex = lastIndex;
+    }
+    for (let i = startIndex; i < adGroups.length; i++) {
+      const adGroup = adGroups[i];
+      if (this.shouldTerminate()) {
+        Logger.log(
+          `The function is reaching the 6 minute timeout, and therfore will create a trigger to rerun from this ad group: ${adGroup.adGroup.name} and then self terminate.`
+        );
+        PropertiesService.getScriptProperties().setProperty(
+          'lastImageGenerationProcessedAdGroupId',
+          adGroup.adGroup.id
+        );
+        this.createTriggerForNextRun();
+        return; // Exit the function to prevent further execution
+      }
       Logger.log(
         `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
       );
@@ -169,8 +195,16 @@ export class ImageGenerationService {
         // Update generatedImages to finish the while loop
         generatedImages += images.length;
       }
+      PropertiesService.getScriptProperties().setProperty(
+        'lastImageGenerationProcessedAdGroupId',
+        adGroup.adGroup.id
+      );
     }
     Logger.log('Finished generating.');
+    PropertiesService.getScriptProperties().deleteProperty(
+      'lastImageGenerationProcessedAdGroupId'
+    );
+    this.deleteTrigger();
   }
   /**
    * Create the image file name.
@@ -224,6 +258,7 @@ export class ImageGenerationService {
     }
     return prompt;
   }
+
   /**
    * Simple text replacer (based on the translations sheet data)
    *
@@ -248,9 +283,32 @@ export class ImageGenerationService {
 
     return translations.reduce((acc, t) => acc.replaceAll(t[0], t[1]), prompt);
   }
-}
+  
+  static triggeredRun() {
+    PropertiesService.getScriptProperties().setProperty(
+      `${ImageGenerationService.name}StartTime`,
+      new Date().getTime().toString()
+    );
+    const imageGenerationService = new ImageGenerationService();
+    imageGenerationService.run();
+  }
 
-function runImageGeneration() {
-  const imageGenerationService = new ImageGenerationService();
-  imageGenerationService.run();
+  static manuallyRun() {
+    PropertiesService.getScriptProperties().setProperty(
+      `${ImageGenerationService.name}StartTime`,
+      new Date().getTime().toString()
+    );
+    const lastImageGenerationProcessedAdGroupId =
+      PropertiesService.getScriptProperties().getProperty(
+        'lastImageGenerationProcessedAdGroupId'
+      );
+    if (lastImageGenerationProcessedAdGroupId) {
+      PropertiesService.getScriptProperties().deleteProperty(
+        'lastImageGenerationProcessedAdGroupId'
+      );
+      Logger.log('Cleared last processed Ad Group ID for a fresh manual run.');
+    }
+    const imageGenerationService = new ImageGenerationService();
+    imageGenerationService.run();
+  }
 }

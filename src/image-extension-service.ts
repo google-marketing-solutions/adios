@@ -16,14 +16,16 @@
 import { CONFIG } from './config';
 import { GcsApi } from './gcs-api';
 import { GoogleAdsApi } from './google-ads-api';
+import { Triggerable } from './triggerable';
 
-export class ImageExtensionService {
+export class ImageExtensionService extends Triggerable {
   private readonly MAX_AD_GROUP_ASSETS = 20;
 
   private readonly _gcsApi;
   private readonly _googleAdsApi;
 
   constructor() {
+    super();
     this._gcsApi = new GcsApi(CONFIG['GCS Bucket']);
     this._googleAdsApi = new GoogleAdsApi(
       CONFIG['Ads API Key'],
@@ -33,8 +35,32 @@ export class ImageExtensionService {
   }
 
   run() {
+    this.deleteTrigger();
     const adGroups = this._googleAdsApi.getAdGroups();
-    for (const adGroup of adGroups) {
+    const lastImageExtensionProcessedAdGroupId =
+      PropertiesService.getScriptProperties().getProperty(
+        'lastImageExtensionProcessedAdGroupId'
+      );
+    let startIndex = 0;
+    if (lastImageExtensionProcessedAdGroupId) {
+      const lastIndex = adGroups.findIndex(
+        adGroup => adGroup.adGroup.id === lastImageExtensionProcessedAdGroupId
+      );
+      startIndex = lastIndex;
+    }
+    for (let i = startIndex; i < adGroups.length; i++) {
+      const adGroup = adGroups[i];
+      if (this.shouldTerminate()) {
+        Logger.log(
+          `The function is reaching the 6 minute timeout, and therfore will create a trigger to rerun from this ad group: ${adGroup.adGroup.name} and then self terminate.`
+        );
+        PropertiesService.getScriptProperties().setProperty(
+          'lastImageExtensionProcessedAdGroupId',
+          adGroup.adGroup.id
+        );
+        this.createTriggerForNextRun();
+        return; // Exit the function to prevent further execution
+      }
       Logger.log(
         `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
       );
@@ -57,8 +83,6 @@ export class ImageExtensionService {
         notLinkedAssets.length,
         this.MAX_AD_GROUP_ASSETS - existingAssets.length
       );
-
-      // Adding images from GCS to Ad Groups
       if (notLinkedAssets?.length > 0) {
         Logger.log(
           `Creating ${notLinkedAssets.length} ad group assets for ad group ${adGroup.adGroup.id}...`
@@ -68,24 +92,54 @@ export class ImageExtensionService {
           notLinkedAssets
         );
       }
-
-      // Removing ad group assets which are not on GCS anymore
       const adGroupAssetsToDelete = this._googleAdsApi
         .getAdGroupAssetsForAdGroup(adGroup.adGroup.id)
         .filter(e => !uploadedToGcsImages?.includes(e.asset.name))
         .map(e => e.adGroupAsset.resourceName);
-
       if (adGroupAssetsToDelete?.length > 0) {
         Logger.log(
           `Deleting ${adGroupAssetsToDelete.length} ad group assets for ad group ${adGroup.adGroup.id}...`
         );
         this._googleAdsApi.deleteAdGroupAssets(adGroupAssetsToDelete);
       }
+      PropertiesService.getScriptProperties().setProperty(
+        'lastImageExtensionProcessedAdGroupId',
+        adGroup.adGroup.id
+      );
     }
+    Logger.log('Finished Extension Process.');
+    //If script completes without timing out, clear the stored ad group ID and any triggers
+    PropertiesService.getScriptProperties().deleteProperty(
+      'lastImageExtensionProcessedAdGroupId'
+    );
+    this.deleteTrigger();
   }
-}
 
-function runImageExtensionService() {
-  const imageExtensionService = new ImageExtensionService();
-  imageExtensionService.run();
+  static triggeredRun() {
+    PropertiesService.getScriptProperties().setProperty(
+      `${ImageExtensionService.name}StartTime`,
+      new Date().getTime().toString()
+    );
+    const imageExtensionService = new ImageExtensionService();
+    imageExtensionService.run();
+  }
+
+  static manuallyRun() {
+    PropertiesService.getScriptProperties().setProperty(
+      `${ImageExtensionService.name}StartTime`,
+      new Date().getTime().toString()
+    );
+    const lastImageExtensionProcessedAdGroupId =
+      PropertiesService.getScriptProperties().getProperty(
+        'lastImageExtensionProcessedAdGroupId'
+      );
+    if (lastImageExtensionProcessedAdGroupId) {
+      PropertiesService.getScriptProperties().deleteProperty(
+        'lastImageExtensionProcessedAdGroupId'
+      );
+      Logger.log('Cleared last processed Ad Group ID for a fresh manual run.');
+    }
+    const imageExtensionService = new ImageExtensionService();
+    imageExtensionService.run();
+  }
 }
