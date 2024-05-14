@@ -15,9 +15,9 @@
  */
 import { ADIOS_MODES, CONFIG } from './config';
 import { GcsApi } from './gcs-api';
+import { GoogleAdsApiFactory } from './google-ads-api-mock';
 import { Triggerable } from './triggerable';
 import { VertexAiApi } from './vertex-ai-api';
-import { GoogleAdsApiFactory } from './google-ads-api-mock';
 
 export class ImageGenerationService extends Triggerable {
   private readonly _gcsApi;
@@ -49,7 +49,7 @@ export class ImageGenerationService extends Triggerable {
       );
       startIndex = lastIndex;
     }
-    for (let i = startIndex; i < adGroups.length; i++) {
+    adGroupsLoop: for (let i = startIndex; i < adGroups.length; i++) {
       const adGroup = adGroups[i];
       if (this.shouldTerminate()) {
         Logger.log(
@@ -91,10 +91,7 @@ export class ImageGenerationService extends Triggerable {
       );
 
       // Process it in batches of max VISION_API_LIMIT images (as for now, 4)
-      imageGenerationLoop: while (
-        generatedImages < adGroupImgCount &&
-        numTries <= MAX_TRIES
-      ) {
+      while (generatedImages < adGroupImgCount && numTries <= MAX_TRIES) {
         const imgCount = Math.min(
           this._vertexAiApi.VISION_API_LIMIT,
           adGroupImgCount - generatedImages
@@ -127,16 +124,21 @@ export class ImageGenerationService extends Triggerable {
             );
             // Set to avoid duplicated text in keywords
             const keywordList = [
-              ...new Set(keywordInfo.map(x => x.adGroupCriterion.keyword.text)),
+              ...new Set(
+                keywordInfo
+                  .map(x => x.adGroupCriterion.keyword.text)
+                  .filter(x => !!x)
+              ),
             ];
-            Logger.log('Positive keyword list :' + keywordList.join());
 
             if (!keywordList.length) {
               Logger.log(
-                `Skip AdGroup ${adGroup.adGroup.id} - No positive keywords`
+                `No positive keywords: skiping AdGroup ${adGroup.adGroup.id}`
               );
-              break imageGenerationLoop;
+              continue adGroupsLoop;
             }
+
+            Logger.log('Positive keyword list:' + keywordList.join());
             gAdsData = keywordList.join();
             break;
           }
@@ -286,7 +288,7 @@ export class ImageGenerationService extends Triggerable {
 
     return translations.reduce((acc, t) => acc.replaceAll(t[0], t[1]), prompt);
   }
-  
+
   static triggeredRun() {
     PropertiesService.getScriptProperties().setProperty(
       `${ImageGenerationService.name}StartTime`,
