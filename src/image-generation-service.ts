@@ -39,7 +39,7 @@ export class ImageGenerationService {
   run() {
     const MAX_TRIES = 3;
     const adGroups = this._googleAdsApi.getAdGroups();
-    for (const adGroup of adGroups) {
+    adGroupsLoop: for (const adGroup of adGroups) {
       Logger.log(
         `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
       );
@@ -102,16 +102,21 @@ export class ImageGenerationService {
             );
             // Set to avoid duplicated text in keywords
             const keywordList = [
-              ...new Set(keywordInfo.map(x => x.adGroupCriterion.keyword.text)),
+              ...new Set(
+                keywordInfo
+                  .map(x => x.adGroupCriterion.keyword.text)
+                  .filter(x => !!x)
+              ),
             ];
-            Logger.log('Positive keyword list :' + keywordList.join());
 
             if (!keywordList.length) {
               Logger.log(
-                `Skip AdGroup ${adGroup.adGroup.id} - No positive keywords`
+                `No positive keywords: skiping AdGroup ${adGroup.adGroup.id}`
               );
-              continue;
+              continue adGroupsLoop;
             }
+
+            Logger.log('Positive keyword list:' + keywordList.join());
             gAdsData = keywordList.join();
             break;
           }
