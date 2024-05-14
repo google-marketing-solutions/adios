@@ -69,7 +69,10 @@ export class ImageGenerationService {
       );
 
       // Process it in batches of max VISION_API_LIMIT images (as for now, 4)
-      while (generatedImages < adGroupImgCount && numTries <= MAX_TRIES) {
+      imageGenerationLoop: while (
+        generatedImages < adGroupImgCount &&
+        numTries <= MAX_TRIES
+      ) {
         const imgCount = Math.min(
           this._vertexAiApi.VISION_API_LIMIT,
           adGroupImgCount - generatedImages
@@ -110,7 +113,7 @@ export class ImageGenerationService {
               Logger.log(
                 `Skip AdGroup ${adGroup.adGroup.id} - No positive keywords`
               );
-              continue;
+              break imageGenerationLoop;
             }
             gAdsData = keywordList.join();
             break;
