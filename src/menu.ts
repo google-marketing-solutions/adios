@@ -31,12 +31,7 @@ function onOpen() {
     .addSubMenu(
       ui
         .createMenu('🕒 Schedule')
-        .addSubMenu(
-          ui
-            .createMenu('All Services')
-            .addItem('Every 30 mins', 'AdiosTriggers.allEvery30Mins')
-            .addItem('Every 60 mins', 'AdiosTriggers.allEvery60Mins')
-        )
+        .addItem('Every day', 'AdiosTriggers.scheduleForEveryDay')
     )
     .addToUi();
   // Show only the corresponding rows for the Adios Mode on page load
@@ -73,29 +68,11 @@ const allowedFunctions = [
 ];
 class AdiosTriggers {
   /**
-   * Adds a time driven trigger.
-   * @param {number} howOften How often in minutes
-   * @param {string} [functionToRun] Which function to schedule
+   * Adds time driven triggers.
    */
-  static addTrigger(howOften: number, functionToRun?: string) {
-    let allFunctions = [...allowedFunctions];
-    if (functionToRun) {
-      if (!allowedFunctions.includes(functionToRun)) {
-        throw Error(`Function ${functionToRun} is not allowed to schedule`);
-      }
-      allFunctions = [functionToRun];
-    }
-
-    allFunctions.forEach(f => {
-      ScriptApp.newTrigger(f).timeBased().everyMinutes(howOften).create();
-    });
-  }
-
-  static allEvery30Mins() {
-    AdiosTriggers.addTrigger(30);
-  }
-
-  static allEvery60Mins() {
-    AdiosTriggers.addTrigger(60);
+  static scheduleForEveryDay() {
+    allowedFunctions.forEach(f =>
+      ScriptApp.newTrigger(f).timeBased().everyDays(1).create()
+    );
   }
 }
