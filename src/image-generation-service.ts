@@ -38,6 +38,7 @@ export class ImageGenerationService extends Triggerable {
     const MAX_TRIES = 3;
     this.deleteTrigger();
     const adGroups = this._googleAdsApi.getAdGroups();
+    
     const lastImageGenerationProcessedAdGroupId =
       PropertiesService.getScriptProperties().getProperty(
         'lastImageGenerationProcessedAdGroupId'
@@ -62,6 +63,7 @@ export class ImageGenerationService extends Triggerable {
         this.createTriggerForNextRun();
         return; // Exit the function to prevent further execution
       }
+
       Logger.log(
         `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
       );
