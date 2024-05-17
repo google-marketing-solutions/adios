@@ -47,7 +47,7 @@ export class ImageGenerationService extends Triggerable {
       const lastIndex = adGroups.findIndex(
         adGroup => adGroup.adGroup.id === lastImageGenerationProcessedAdGroupId
       );
-      startIndex = lastIndex;
+      startIndex = Math.max(lastIndex, 0); // startIndex might be -1
     }
     adGroupsLoop: for (let i = startIndex; i < adGroups.length; i++) {
       const adGroup = adGroups[i];

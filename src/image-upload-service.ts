@@ -44,7 +44,7 @@ export class ImageUploadService extends Triggerable {
       const lastIndex = adGroups.findIndex(
         adGroup => adGroup.adGroup.id === lastImageUploadProcessedAdGroupId
       );
-      startIndex = lastIndex;
+      startIndex = Math.max(lastIndex, 0);
     }
     for (let i = startIndex; i < adGroups.length; i++) {
       const adGroup = adGroups[i];

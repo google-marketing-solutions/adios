@@ -46,7 +46,7 @@ export class ImageExtensionService extends Triggerable {
       const lastIndex = adGroups.findIndex(
         adGroup => adGroup.adGroup.id === lastImageExtensionProcessedAdGroupId
       );
-      startIndex = lastIndex;
+      startIndex = Math.max(lastIndex, 0);
     }
     for (let i = startIndex; i < adGroups.length; i++) {
       const adGroup = adGroups[i];
