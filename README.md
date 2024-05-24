@@ -58,6 +58,12 @@ Here are some of the main features of Adios:
 - create Google Ads experiments. For each selected campaign Adios can automatically create an A/B test to check if your new assets perform better compared to the previous setup (in terms of click-through rate)
 
 ## Releases & features
+### Adios v1.2
+
+Features:
+- [Enhanced Triggers](#enhanced-triggers): Optimized how long-running services operate, addressing execution time limits for large-scale ad group processing. (See Google Apps Script [quotas for details](https://developers.google.com/apps-script/guides/services/quotas#current_limitations))
+- [Google Ads API Mocks](#google-ads-api-mocks): Experiment with Adios features and functionality without needing a Google Ads account.
+
 ### Adios v1.1
 https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64
 
@@ -105,6 +111,17 @@ Notes:
 - starting from Adios v1.1 you can generate assets based on ad group keywords (check this [video](https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64)).
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/72db55da-7ed1-47bb-8daf-b61d50fb1ea7
+
+## Google Ads API Mocks
+
+Want to try out image generation without real ad groups? Simulate them easily with a spreadsheet:
+
+- __Configure Adios__: In the "Config" sheet, add a variable named "Google Ads Mock Sheet". Choose a name for your mock sheet (e.g., "Mock") and set it as the value for this variable.
+- __Create Your Mock Data__: Create a new sheet with the name you chose (e.g., "Mock"). Make sure it has two columns:
+  - "Ad Group Name": Enter a name for each simulated ad group.
+  - "Keywords": List the keywords associated with each ad group (coma separeted).
+
+Adios will treat this as your ad group data for image generation, and you can find the generated images in your GCS bucket under `<Your Bucket>/Mock/...`.
 
 ## Assets upload and linking to Add Groups
 
@@ -241,6 +258,18 @@ If you'd like to make your own changes to the solution or contribute to it, you 
    ```
    npm run deploy:prod
    ```
+
+## Enhanced Triggers
+
+Advertisers with extensive Google Ads accounts often face challenges when processing large numbers of ad groups. Time constraints, like the [6-minute limit](https://developers.google.com/apps-script/guides/services/quotas#current_limitations) on Apps Script execution, can interrupt these tasks.
+
+Adios v1.2 introduces a new approach for our long-running services (like image generation or upload) to tackle this issue:
+
+- The service begins processing your ad group list.
+- One minute before the time limit, it saves its progress and sets a timer to resume in 2 minutes.
+- When the timer goes off, a fresh instance of the service picks up right where the previous one left off, ensuring seamless operation.
+
+You can explore the core logic behind this feature in [our source code](src/triggerable.ts).
 
 ## Disclaimer
 
