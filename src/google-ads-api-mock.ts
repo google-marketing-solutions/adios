@@ -72,7 +72,7 @@ class GoogleAdsApiMock implements GoogleAdsApiInterface {
       return [];
     }
 
-    return this.data?.map(row => ({
+    return this.data.map(row => ({
       customer: { id: GoogleAdsApiFactory.mockAccountId },
       adGroup: {
         id: row[0],
@@ -87,7 +87,7 @@ class GoogleAdsApiMock implements GoogleAdsApiInterface {
     }
 
     return this.data
-      ?.filter(row => row[0] === id)
+      .filter(row => row[0] === id)
       .map(row => ({
         adGroupCriterion: {
           keyword: {
