@@ -41,7 +41,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
       },
     };
     this._basePath =
-      'https://googleads.googleapis.com/v14/customers/' + this._customerId;
+      'https://googleads.googleapis.com/v17/customers/' + this._customerId;
   }
 
   _getResult(httpResponse: GoogleAppsScript.URL_Fetch.HTTPResponse) {
@@ -83,7 +83,6 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
     let results: any[] = [];
     const request = {
       query,
-      pageSize: 10000,
     };
     do {
       const result = this.post('/googleAds:search', request, nextPageToken);
