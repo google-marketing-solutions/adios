@@ -119,7 +119,7 @@ Want to try out image generation without real ad groups? Simulate them easily wi
 - __Configure Adios__: In the "Config" sheet, add a variable named "Google Ads Mock Sheet". Choose a name for your mock sheet (e.g., "Mock") and set it as the value for this variable.
 - __Create Your Mock Data__: Create a new sheet with the name you chose (e.g., "Mock"). Make sure it has two columns:
   - "Ad Group Name": Enter a name for each simulated ad group.
-  - "Keywords": List the keywords associated with each ad group (coma separeted).
+  - "Keywords": List the keywords associated with each ad group (comma separated).
 
 Adios will treat this as your ad group data for image generation, and you can find the generated images in your GCS bucket under `<Your Bucket>/Mock/...`.
 
