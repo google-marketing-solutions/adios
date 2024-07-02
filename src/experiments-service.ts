@@ -49,7 +49,7 @@ export class ExperimentsService {
     const notEligibleCampaigns = this._campaigns.filter(
       e => !eligibleCampaigns.includes(e)
     );
-    if (notEligibleCampaigns) {
+    if (notEligibleCampaigns.length) {
       Logger.log(
         `*Note*: Experiments for the campaigns "${notEligibleCampaigns}" already 
         exist, cannot create new ones. Try switching off the experiments or wait 

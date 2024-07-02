@@ -81,7 +81,7 @@ export class VertexAiApi {
   callGeminiApi(text: string, fileUri = '', image = '') {
     const GEMINI_URI =
       `https://${this._apiEndpoint}/v1/projects/${this._projectId}` +
-      `/locations/us-central1/publishers/google/models/gemini-pro-vision:generateContent`;
+      `/locations/us-central1/publishers/google/models/gemini-1.5-flash:generateContent`;
     const options = Object.assign({}, this._baseOptions);
 
     const mimeType = 'image/png';

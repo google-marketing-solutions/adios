@@ -15,7 +15,12 @@
  */
 import { CONFIG } from './config';
 
-export class GoogleAdsApi {
+export abstract class GoogleAdsApiInterface {
+  abstract getAdGroups(): any[];
+  abstract getKeywordsForAdGroup(id: string): any[];
+}
+
+export class GoogleAdsApi implements GoogleAdsApiInterface {
   private readonly _developerToken: string;
   private readonly _managerId: string;
   private readonly _customerId: string;
@@ -36,7 +41,7 @@ export class GoogleAdsApi {
       },
     };
     this._basePath =
-      'https://googleads.googleapis.com/v14/customers/' + this._customerId;
+      'https://googleads.googleapis.com/v17/customers/' + this._customerId;
   }
 
   _getResult(httpResponse: GoogleAppsScript.URL_Fetch.HTTPResponse) {
@@ -78,7 +83,6 @@ export class GoogleAdsApi {
     let results: any[] = [];
     const request = {
       query,
-      pageSize: 10000,
     };
     do {
       const result = this.post('/googleAds:search', request, nextPageToken);
