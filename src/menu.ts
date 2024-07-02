@@ -24,7 +24,7 @@ function onOpen() {
         .createMenu('▶️ Run')
         .addItem('Image generation', 'ImageGenerationService.manuallyRun')
         .addItem('Image upload', 'ImageUploadService.manuallyRun')
-        .addItem('Image extension linking', 'ImageExtensionService.manuallyRun')
+        .addItem('Image assets linking', 'ImageExtensionService.manuallyRun')
         .addItem('Create experiments', 'runExperimentsService')
         .addItem('Policy validation', 'runGeminiValidationService')
     )
