@@ -28,7 +28,7 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/71be79f8-8393
 
 ## Overview
 
-**Adios** is an open-source solution that can generate and/or upload image assets for your Ad Groups. If you already have images Adios will be able to upload them to the Google Ads asset library and link to the corresponding ad groups in bulk. If you don't, then Adios will use AI to generate personalized images based on the specified ad group context (e.g. based on the ad group name).
+**Adios** is the open-source solution that streamlines your image asset management. Effortlessly upload your existing images in bulk and link them directly to relevant ad groups. Don't have images? No problem! **Adios** harnesses the power of AI to generate personalized, high-quality images tailored to your specific ad group context, boosting your campaign's visual appeal and performance.
 
 To generate images Adios uses the recent [Imagen](https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview) model on Google Cloud's [Vertex AI](https://cloud.google.com/vertex-ai/) platform.
 
@@ -38,31 +38,29 @@ You can find [Adios case study in German](https://www.thinkwithgoogle.com/intl/d
 
 ## The Challenge
 
-Many Google Ads customers have a very granular ads account structure with thousands (sometimes millions) of ad groups (each ad group has a very specific/niche topic). Their marketing teams might have hard times when they want to upload personalized image extensions to all those ad groups.
-More specifically the challenges are to:
-
-- Get high quality relevant image assets for each ad group topic
-- Ads UI does not provide an easy way to upload and manage image assets on this large scale
+Google Ads customers with extensive ad group structures often face challenges in managing image assets effectively. Maintaining high-quality, relevant images for thousands, or even millions, of niche ad groups can be a daunting task. The current Google Ads UI lacks the tools to streamline bulk image uploads and management, making the process time-consuming and inefficient. This can hinder marketers' efforts to personalize image extensions and optimize their campaigns at scale.
 
 ## The Approach
 
-Our team in a close collaboration with several advertisers developed a custom solution **Adios**.
+In close collaboration with several advertisers, our team developed a custom solution to address these challenges: **Adios**.
 
 ## The Solution
 
-Here are some of the main features of Adios:
+Here are some of Adios's powerful features:
 
-- generate thousands/millions of images with the help of Generative AI on Google Cloud (please note that with small code changes almost any Gen AI API can be used for this purpose)
-- automatically upload and manage image assets on Google Ads. If you already have the assets, this part can be used separately (without generating images)
-- manually validate generated images (this is optional, in case you want to double check the quality of the generated assets before uploading them to your ads)
-- create Google Ads experiments. For each selected campaign Adios can automatically create an A/B test to check if your new assets perform better compared to the previous setup (in terms of click-through rate)
+- **Generate at scale**: Leverage the power of Generative AI on Google Cloud to create thousands or even millions of images tailored to your ad groups. With minimal code adjustments, you can integrate almost any Generative AI API for unparalleled flexibility.
+- **Automate asset management**: Effortlessly upload and manage your image assets in Google Ads, whether you've generated them with Adios or already have them on hand.
+- **Optional manual validation**: Ensure optimal quality by manually reviewing generated images before they go live in your campaigns.
+- **Seamless A/B testing**: Easily create Google Ads experiments to compare the performance of your new image assets against your existing setup, optimizing click-through rates and campaign success.
 
 ## Releases & features
 ### Adios v1.2
 
 Features:
-- [Enhanced Triggers](#enhanced-triggers): Optimized how long-running services operate, addressing execution time limits for large-scale ad group processing. (See Google Apps Script [quotas for details](https://developers.google.com/apps-script/guides/services/quotas#current_limitations))
+- [Enhanced Triggers](#enhanced-triggers): Optimized how long-running services operate, addressing execution time limits for large-scale ad group processing. (See Google Apps Script [quotas for details](https://developers.google.com/apps-script/guides/services/quotas#current_limitations)).
 - [Google Ads API Mocks](#google-ads-api-mocks): Experiment with Adios features and functionality without needing a Google Ads account.
+- Text-to-Image prompt generation has been switched to Gemini 1.5 Flash.
+- The Google Ads API has been upgraded to version 17.
 
 ### Adios v1.1
 https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64
@@ -86,7 +84,9 @@ Note: these features can be used separately, e.g. you can just upload images to 
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1-4fdb-b366-67a33700180e
 
-1. Make a copy of the [template Spreadsheet: Adios v1.1](https://docs.google.com/spreadsheets/d/1A0UbhSiF1ox47WUbA4VZ4oh4WlwzbRbkuQHQshHNWiU/edit?usp=sharing&resourcekey=0-283C6nDIyps8TKhcgtxXeQ) (in the main menu `File > Make a copy`). Earlier version: [Adios 1.0](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/edit?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug).
+1. Make a copy of the [template Spreadsheet: Adios v1.2](https://docs.google.com/spreadsheets/d/1DUNphGZIRL6mPDyrqgXErL-7p-gs0WmTqIjZl2ZXdSM/edit?usp=sharing) (in the main menu `File > Make a copy`). Earlier versions:
+   - [Adios v1.1](https://docs.google.com/spreadsheets/d/1A0UbhSiF1ox47WUbA4VZ4oh4WlwzbRbkuQHQshHNWiU/edit?usp=sharing&resourcekey=0-283C6nDIyps8TKhcgtxXeQ)
+   - [Adios 1.0](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/edit?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug)
 
 1. Create or use an existing [Google Cloud Platform](https://console.cloud.google.com/) (GCP) project
 
