@@ -16,12 +16,14 @@
 import { CONFIG } from './config';
 import { GcsApi } from './gcs-api';
 import { GoogleAdsApi } from './google-ads-api';
+import { Triggerable } from './triggerable';
 
-export class ImageUploadService {
+export class ImageUploadService extends Triggerable {
   private readonly _gcsApi;
   private readonly _googleAdsApi;
 
   constructor() {
+    super();
     this._gcsApi = new GcsApi(CONFIG['GCS Bucket']);
     this._googleAdsApi = new GoogleAdsApi(
       CONFIG['Ads API Key'],
@@ -31,8 +33,32 @@ export class ImageUploadService {
   }
 
   run() {
+    this.deleteTrigger();
     const adGroups = this._googleAdsApi.getAdGroups();
-    for (const adGroup of adGroups) {
+    const lastImageUploadProcessedAdGroupId =
+      PropertiesService.getScriptProperties().getProperty(
+        'lastImageUploadProcessedAdGroupId'
+      );
+    let startIndex = 0;
+    if (lastImageUploadProcessedAdGroupId) {
+      const lastIndex = adGroups.findIndex(
+        adGroup => adGroup.adGroup.id === lastImageUploadProcessedAdGroupId
+      );
+      startIndex = Math.max(lastIndex, 0);
+    }
+    for (let i = startIndex; i < adGroups.length; i++) {
+      const adGroup = adGroups[i];
+      if (this.shouldTerminate()) {
+        Logger.log(
+          `The function is reaching the 6 minute timeout, and therfore will create a trigger to rerun from this ad group: ${adGroup.adGroup.name} and then self terminate.`
+        );
+        PropertiesService.getScriptProperties().setProperty(
+          'lastImageUploadProcessedAdGroupId',
+          adGroup.adGroup.id
+        );
+        this.createTriggerForNextRun();
+        return; // Exit the function to prevent further execution
+      }
       Logger.log(
         `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
       );
@@ -41,7 +67,7 @@ export class ImageUploadService {
         CONFIG['Account ID'],
         adGroup.adGroup.id,
         [imgFolder]
-      );
+      ) as GoogleCloud.Storage.Image[];
       // Upload new images
       if (images.length === 0) {
         Logger.log('No images to upload.');
@@ -54,14 +80,46 @@ export class ImageUploadService {
           imgFolder,
           CONFIG['Uploaded DIR']
         );
+        PropertiesService.getScriptProperties().setProperty(
+          'lastImageUploadProcessedAdGroupId',
+          adGroup.adGroup.id
+        );
       }
       // TODO: Remove assets from the Asset Library
     }
     Logger.log('Finished uploading images.');
+    // If script completes without timing out, clear the stored ad group ID and any triggers
+    PropertiesService.getScriptProperties().deleteProperty(
+      'lastImageUploadProcessedAdGroupId'
+    );
+    this.deleteTrigger();
   }
-}
 
-function runImageUploadService() {
-  const imageUploadService = new ImageUploadService();
-  imageUploadService.run();
+  static triggeredRun() {
+    PropertiesService.getScriptProperties().setProperty(
+      `${ImageUploadService.name}StartTime`,
+      new Date().getTime().toString()
+    );
+    const imageUploadService = new ImageUploadService();
+    imageUploadService.run();
+  }
+
+  static manuallyRun() {
+    PropertiesService.getScriptProperties().setProperty(
+      `${ImageUploadService.name}StartTime`,
+      new Date().getTime().toString()
+    );
+    const lastImageUploadProcessedAdGroupId =
+      PropertiesService.getScriptProperties().getProperty(
+        'lastImageUploadProcessedAdGroupId'
+      );
+    if (lastImageUploadProcessedAdGroupId) {
+      PropertiesService.getScriptProperties().deleteProperty(
+        'lastImageUploadProcessedAdGroupId'
+      );
+      Logger.log('Cleared last processed Ad Group ID for a fresh manual run.');
+    }
+    const imageUploadService = new ImageUploadService();
+    imageUploadService.run();
+  }
 }

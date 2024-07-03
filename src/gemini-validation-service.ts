@@ -15,8 +15,8 @@
  */
 import { CONFIG } from './config';
 import { GcsApi } from './gcs-api';
-import { GoogleAdsApi } from './google-ads-api';
 import { VertexAiApi } from './vertex-ai-api';
+import { GoogleAdsApiFactory } from './google-ads-api-mock';
 
 export const POLICY_VIOLATIONS_FILE = 'policyViolations.json';
 
@@ -43,11 +43,7 @@ export class GeminiValidationService {
       'us-central1-aiplatform.googleapis.com',
       CONFIG['GCP Project']!
     );
-    this._googleAdsApi = new GoogleAdsApi(
-      CONFIG['Ads API Key'],
-      CONFIG['Manager ID'],
-      CONFIG['Account ID']
-    );
+    this._googleAdsApi = GoogleAdsApiFactory.createObject();
   }
 
   getPrompt() {
@@ -94,7 +90,7 @@ export class GeminiValidationService {
       );
 
       const images = this._gcsApi.getImages(
-        CONFIG['Account ID'],
+        GoogleAdsApiFactory.getAdsAccountId(),
         adGroup.adGroup.id,
         [CONFIG['Generated DIR']]
       );
