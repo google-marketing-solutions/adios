@@ -34,6 +34,10 @@ interface GeminiRequest {
   };
 }
 
+export class GeminiApiCallError extends Error {}
+export class ImageGenerationApiCallError extends Error {}
+export class JsonParseError extends Error {}
+
 export class VertexAiApi {
   private readonly _apiEndpoint: string;
   private readonly _projectId: string;
@@ -54,7 +58,6 @@ export class VertexAiApi {
   }
 
   callVisionApi(prompt: string, sampleCount = 4) {
-    console.log('prompt', prompt);
     const options = Object.assign({}, this._baseOptions);
     const payload = {
       instances: [{ prompt }],
@@ -68,8 +71,12 @@ export class VertexAiApi {
       options
     );
     if (200 !== result.getResponseCode()) {
-      Logger.log(result.getAllHeaders());
-      throw `ERROR: ${result.getContentText()}`;
+      console.error(
+        'Call to image generation API failed',
+        result.getAllHeaders(),
+        result.getContentText()
+      );
+      throw new ImageGenerationApiCallError(result.getContentText());
     }
 
     const resultParsed: VisionApiResponse = JSON.parse(
@@ -115,10 +122,26 @@ export class VertexAiApi {
     options.payload = JSON.stringify(payload);
     const result = UrlFetchApp.fetch(GEMINI_URI, options);
     if (200 !== result.getResponseCode()) {
-      Logger.log(result.getAllHeaders());
-      throw `ERROR: ${result.getContentText()}`;
+      console.error(
+        'Call to Gemini API failed',
+        result.getAllHeaders(),
+        result.getContentText()
+      );
+      throw new GeminiApiCallError(result.getContentText());
     }
-    const resultParsed = JSON.parse(result.getContentText('UTF-8'));
+
+    let resultParsed: any;
+    try {
+      resultParsed = JSON.parse(result.getContentText('UTF-8'));
+    } catch (e) {
+      console.error(
+        'JSON parse error for Gemini output',
+        result.getContentText('UTF-8'),
+        e
+      );
+      throw new JsonParseError(result.getContentText('UTF-8'));
+    }
+
     const geminiResponse = resultParsed.candidates
       .map((candidate: any) =>
         candidate?.content?.parts?.map((part: any) => part?.text).join('')

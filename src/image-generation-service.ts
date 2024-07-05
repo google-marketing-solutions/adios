@@ -17,7 +17,12 @@ import { ADIOS_MODES, CONFIG } from './config';
 import { GcsApi } from './gcs-api';
 import { GoogleAdsApiFactory } from './google-ads-api-mock';
 import { Triggerable } from './triggerable';
-import { VertexAiApi } from './vertex-ai-api';
+import {
+  GeminiApiCallError,
+  ImageGenerationApiCallError,
+  JsonParseError,
+  VertexAiApi,
+} from './vertex-ai-api';
 
 export class ImageGenerationService extends Triggerable {
   private readonly _gcsApi;
@@ -161,7 +166,21 @@ export class ImageGenerationService extends Triggerable {
             textPrompt += ' ' + CONFIG['Text Prompt Suffix'];
           }
           Logger.log('Prompt to generate Imagen Prompt: ' + textPrompt);
-          imgPrompt = this._vertexAiApi.callGeminiApi(textPrompt);
+          try {
+            imgPrompt = this._vertexAiApi.callGeminiApi(textPrompt);
+          } catch (e) {
+            if (e instanceof JsonParseError) {
+              Logger.log('Gemini output is not correct JSON, retrying');
+            } else if (e instanceof GeminiApiCallError) {
+              Logger.log('Gemini call error, retrying');
+            } else {
+              throw e; // Unknown error
+            }
+
+            // retrying
+            numTries++;
+            continue;
+          }
         }
 
         if (CONFIG['Prompt translations sheet']) {
@@ -175,7 +194,20 @@ export class ImageGenerationService extends Triggerable {
         Logger.log(
           `Imagen Prompt for AdGroup ${adGroup.adGroup.name}: "${imgPrompt}"`
         );
-        const images = this._vertexAiApi.callVisionApi(imgPrompt, imgCount);
+
+        let images: string[] = [];
+        try {
+          images = this._vertexAiApi.callVisionApi(imgPrompt, imgCount);
+        } catch (e) {
+          if (e instanceof ImageGenerationApiCallError) {
+            Logger.log(
+              'Not able to generate images, this might be because of the blocked content (see the logs)...'
+            );
+          } else {
+            throw e; // Unknown error
+          }
+        }
+
         Logger.log(
           `Received ${images?.length || 0} images for ${adGroup.adGroup.name}(${
             adGroup.adGroup.id
