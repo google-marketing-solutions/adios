@@ -1,6 +1,6 @@
 {
   "name": "adios",
-  "version": "1.1",
+  "version": "1.2",
   "description": "",
   "main": "build/index.js",
   "license": "Apache-2.0",
