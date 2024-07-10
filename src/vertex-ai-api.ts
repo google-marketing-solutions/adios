@@ -39,14 +39,16 @@ export class ImageGenerationApiCallError extends Error {}
 export class JsonParseError extends Error {}
 
 export class VertexAiApi {
-  private readonly _apiEndpoint: string;
-  private readonly _projectId: string;
   private readonly _baseOptions: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions;
   readonly VISION_API_LIMIT = 4;
 
-  constructor(apiEndpoint: string, projectId: string) {
-    this._apiEndpoint = apiEndpoint;
-    this._projectId = projectId;
+  constructor(
+    private _projectId: string,
+    private _region = 'us-central1',
+    private _apiEndpoint = 'aiplatform.googleapis.com',
+    private _geminiModel = 'gemini-1.5-flash:generateContent',
+    private _imageGenerationModel = 'imagegeneration:predict'
+  ) {
     this._baseOptions = {
       method: 'post',
       contentType: 'application/json',
@@ -57,7 +59,23 @@ export class VertexAiApi {
     };
   }
 
-  callVisionApi(prompt: string, sampleCount = 4) {
+  protected getEndPoint(model: string) {
+    return (
+      `https://${this._region}-${this._apiEndpoint}/v1/projects/` +
+      `${this._projectId}/locations/${this._region}/publishers/google/models/` +
+      model
+    );
+  }
+
+  protected getGeminiEndPoint() {
+    return this.getEndPoint(this._geminiModel);
+  }
+
+  protected getImageGenerationEndPoint() {
+    return this.getEndPoint(this._imageGenerationModel);
+  }
+
+  callImageGenerationApi(prompt: string, sampleCount = 4) {
     const options = Object.assign({}, this._baseOptions);
     const payload = {
       instances: [{ prompt }],
@@ -67,7 +85,7 @@ export class VertexAiApi {
     };
     options.payload = JSON.stringify(payload);
     const result = UrlFetchApp.fetch(
-      `https://${this._apiEndpoint}/v1/projects/${this._projectId}/locations/us-central1/publishers/google/models/imagegeneration:predict`,
+      this.getImageGenerationEndPoint(),
       options
     );
     if (200 !== result.getResponseCode()) {
@@ -86,9 +104,6 @@ export class VertexAiApi {
   }
 
   callGeminiApi(text: string, fileUri = '', image = '') {
-    const GEMINI_URI =
-      `https://${this._apiEndpoint}/v1/projects/${this._projectId}` +
-      `/locations/us-central1/publishers/google/models/gemini-1.5-flash:generateContent`;
     const options = Object.assign({}, this._baseOptions);
 
     const mimeType = 'image/png';
@@ -120,7 +135,7 @@ export class VertexAiApi {
       },
     };
     options.payload = JSON.stringify(payload);
-    const result = UrlFetchApp.fetch(GEMINI_URI, options);
+    const result = UrlFetchApp.fetch(this.getGeminiEndPoint(), options);
     if (200 !== result.getResponseCode()) {
       console.error(
         'Call to Gemini API failed',

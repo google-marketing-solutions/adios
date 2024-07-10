@@ -33,8 +33,11 @@ export class ImageGenerationService extends Triggerable {
     super();
     this._gcsApi = new GcsApi(CONFIG['GCS Bucket']);
     this._vertexAiApi = new VertexAiApi(
-      'us-central1-aiplatform.googleapis.com',
-      CONFIG['GCP Project']!
+      CONFIG['GCP Project'],
+      CONFIG['GCP Region'],
+      CONFIG['VertexAI Api Domain Part'],
+      CONFIG['Gemini Model'],
+      CONFIG['Image Generation Model']
     );
     this._googleAdsApi = GoogleAdsApiFactory.createObject();
   }
@@ -197,7 +200,10 @@ export class ImageGenerationService extends Triggerable {
 
         let images: string[] = [];
         try {
-          images = this._vertexAiApi.callVisionApi(imgPrompt, imgCount);
+          images = this._vertexAiApi.callImageGenerationApi(
+            imgPrompt,
+            imgCount
+          );
         } catch (e) {
           if (e instanceof ImageGenerationApiCallError) {
             Logger.log(
