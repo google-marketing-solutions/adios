@@ -103,7 +103,7 @@ export class ImageGenerationService extends Triggerable {
       // Process it in batches of max VISION_API_LIMIT images (as for now, 4)
       while (generatedImages < adGroupImgCount && numTries <= MAX_TRIES) {
         const imgCount = Math.min(
-          this._vertexAiApi.VISION_API_LIMIT,
+          this._vertexAiApi.IMAGE_GENERATION_API_LIMIT,
           adGroupImgCount - generatedImages
         );
 
