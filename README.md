@@ -115,14 +115,21 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1
 
 ## Configuration
 
-Most of Adios' configuration parameters are located in the default "Config" sheet.
-For finer control (e.g. if you want to change a Gen AI model), you can add the following settings to the same sheet.
+Adios' configuration parameters are primarily located in the default "Config" sheet of the [template spreadsheet](#installation-guide). It is essential to complete the configuration before using Adios.
 
-| Setting                  | Default value    | Comment                                                                                                                                                          |
-| ------------------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Image Generation Model` | imagegeneration  | The full model name (the last part of the endpoint uri). [More info](https://cloud.google.com/vertex-ai/generative-ai/docs/image/overview#feature-launch-stage). |
-| `Gemini Model`           | gemini-1.5-flash | The full model name (the last part of the endpoint uri). [More info](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models).          |
-| `GCP Region`             | us-central1      | Google Cloud region for running Gen AI models.                                                                                                                   |
+Mandatory fields:
+
+- GCP Project Specific Parameters
+  - GCP Project
+  - GCS Bucket
+- Google Ads Specific Parameters (in case you use [Mocks](#google-ads-api-mocks), this is not required)
+  - Google Ads API Key (aka "developer token")
+  - Account ID, Manager Account ID, Campaign IDs
+
+Other Parameters:
+
+- **Preset Parameters**: Several parameters in the "Config" sheet come with preset values. You can modify these if needed based on your specific requirements.
+- **Optional Parameters**: Adios offers additional optional parameters to fine-tune its behavior.
 
 ## Assets generation
 
