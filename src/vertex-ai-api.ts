@@ -73,28 +73,30 @@ export class VertexAiApi {
    * @param {string} _projectId - Your Google Cloud Project ID. This is required.
    * @param {string} [_region='us-central1'] - The region where your AI resources are located (e.g., 'us-central1', 'europe-west4'). Defaults to 'us-central1'.
    * @param {string} [_apiEndpoint='aiplatform.googleapis.com'] - The base API endpoint for Gemini. Usually, you won't need to change this.
-   * @param {string} [_geminiModel='gemini-1.5-flash:generateContent'] - The specific Gemini model for text generation tasks (e.g., 'gemini-1.5-flash:generateContent'). Defaults to the latest flash model.
-   * @param {string} [_imageGenerationModel='imagegeneration:predict'] - The model for image generation tasks.
+   * @param {string} [_geminiModel='gemini-1.5-flash'] - The specific Gemini model for text generation tasks (e.g., 'gemini-1.5-flash'). Defaults to the latest flash model.
+   * @param {string} [_imageGenerationModel='imagegeneration'] - The model for image generation tasks.
    */
   constructor(
     private _projectId: string,
     private _region = 'us-central1',
     private _apiEndpoint = 'aiplatform.googleapis.com',
-    private _geminiModel = 'gemini-1.5-flash:generateContent',
-    private _imageGenerationModel = 'imagegeneration:predict'
+    private _geminiModel = 'gemini-1.5-flash',
+    private _imageGenerationModel = 'imagegeneration'
   ) {}
   /**
    * Constructs the API endpoint URL for the specified Gemini model.
    *
    * @protected
-   * @param {string} model - The name of the Gemini model (e.g., 'gemini-1.5-flash:generateContent', 'imagegeneration:predict').
+   * @param {string} model - The name of the Gen AI model (e.g., 'gemini-1.5-flash', 'imagegeneration').
+   * @param {string} suffix - The model suffix. Can be found in the end point after ':' (e.g., 'generateContent', 'predict').
    * @returns {string} The complete API endpoint URL for making requests to the model.
    */
-  protected getEndPoint(model: string) {
+  protected getEndPoint(model: string, suffix: string) {
     return (
       `https://${this._region}-${this._apiEndpoint}/v1/projects/` +
       `${this._projectId}/locations/${this._region}/publishers/google/models/` +
-      model
+      model +
+      `:${suffix}`
     );
   }
   /**
@@ -104,7 +106,7 @@ export class VertexAiApi {
    * @protected
    */
   protected getGeminiEndPoint() {
-    return this.getEndPoint(this._geminiModel);
+    return this.getEndPoint(this._geminiModel, 'generateContent');
   }
   /**
    * Returns the specific API endpoint URL for the Vertex AI image generation model.
@@ -113,7 +115,7 @@ export class VertexAiApi {
    * @protected
    */
   protected getImageGenerationEndPoint() {
-    return this.getEndPoint(this._imageGenerationModel);
+    return this.getEndPoint(this._imageGenerationModel, 'predict');
   }
   /**
    * Calls the Google Cloud Vertex AI API to generate images based on a text prompt.
