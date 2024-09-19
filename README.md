@@ -55,6 +55,14 @@ Here are some of Adios's powerful features:
 
 ## Releases & features
 
+### Adios v1.3
+
+Features:
+
+- Increased configuration flexibility in the 'Config' sheet. Now you can easily change AI models, GCP region, and other settings without editing the code.
+- Improved the stability and reliability of Gen API interactions. The tool now automatically retries failed requests, ensuring a smoother and more robust user experience.
+- Improved documentation in the Config sheet and on GitHub ([README](README.md)) to provide clearer guidance and support.
+
 ### Adios v1.2
 
 Features:
