@@ -98,7 +98,7 @@ Note: these features can be used separately, e.g. you can just upload images to 
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1-4fdb-b366-67a33700180e
 
-1. Make a copy of the [template Spreadsheet: Adios v1.3](https://docs.google.com/spreadsheets/d/1DUNphGZIRL6mPDyrqgXErL-7p-gs0WmTqIjZl2ZXdSM/edit?usp=sharing) (in the main menu `File > Make a copy`). Earlier versions:
+1. Make a copy of the [template Spreadsheet: Adios v1.3](https://docs.google.com/spreadsheets/d/1e4OXlUaAYI1B0n7j5WOGEbzNsmAAFfkGg8rXZXejk3c/edit?usp=sharing) (in the main menu `File > Make a copy`). Earlier versions:
 
    - [Adios v1.2](https://docs.google.com/spreadsheets/d/1DUNphGZIRL6mPDyrqgXErL-7p-gs0WmTqIjZl2ZXdSM/edit?usp=sharing)
    - [Adios v1.1](https://docs.google.com/spreadsheets/d/1A0UbhSiF1ox47WUbA4VZ4oh4WlwzbRbkuQHQshHNWiU/edit?usp=sharing&resourcekey=0-283C6nDIyps8TKhcgtxXeQ)
