@@ -44,6 +44,7 @@ interface Config {
   'VertexAI Api Domain Part'?: string;
   'Gemini Model'?: string;
   'Image Generation Model'?: string;
+  'DemandGen Prompt': string;
 }
 
 export const sheet =
@@ -79,6 +80,7 @@ const DEFAULT_CONFIG = {
   'VertexAI Api Domain Part': undefined,
   'Gemini Model': undefined,
   'Image Generation Model': undefined,
+  'DemandGen Prompt': '',
 };
 
 export const ADIOS_MODES = {

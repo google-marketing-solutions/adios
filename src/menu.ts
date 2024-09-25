@@ -18,8 +18,14 @@ import { ADIOS_MODES, ADIOS_MODE_CELL, sheet } from './config';
 export const menu = null;
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
-  ui.createMenu('🚀 PMAX')
-    .addItem('🚀🚀🚀 Rocket 🚀🚀🚀', 'PmaxGenerationService.manuallyRun')
+  ui.createMenu('DemandGen 🚀')
+    .addItem(
+      'Generate: Text Assets ',
+      'PmaxGenerationService.generateTextAssets'
+    )
+    .addItem('Generate: Image Assets', 'PmaxGenerationService.manuallyRun')
+    .addItem('Upload to Ads', 'void')
+    .addItem('Suggest improvements', 'void')
     .addToUi();
   // Show only the corresponding rows for the Adios Mode on page load
   toggleRows(sheet.getRange(ADIOS_MODE_CELL).getValue());

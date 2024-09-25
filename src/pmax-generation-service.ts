@@ -363,4 +363,47 @@ export class PmaxGenerationService extends Triggerable {
     const pmaxGenerationService = new PmaxGenerationService();
     pmaxGenerationService.run();
   }
+
+  generateTextAssets() {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
+      CONFIG['Google Ads Mock Sheet']
+    )!;
+
+    const adGroups = sheet
+      ?.getRange('A2:C')
+      .getDisplayValues()
+      .filter(e => !e[3]);
+
+    adGroups.forEach((row: string[], index: number) => {
+      console.log(`Working on row: ${row}`);
+      const prompt = CONFIG['DemandGen Prompt']
+        .replace('<keywords>', row[1])
+        .replace('<language>', row[2]);
+
+      const generatedAssets: {
+        headlines: string[];
+        descriptions: string[];
+        ctas: string[];
+      } = JSON.parse(this._vertexAiApi.callGeminiApi(prompt));
+
+      sheet
+        ?.getRange(`D${index + 2}`)
+        .setValue(generatedAssets.headlines.join('\n'));
+      sheet
+        ?.getRange(`E${index + 2}`)
+        .setValue(generatedAssets.descriptions.join('\n'));
+      sheet
+        ?.getRange(`F${index + 2}`)
+        .setValue(generatedAssets.ctas.join('\n'));
+    });
+  }
+
+  static generateTextAssets() {
+    const pmaxGenerationService = new PmaxGenerationService();
+    pmaxGenerationService.generateTextAssets();
+  }
+}
+
+function test_generateTextAssets() {
+  PmaxGenerationService.generateTextAssets();
 }
