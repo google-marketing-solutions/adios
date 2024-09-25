@@ -372,7 +372,7 @@ export class PmaxGenerationService extends Triggerable {
     const adGroups = sheet
       ?.getRange('A2:C')
       .getDisplayValues()
-      .filter(e => !e[3]);
+      .filter(e => e[0] && !e[3]);
 
     adGroups.forEach((row: string[], index: number) => {
       console.log(`Working on row: ${row}`);
