@@ -122,21 +122,24 @@ export class VertexAiApi {
    *
    * @param {string} prompt - The text prompt describing the desired image.
    * @param {number} [sampleCount=4] - (Optional) The number of image samples to generate. Defaults to 4.
+   * @param {string} [aspectRatio='1:1'] - (Optional) Generated image aspect ratio.
    *
    * @returns {string[]} An array of base64-encoded image strings.
    *
    * @throws {ImageGenerationApiCallError} If the API call fails due to network issues, invalid credentials, or other errors.
    * @throws {JsonParseError} If there's an error parsing the JSON response from the Vision API.
    */
-  callImageGenerationApi(prompt: string, sampleCount = 4) {
+  callImageGenerationApi(prompt: string, sampleCount = 4, aspectRatio = '1:1') {
     const options = Object.assign({}, this._baseOptions);
     const payload = {
       instances: [{ prompt }],
       parameters: {
         sampleCount,
+        aspectRatio,
       },
     };
     options.payload = JSON.stringify(payload);
+    console.log(options);
     const result = UrlFetchApp.fetch(
       this.getImageGenerationEndPoint(),
       options

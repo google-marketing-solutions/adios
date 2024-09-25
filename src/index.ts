@@ -22,6 +22,7 @@ import { ExperimentsService } from './experiments-service';
 import { GeminiValidationService } from './gemini-validation-service';
 import { FRONTEND_HELPER } from './frontend-helper';
 import { uiHelper } from './ui-helper';
+import { PmaxGenerationService } from './pmax-generation-service';
 
 menu;
 ImageExtensionService;
@@ -29,5 +30,6 @@ ImageGenerationService;
 ImageUploadService;
 ExperimentsService;
 GeminiValidationService;
+PmaxGenerationService;
 FRONTEND_HELPER;
 uiHelper;

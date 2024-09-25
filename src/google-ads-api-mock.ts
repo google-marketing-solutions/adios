@@ -17,8 +17,6 @@ import { CONFIG } from './config';
 import { GoogleAdsApi, GoogleAdsApiInterface } from './google-ads-api';
 
 export class GoogleAdsApiFactory {
-  static mockAccountId = 'Mock';
-
   static checkSheet() {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
       CONFIG['Google Ads Mock Sheet']
@@ -52,7 +50,7 @@ export class GoogleAdsApiFactory {
 
     GoogleAdsApiFactory.checkSheet();
 
-    return GoogleAdsApiFactory.mockAccountId;
+    return CONFIG['Google Ads Mock Sheet'];
   }
 }
 
@@ -73,7 +71,7 @@ class GoogleAdsApiMock implements GoogleAdsApiInterface {
     }
 
     return this.data.map(row => ({
-      customer: { id: GoogleAdsApiFactory.mockAccountId },
+      customer: { id: CONFIG['Google Ads Mock Sheet'] },
       adGroup: {
         id: row[0],
         name: row[0],

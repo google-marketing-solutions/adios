@@ -18,21 +18,8 @@ import { ADIOS_MODES, ADIOS_MODE_CELL, sheet } from './config';
 export const menu = null;
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
-  ui.createMenu('Adios')
-    .addSubMenu(
-      ui
-        .createMenu('▶️ Run')
-        .addItem('Image generation', 'ImageGenerationService.manuallyRun')
-        .addItem('Image upload', 'ImageUploadService.manuallyRun')
-        .addItem('Image assets linking', 'ImageExtensionService.manuallyRun')
-        .addItem('Create experiments', 'runExperimentsService')
-        .addItem('Policy validation', 'runGeminiValidationService')
-    )
-    .addSubMenu(
-      ui
-        .createMenu('🕒 Schedule')
-        .addItem('Every day', 'AdiosTriggers.scheduleForEveryDay')
-    )
+  ui.createMenu('🚀 PMAX')
+    .addItem('🚀🚀🚀 Rocket 🚀🚀🚀', 'PmaxGenerationService.manuallyRun')
     .addToUi();
   // Show only the corresponding rows for the Adios Mode on page load
   toggleRows(sheet.getRange(ADIOS_MODE_CELL).getValue());
