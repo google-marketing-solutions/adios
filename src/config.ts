@@ -40,6 +40,10 @@ interface Config {
   'Text Prompt Suffix': string;
   'Prompt translations sheet': string;
   'Google Ads Mock Sheet': string;
+  'GCP Region'?: string;
+  'VertexAI Api Domain Part'?: string;
+  'Gemini Model'?: string;
+  'Image Generation Model'?: string;
 }
 
 export const sheet =
@@ -71,6 +75,10 @@ const DEFAULT_CONFIG = {
   'Text Prompt Suffix': '',
   'Prompt translations sheet': '',
   'Google Ads Mock Sheet': '',
+  'GCP Region': undefined,
+  'VertexAI Api Domain Part': undefined,
+  'Gemini Model': undefined,
+  'Image Generation Model': undefined,
 };
 
 export const ADIOS_MODES = {

@@ -54,24 +54,38 @@ Here are some of Adios's powerful features:
 - **Seamless A/B testing**: Easily create Google Ads experiments to compare the performance of your new image assets against your existing setup, optimizing click-through rates and campaign success.
 
 ## Releases & features
+
+### Adios v1.3
+
+Features:
+
+- Increased configuration flexibility in the 'Config' sheet. Now you can easily change AI models, GCP region, and other settings without editing the code.
+- Improved the stability and reliability of Gen API interactions. The tool now automatically retries failed requests, ensuring a smoother and more robust user experience.
+- Improved documentation in the Config sheet and on GitHub ([README](README.md)) to provide clearer guidance and support.
+
 ### Adios v1.2
 
 Features:
+
 - [Enhanced Triggers](#enhanced-triggers): Optimized how long-running services operate, addressing execution time limits for large-scale ad group processing. (See Google Apps Script [quotas for details](https://developers.google.com/apps-script/guides/services/quotas#current_limitations)).
 - [Google Ads API Mocks](#google-ads-api-mocks): Experiment with Adios features and functionality without needing a Google Ads account.
 - Text-to-Image prompt generation has been switched to Gemini 1.5 Flash.
 - The Google Ads API has been upgraded to version 17.
 
 ### Adios v1.1
+
 https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64
 
 Features:
+
 - Automatic, AI ([Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/overview)) based image policy validation. Now you can write your brand, company, _you name it_ ads policies as a text and the generated image will be validated against those policies.
 - Ad Group names translations. Now you can translate your ad group names (or parts of them) e.g. into better text-to-image prompts.
 - Keyword based image generation. Previously you could generate images only based on the ad group names.
 
 ### Adios v1.0
+
 Features:
+
 - Generate image assets (ad group level) based on the ad group names
 - Image validation UI (validate manually generated images before uploading to Google Ads).
 - Upload generated assets to the Google Ads assets library.
@@ -84,7 +98,9 @@ Note: these features can be used separately, e.g. you can just upload images to 
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1-4fdb-b366-67a33700180e
 
-1. Make a copy of the [template Spreadsheet: Adios v1.2](https://docs.google.com/spreadsheets/d/1DUNphGZIRL6mPDyrqgXErL-7p-gs0WmTqIjZl2ZXdSM/edit?usp=sharing) (in the main menu `File > Make a copy`). Earlier versions:
+1. Make a copy of the [template Spreadsheet: Adios v1.3](https://docs.google.com/spreadsheets/d/1e4OXlUaAYI1B0n7j5WOGEbzNsmAAFfkGg8rXZXejk3c/edit?usp=sharing) (in the main menu `File > Make a copy`). Earlier versions:
+
+   - [Adios v1.2](https://docs.google.com/spreadsheets/d/1DUNphGZIRL6mPDyrqgXErL-7p-gs0WmTqIjZl2ZXdSM/edit?usp=sharing)
    - [Adios v1.1](https://docs.google.com/spreadsheets/d/1A0UbhSiF1ox47WUbA4VZ4oh4WlwzbRbkuQHQshHNWiU/edit?usp=sharing&resourcekey=0-283C6nDIyps8TKhcgtxXeQ)
    - [Adios 1.0](https://docs.google.com/spreadsheets/d/1YnFCTif5ruLqs4qJIMcJmvejMEhvFHBzkBwfDp_oWRE/edit?resourcekey=0-mj_eJDv4XRwv2zwOJnYXug)
 
@@ -105,8 +121,28 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1
 
 1. Now you can run or schedule the Adios services using the Adios menu
 
+## Configuration
+
+Adios' configuration parameters are primarily located in the default "Config" sheet of the [template spreadsheet](#installation-guide). It is essential to complete the configuration before using Adios.
+
+Mandatory fields:
+
+- GCP Project Specific Parameters
+  - GCP Project
+  - GCS Bucket
+- Google Ads Specific Parameters (in case you use [Mocks](#google-ads-api-mocks), this is not required)
+  - Google Ads API Key (aka "developer token")
+  - Account ID, Manager Account ID, Campaign IDs
+
+Other Parameters:
+
+- **Preset Parameters**: Several parameters in the "Config" sheet come with preset values. You can modify these if needed based on your specific requirements.
+- **Optional Parameters**: Adios offers additional optional parameters to fine-tune its behavior.
+
 ## Assets generation
-Notes: 
+
+Notes:
+
 - this step is not required if you already have the assets.
 - starting from Adios v1.1 you can generate assets based on ad group keywords (check this [video](https://github.com/google-marketing-solutions/adios/assets/3335483/9be71a1a-43da-49ba-b203-598e797f1d64)).
 
@@ -116,8 +152,8 @@ https://github.com/google-marketing-solutions/adios/assets/3335483/72db55da-7ed1
 
 Want to try out image generation without real ad groups? Simulate them easily with a spreadsheet:
 
-- __Configure Adios__: In the "Config" sheet, add a variable named "Google Ads Mock Sheet". Choose a name for your mock sheet (e.g., "Mock") and set it as the value for this variable.
-- __Create Your Mock Data__: Create a new sheet with the name you chose (e.g., "Mock"). Make sure it has two columns:
+- **Configure Adios**: In the "Config" sheet, add a variable named "Google Ads Mock Sheet". Choose a name for your mock sheet (e.g., "Mock") and set it as the value for this variable.
+- **Create Your Mock Data**: Create a new sheet with the name you chose (e.g., "Mock"). Make sure it has two columns:
   - "Ad Group Name": Enter a name for each simulated ad group.
   - "Keywords": List the keywords associated with each ad group (comma separated).
 
@@ -162,6 +198,7 @@ As a result you will be able to see newly created experiments in the
    while your experiment is running may make it harder to interpret your results.
 
 ## Using the Validation UI
+
 Adios provides an optional UI for users to check the generated images and approve/reject them before uploading them to the Google Ads account.
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/d3b15133-6f9e-4057-8fd7-b4ac77aff954
@@ -170,7 +207,7 @@ You can use it as follows:
 
 1. Ensure that there is a set `Validated DIR` in the configuration Spreadsheet (e.g. `VALIDATED`)
 
-    This is the name for the directory in the GCS bucket, where approved images will be saved. Disapproved images will be saved to the directory specified in `Disapproved DIR`.
+   This is the name for the directory in the GCS bucket, where approved images will be saved. Disapproved images will be saved to the directory specified in `Disapproved DIR`.
 
 1. In the Spreadsheet, open Extensions > Apps Script
 
