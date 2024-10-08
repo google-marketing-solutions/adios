@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG } from './config';
+import { CONFIG, PROMOTION_CONFIG } from './config';
 import { GcsApi } from './gcs-api';
 import {
   ImagePolicyViolations,
-  PolicyViolation,
   POLICY_VIOLATIONS_FILE,
+  PolicyViolation,
 } from './gemini-validation-service';
 import { GoogleAdsApiFactory } from './google-ads-api-mock';
 
@@ -51,8 +51,9 @@ export interface Image {
   selected?: boolean;
   issues?: ImageIssue[];
 }
-
-const gcsApi = new GcsApi(CONFIG['GCS Bucket']);
+const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+const config = isPromotionMode ? PROMOTION_CONFIG : CONFIG;
+const gcsApi = new GcsApi(config['GCS Bucket']);
 
 const getData = () => {
   const gcsImages = gcsApi.listAllImages(GoogleAdsApiFactory.getAdsAccountId());
@@ -65,22 +66,22 @@ const getData = () => {
     const statusFolder = e.name.split('/')[2];
     let status: IMAGE_STATUS | null = null;
     switch (statusFolder) {
-      case CONFIG['Generated DIR']:
+      case config['Generated DIR']:
         status = IMAGE_STATUS.GENERATED;
         break;
-      case CONFIG['Uploaded DIR']:
+      case config['Uploaded DIR']:
         status = IMAGE_STATUS.UPLOADED;
         break;
-      case CONFIG['Validated DIR']:
+      case config['Validated DIR']:
         status = IMAGE_STATUS.VALIDATED;
         break;
-      case CONFIG['Disapproved DIR']:
+      case config['Disapproved DIR']:
         status = IMAGE_STATUS.DISAPPROVED;
         break;
-      case CONFIG['Bad performance DIR']:
+      case config['Bad performance DIR']:
         status = IMAGE_STATUS.BAD_PERFORMANCE;
         break;
-      case CONFIG['Rejected DIR']:
+      case config['Rejected DIR']:
         status = IMAGE_STATUS.REJECTED;
         break;
       default:
@@ -99,7 +100,7 @@ const getData = () => {
 
     adGroups[adGroupId].push({
       filename,
-      url: `https://storage.mtls.cloud.google.com/${CONFIG['GCS Bucket']}/${e.name}`,
+      url: `https://storage.mtls.cloud.google.com/${config['GCS Bucket']}/${e.name}`,
       status,
       issues,
     });
@@ -116,17 +117,17 @@ const getData = () => {
 };
 
 const setImageStatus = (images: Image[], status: IMAGE_STATUS) => {
-  const gcsApi = new GcsApi(CONFIG['GCS Bucket']);
+  const gcsApi = new GcsApi(config['GCS Bucket']);
   images.forEach(image => {
     const adGroupId = image.filename.split('|')[0];
     gcsApi.moveImage(
       GoogleAdsApiFactory.getAdsAccountId(),
       adGroupId,
       image.filename,
-      CONFIG['Generated DIR'],
+      config['Generated DIR'],
       status === IMAGE_STATUS.VALIDATED
-        ? CONFIG['Validated DIR']
-        : CONFIG['Rejected DIR']
+        ? config['Validated DIR']
+        : config['Rejected DIR']
     );
   });
 };
@@ -164,7 +165,7 @@ class PolicyStatusByAdGroup {
     [filename: string]: PolicyViolation[];
   } {
     const fullName = `${GoogleAdsApiFactory.getAdsAccountId()}/${adGroupId}/${
-      CONFIG['Generated DIR']
+      config['Generated DIR']
     }/${POLICY_VIOLATIONS_FILE}`;
 
     try {
