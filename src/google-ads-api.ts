@@ -138,6 +138,22 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
     });
   }
 
+  pauseAdGroupAssets(resourceNames: string[]) {
+    const operations = resourceNames.map(resourceName => ({
+      update: {
+        resource_name: resourceName,
+        status: 'PAUSED',
+      },
+      update_mask: {
+        paths: ['status'],
+      },
+    }));
+    return this.post('/adGroupAssets:mutate', {
+      customer_id: this._customerId,
+      operations,
+    });
+  }
+
   deleteExtensionFeedItem(resourceName?: string) {
     if (!resourceName) {
       return;
