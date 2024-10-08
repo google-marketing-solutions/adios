@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG } from './config';
+import { CONFIG, PROMOTION_CONFIG } from './config';
 import { GcsApi } from './gcs-api';
 import { GoogleAdsApi } from './google-ads-api';
 import { Triggerable } from './triggerable';
@@ -23,24 +23,34 @@ export class ImageExtensionService extends Triggerable {
 
   private readonly _gcsApi;
   private readonly _googleAdsApi;
+  private readonly _config;
+  private readonly _isPromotionMode: boolean;
 
-  constructor() {
+  constructor(isPromotionMode: boolean) {
     super();
-    this._gcsApi = new GcsApi(CONFIG['GCS Bucket']);
+    this._isPromotionMode = isPromotionMode;
+    this._config = this._isPromotionMode ? PROMOTION_CONFIG : CONFIG;
+    Logger.log(
+      `Config sheet chosen is: ${
+        this._isPromotionMode ? 'PROMOTION_CONFIG' : 'CONFIG'
+      }`
+    );
+    this._gcsApi = new GcsApi(this._config['GCS Bucket']);
     this._googleAdsApi = new GoogleAdsApi(
-      CONFIG['Ads API Key'],
-      CONFIG['Manager ID'],
-      CONFIG['Account ID']
+      this._config['Ads API Key'],
+      this._config['Manager ID'],
+      this._config['Account ID']
     );
   }
 
   run() {
     this.deleteTrigger();
     const adGroups = this._googleAdsApi.getAdGroups();
+    const lastProcessedKey = this._isPromotionMode
+      ? 'lastPromotionImageExtensionProcessedAdGroupId'
+      : 'lastImageExtensionProcessedAdGroupId';
     const lastImageExtensionProcessedAdGroupId =
-      PropertiesService.getScriptProperties().getProperty(
-        'lastImageExtensionProcessedAdGroupId'
-      );
+      PropertiesService.getScriptProperties().getProperty(lastProcessedKey);
     let startIndex = 0;
     if (lastImageExtensionProcessedAdGroupId) {
       const lastIndex = adGroups.findIndex(
@@ -52,10 +62,10 @@ export class ImageExtensionService extends Triggerable {
       const adGroup = adGroups[i];
       if (this.shouldTerminate()) {
         Logger.log(
-          `The function is reaching the 6 minute timeout, and therfore will create a trigger to rerun from this ad group: ${adGroup.adGroup.name} and then self terminate.`
+          `The function is reaching the 6 minute timeout, and therefore will create a trigger to rerun from this ad group: ${adGroup.adGroup.name} and then self terminate.`
         );
         PropertiesService.getScriptProperties().setProperty(
-          'lastImageExtensionProcessedAdGroupId',
+          lastProcessedKey,
           adGroup.adGroup.id
         );
         this.createTriggerForNextRun();
@@ -65,8 +75,8 @@ export class ImageExtensionService extends Triggerable {
         `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
       );
       const uploadedToGcsImages = this._gcsApi
-        .listImages(CONFIG['Account ID'], adGroup.adGroup.id, [
-          CONFIG['Uploaded DIR'],
+        .listImages(this._config['Account ID'], adGroup.adGroup.id, [
+          this._config['Uploaded DIR'],
         ])
         ?.items?.map(e => e.name.split('/').slice(-1)[0]);
       const notLinkedAssets = this._googleAdsApi
@@ -92,54 +102,64 @@ export class ImageExtensionService extends Triggerable {
           notLinkedAssets
         );
       }
-      const adGroupAssetsToDelete = this._googleAdsApi
-        .getAdGroupAssetsForAdGroup(adGroup.adGroup.id)
-        .filter(e => !uploadedToGcsImages?.includes(e.asset.name))
-        .map(e => e.adGroupAsset.resourceName);
-      if (adGroupAssetsToDelete?.length > 0) {
-        Logger.log(
-          `Deleting ${adGroupAssetsToDelete.length} ad group assets for ad group ${adGroup.adGroup.id}...`
-        );
-        this._googleAdsApi.deleteAdGroupAssets(adGroupAssetsToDelete);
+      // Only delete assets if not in promotion mode
+      if (!this._isPromotionMode) {
+        const adGroupAssetsToDelete = this._googleAdsApi
+          .getAdGroupAssetsForAdGroup(adGroup.adGroup.id)
+          .filter(e => !uploadedToGcsImages?.includes(e.asset.name))
+          .map(e => e.adGroupAsset.resourceName);
+        if (adGroupAssetsToDelete?.length > 0) {
+          Logger.log(
+            `Deleting ${adGroupAssetsToDelete.length} ad group assets for ad group ${adGroup.adGroup.id}...`
+          );
+          this._googleAdsApi.deleteAdGroupAssets(adGroupAssetsToDelete);
+        }
+      } else {
+        Logger.log('Skipping deletion of existing assets in promotion mode.');
       }
       PropertiesService.getScriptProperties().setProperty(
-        'lastImageExtensionProcessedAdGroupId',
+        lastProcessedKey,
         adGroup.adGroup.id
       );
     }
     Logger.log('Finished Extension Process.');
     //If script completes without timing out, clear the stored ad group ID and any triggers
-    PropertiesService.getScriptProperties().deleteProperty(
-      'lastImageExtensionProcessedAdGroupId'
-    );
+    PropertiesService.getScriptProperties().deleteProperty(lastProcessedKey);
     this.deleteTrigger();
   }
 
   static triggeredRun() {
+    const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+    Logger.log(`triggeredRun method:`);
+    Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
+
     PropertiesService.getScriptProperties().setProperty(
       `${ImageExtensionService.name}StartTime`,
       new Date().getTime().toString()
     );
-    const imageExtensionService = new ImageExtensionService();
+    const imageExtensionService = new ImageExtensionService(isPromotionMode);
     imageExtensionService.run();
   }
 
   static manuallyRun() {
+    const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+    Logger.log(`manuallyRun method:`);
+    Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
+
     PropertiesService.getScriptProperties().setProperty(
       `${ImageExtensionService.name}StartTime`,
       new Date().getTime().toString()
     );
+    const lastProcessedKey = isPromotionMode
+      ? 'lastPromotionImageExtensionProcessedAdGroupId'
+      : 'lastImageExtensionProcessedAdGroupId';
     const lastImageExtensionProcessedAdGroupId =
-      PropertiesService.getScriptProperties().getProperty(
-        'lastImageExtensionProcessedAdGroupId'
-      );
+      PropertiesService.getScriptProperties().getProperty(lastProcessedKey);
     if (lastImageExtensionProcessedAdGroupId) {
-      PropertiesService.getScriptProperties().deleteProperty(
-        'lastImageExtensionProcessedAdGroupId'
-      );
+      PropertiesService.getScriptProperties().deleteProperty(lastProcessedKey);
       Logger.log('Cleared last processed Ad Group ID for a fresh manual run.');
     }
-    const imageExtensionService = new ImageExtensionService();
+    const imageExtensionService = new ImageExtensionService(isPromotionMode);
     imageExtensionService.run();
   }
 }

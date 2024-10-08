@@ -44,11 +44,15 @@ interface Config {
   'VertexAI Api Domain Part'?: string;
   'Gemini Model'?: string;
   'Image Generation Model'?: string;
+  'Is Promotion Mode': string;
 }
 
 export const sheet =
   SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config')!;
-const DEFAULT_CONFIG = {
+export const promotionSheet =
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Promotion_Config')!;
+
+const DEFAULT_CONFIG: Config = {
   'Ads API Key': '',
   'Manager ID': '',
   'Account ID': '',
@@ -79,6 +83,7 @@ const DEFAULT_CONFIG = {
   'VertexAI Api Domain Part': undefined,
   'Gemini Model': undefined,
   'Image Generation Model': undefined,
+  'Is Promotion Mode': 'no',
 };
 
 export const ADIOS_MODES = {
@@ -95,3 +100,15 @@ export const CONFIG: Config =
     .reduce((res, e) => {
       return { ...res, [e[0]]: e[1] };
     }, DEFAULT_CONFIG) ?? DEFAULT_CONFIG;
+
+export const PROMOTION_CONFIG: Config =
+  {
+    ...promotionSheet
+      ?.getRange('A2:B')
+      .getDisplayValues()
+      .filter(e => e[0])
+      .reduce((res, e) => {
+        return { ...res, [e[0]]: e[1] };
+      }, DEFAULT_CONFIG),
+    'Is Promotion Mode': 'yes', // Set to 'true' for promotion config
+  } ?? DEFAULT_CONFIG;

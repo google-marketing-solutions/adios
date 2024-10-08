@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ADIOS_MODES, CONFIG } from './config';
+import { ADIOS_MODES, CONFIG, PROMOTION_CONFIG } from './config';
 import { GcsApi } from './gcs-api';
 import { GoogleAdsApiFactory } from './google-ads-api-mock';
 import { Triggerable } from './triggerable';
@@ -28,16 +28,25 @@ export class ImageGenerationService extends Triggerable {
   private readonly _gcsApi;
   private readonly _vertexAiApi;
   private readonly _googleAdsApi;
+  private readonly _config;
+  private readonly _isPromotionMode: boolean;
 
-  constructor() {
+  constructor(isPromotionMode: boolean) {
     super();
-    this._gcsApi = new GcsApi(CONFIG['GCS Bucket']);
+    this._isPromotionMode = isPromotionMode;
+    this._config = this._isPromotionMode ? PROMOTION_CONFIG : CONFIG;
+    Logger.log(
+      `Config sheet chosen is: ${
+        this._isPromotionMode ? 'PROMOTION_CONFIG' : 'CONFIG'
+      }`
+    );
+    this._gcsApi = new GcsApi(this._config['GCS Bucket']);
     this._vertexAiApi = new VertexAiApi(
-      CONFIG['GCP Project'],
-      CONFIG['GCP Region'],
-      CONFIG['VertexAI Api Domain Part'],
-      CONFIG['Gemini Model'],
-      CONFIG['Image Generation Model']
+      this._config['GCP Project'],
+      this._config['GCP Region'],
+      this._config['VertexAI Api Domain Part'],
+      this._config['Gemini Model'],
+      this._config['Image Generation Model']
     );
     this._googleAdsApi = GoogleAdsApiFactory.createObject();
   }
@@ -46,11 +55,11 @@ export class ImageGenerationService extends Triggerable {
     const MAX_TRIES = 3;
     this.deleteTrigger();
     const adGroups = this._googleAdsApi.getAdGroups();
-
+    const lastProcessedKey = this._isPromotionMode
+      ? 'lastPromotionImageGenerationProcessedAdGroupId'
+      : 'lastImageGenerationProcessedAdGroupId';
     const lastImageGenerationProcessedAdGroupId =
-      PropertiesService.getScriptProperties().getProperty(
-        'lastImageGenerationProcessedAdGroupId'
-      );
+      PropertiesService.getScriptProperties().getProperty(lastProcessedKey);
     let startIndex = 0;
     if (lastImageGenerationProcessedAdGroupId) {
       const lastIndex = adGroups.findIndex(
@@ -62,10 +71,10 @@ export class ImageGenerationService extends Triggerable {
       const adGroup = adGroups[i];
       if (this.shouldTerminate()) {
         Logger.log(
-          `The function is reaching the 6 minute timeout, and therfore will create a trigger to rerun from this ad group: ${adGroup.adGroup.name} and then self terminate.`
+          `The function is reaching the 6 minute timeout, and therefore will create a trigger to rerun from this ad group: ${adGroup.adGroup.name} and then self terminate.`
         );
         PropertiesService.getScriptProperties().setProperty(
-          'lastImageGenerationProcessedAdGroupId',
+          lastProcessedKey,
           adGroup.adGroup.id
         );
         this.createTriggerForNextRun();
@@ -82,12 +91,12 @@ export class ImageGenerationService extends Triggerable {
         adGroup.customer.id,
         adGroup.adGroup.id,
         [
-          CONFIG['Generated DIR'],
-          CONFIG['Uploaded DIR'],
-          CONFIG['Validated DIR'],
+          this._config['Generated DIR'],
+          this._config['Uploaded DIR'],
+          this._config['Validated DIR'],
         ]
       );
-      if (existingImgCount >= CONFIG['Number of images per Ad Group']!) {
+      if (existingImgCount >= this._config['Number of images per Ad Group']!) {
         Logger.log(
           `Ad Group ${adGroup.adGroup.name}(${adGroup.adGroup.id}) has enough generated images, skipping...`
         );
@@ -95,7 +104,7 @@ export class ImageGenerationService extends Triggerable {
       }
       // Calculate how many images have to be generated for this Ad Group in the whole execution, in batches
       const adGroupImgCount =
-        CONFIG['Number of images per Ad Group'] - existingImgCount;
+        this._config['Number of images per Ad Group'] - existingImgCount;
       Logger.log(
         `Generating ${adGroupImgCount} images for ${adGroup.adGroup.name}(${adGroup.adGroup.id})...`
       );
@@ -110,9 +119,9 @@ export class ImageGenerationService extends Triggerable {
         let gAdsData = ''; // Kwds or AdGroup data
         let imgPrompt = ''; // Prompt that will be sent to Vision API (Imagen)
 
-        switch (CONFIG['Adios Mode']) {
+        switch (this._config['Adios Mode']) {
           case ADIOS_MODES.AD_GROUP: {
-            const regex = new RegExp(CONFIG['Ad Group Name Regex']);
+            const regex = new RegExp(this._config['Ad Group Name Regex']);
             const matchGroups = this.getRegexMatchGroups(
               adGroup.adGroup.name,
               regex
@@ -124,7 +133,7 @@ export class ImageGenerationService extends Triggerable {
               Logger.log(
                 `No matching groups found for ${adGroup.adGroup.name} with ${regex}. Using full prompt.`
               );
-              gAdsData = CONFIG['ImgGen Prompt'];
+              gAdsData = this._config['ImgGen Prompt'];
             }
             break;
           }
@@ -153,20 +162,20 @@ export class ImageGenerationService extends Triggerable {
             break;
           }
           default:
-            // TODO: Prevent execution if Config is not correctly filled
-            console.error(`Unknown mode: ${CONFIG['Adios Mode']}`);
+            // TODO: Prevent execution if this._config is not correctly filled
+            console.error(`Unknown mode: ${this._config['Adios Mode']}`);
         }
 
         // Keywords mode -> generate Imagen Prompt through Gemini API
-        if (CONFIG['Adios Mode'] === ADIOS_MODES.AD_GROUP) {
+        if (this._config['Adios Mode'] === ADIOS_MODES.AD_GROUP) {
           imgPrompt = gAdsData;
         } else {
           // Call Gemini to generate the Img Prompt
-          const promptContext = CONFIG['Text Prompt Context'];
-          let textPrompt = `${promptContext} ${CONFIG['Text Prompt']} ${gAdsData}`;
+          const promptContext = this._config['Text Prompt Context'];
+          let textPrompt = `${promptContext} ${this._config['Text Prompt']} ${gAdsData}`;
 
-          if (CONFIG['Text Prompt Suffix']) {
-            textPrompt += ' ' + CONFIG['Text Prompt Suffix'];
+          if (this._config['Text Prompt Suffix']) {
+            textPrompt += ' ' + this._config['Text Prompt Suffix'];
           }
           Logger.log('Prompt to generate Imagen Prompt: ' + textPrompt);
           try {
@@ -186,12 +195,12 @@ export class ImageGenerationService extends Triggerable {
           }
         }
 
-        if (CONFIG['Prompt translations sheet']) {
+        if (this._config['Prompt translations sheet']) {
           imgPrompt = this.applyTranslations(imgPrompt);
         }
 
-        if (CONFIG['ImgGen Prompt Suffix']) {
-          imgPrompt += ' ' + CONFIG['ImgGen Prompt Suffix'];
+        if (this._config['ImgGen Prompt Suffix']) {
+          imgPrompt += ' ' + this._config['ImgGen Prompt Suffix'];
         }
 
         Logger.log(
@@ -228,7 +237,7 @@ export class ImageGenerationService extends Triggerable {
             adGroup.adGroup.id,
             adGroup.adGroup.name
           );
-          const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}`;
+          const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${this._config['Generated DIR']}`;
           const imageBlob = Utilities.newBlob(
             Utilities.base64Decode(image),
             'image/png',
@@ -241,14 +250,12 @@ export class ImageGenerationService extends Triggerable {
         generatedImages += images.length;
       }
       PropertiesService.getScriptProperties().setProperty(
-        'lastImageGenerationProcessedAdGroupId',
+        lastProcessedKey,
         adGroup.adGroup.id
       );
     }
     Logger.log('Finished generating.');
-    PropertiesService.getScriptProperties().deleteProperty(
-      'lastImageGenerationProcessedAdGroupId'
-    );
+    PropertiesService.getScriptProperties().deleteProperty(lastProcessedKey);
     this.deleteTrigger();
   }
   /**
@@ -297,7 +304,7 @@ export class ImageGenerationService extends Triggerable {
    * placeholder and return "A photo of a London in sharp, 4k".
    */
   createPrompt(obj: { [key: string]: string }) {
-    let prompt = CONFIG['ImgGen Prompt'];
+    let prompt = this._config['ImgGen Prompt'];
     for (const [key, value] of Object.entries(obj)) {
       prompt = prompt.replaceAll('${' + key + '}', value);
     }
@@ -311,11 +318,11 @@ export class ImageGenerationService extends Triggerable {
    */
   applyTranslations(prompt: string) {
     const error = `Error: No translations are found.
-      Please check that sheet "${CONFIG['Prompt translations sheet']}" exists
+      Please check that sheet "${this._config['Prompt translations sheet']}" exists
       and contains the translations. Remember, the first row is always header.`;
 
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
-      CONFIG['Prompt translations sheet']
+      this._config['Prompt translations sheet']
     );
     if (!sheet) {
       throw error;
@@ -330,30 +337,35 @@ export class ImageGenerationService extends Triggerable {
   }
 
   static triggeredRun() {
+    const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+    Logger.log(`triggeredRun method:`);
+    Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
     PropertiesService.getScriptProperties().setProperty(
       `${ImageGenerationService.name}StartTime`,
       new Date().getTime().toString()
     );
-    const imageGenerationService = new ImageGenerationService();
+    const imageGenerationService = new ImageGenerationService(isPromotionMode);
     imageGenerationService.run();
   }
 
   static manuallyRun() {
+    const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+    Logger.log(`manuallyRun method:`);
+    Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
     PropertiesService.getScriptProperties().setProperty(
       `${ImageGenerationService.name}StartTime`,
       new Date().getTime().toString()
     );
+    const lastProcessedKey = isPromotionMode
+      ? 'lastPromotionImageGenerationProcessedAdGroupId'
+      : 'lastImageGenerationProcessedAdGroupId';
     const lastImageGenerationProcessedAdGroupId =
-      PropertiesService.getScriptProperties().getProperty(
-        'lastImageGenerationProcessedAdGroupId'
-      );
+      PropertiesService.getScriptProperties().getProperty(lastProcessedKey);
     if (lastImageGenerationProcessedAdGroupId) {
-      PropertiesService.getScriptProperties().deleteProperty(
-        'lastImageGenerationProcessedAdGroupId'
-      );
+      PropertiesService.getScriptProperties().deleteProperty(lastProcessedKey);
       Logger.log('Cleared last processed Ad Group ID for a fresh manual run.');
     }
-    const imageGenerationService = new ImageGenerationService();
+    const imageGenerationService = new ImageGenerationService(isPromotionMode);
     imageGenerationService.run();
   }
 }
