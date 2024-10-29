@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG, PROMOTION_CONFIG } from './config';
+import { CONFIG, PROMOTION_CONFIG, inPromotionMode } from './config';
 import { GcsApi } from './gcs-api';
 import { GoogleAdsApi } from './google-ads-api';
 import { Triggerable } from './triggerable';
@@ -28,11 +28,6 @@ export class ImagePauseService extends Triggerable {
     super();
     this._isPromotionMode = isPromotionMode;
     this._config = this._isPromotionMode ? PROMOTION_CONFIG : CONFIG;
-    Logger.log(
-      `Config sheet chosen is: ${
-        this._isPromotionMode ? 'PROMOTION_CONFIG' : 'CONFIG'
-      }`
-    );
     this._gcsApi = new GcsApi(this._config['GCS Bucket']);
     this._googleAdsApi = new GoogleAdsApi(
       this._config['Ads API Key'],
@@ -113,7 +108,7 @@ export class ImagePauseService extends Triggerable {
   }
 
   static triggeredRun() {
-    const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+    const isPromotionMode = inPromotionMode();
     Logger.log(`triggeredRun method:`);
     Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
 
@@ -126,7 +121,7 @@ export class ImagePauseService extends Triggerable {
   }
 
   static manuallyRun() {
-    const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+    const isPromotionMode = inPromotionMode();
     Logger.log(`manuallyRun method:`);
     Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
 

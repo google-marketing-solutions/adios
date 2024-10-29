@@ -13,7 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ADIOS_MODES, CONFIG, PROMOTION_CONFIG } from './config';
+import {
+  ADIOS_MODES,
+  CONFIG,
+  PROMOTION_CONFIG,
+  inPromotionMode,
+} from './config';
 import { GcsApi } from './gcs-api';
 import { GoogleAdsApiFactory } from './google-ads-api-mock';
 import { Triggerable } from './triggerable';
@@ -35,11 +40,6 @@ export class ImageGenerationService extends Triggerable {
     super();
     this._isPromotionMode = isPromotionMode;
     this._config = this._isPromotionMode ? PROMOTION_CONFIG : CONFIG;
-    Logger.log(
-      `Config sheet chosen is: ${
-        this._isPromotionMode ? 'PROMOTION_CONFIG' : 'CONFIG'
-      }`
-    );
     this._gcsApi = new GcsApi(this._config['GCS Bucket']);
     this._vertexAiApi = new VertexAiApi(
       this._config['GCP Project'],
@@ -337,7 +337,7 @@ export class ImageGenerationService extends Triggerable {
   }
 
   static triggeredRun() {
-    const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+    const isPromotionMode = inPromotionMode();
     Logger.log(`triggeredRun method:`);
     Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
     PropertiesService.getScriptProperties().setProperty(
@@ -349,7 +349,7 @@ export class ImageGenerationService extends Triggerable {
   }
 
   static manuallyRun() {
-    const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+    const isPromotionMode = inPromotionMode();
     Logger.log(`manuallyRun method:`);
     Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
     PropertiesService.getScriptProperties().setProperty(
