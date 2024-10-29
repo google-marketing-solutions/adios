@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG, PROMOTION_CONFIG } from './config';
+import { CONFIG, PROMOTION_CONFIG, inPromotionMode } from './config';
 import { GcsApi } from './gcs-api';
 import {
   ImagePolicyViolations,
@@ -51,7 +51,7 @@ export interface Image {
   selected?: boolean;
   issues?: ImageIssue[];
 }
-const isPromotionMode = CONFIG['Is Promotion Mode'] === 'yes';
+const isPromotionMode = inPromotionMode();
 const config = isPromotionMode ? PROMOTION_CONFIG : CONFIG;
 const gcsApi = new GcsApi(config['GCS Bucket']);
 
