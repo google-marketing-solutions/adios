@@ -21,6 +21,7 @@ import {
   GeminiApiCallError,
   ImageGenerationApiCallError,
   JsonParseError,
+  mimeTypes,
   VertexAiApi,
 } from './vertex-ai-api';
 
@@ -372,9 +373,9 @@ export class PmaxGenerationService extends Triggerable {
     return name.startsWith('[Make A COPY]');
   }
 
-  static alert() {
+  static alert(message = '') {
     SpreadsheetApp.getUi().alert(
-      '⚠️ Note: You cannot run on this sheet, please make a copy!'
+      message ?? '⚠️ Note: You cannot run on this sheet, please make a copy!'
     );
   }
 
@@ -419,6 +420,46 @@ export class PmaxGenerationService extends Triggerable {
     pmaxGenerationService.generateTextAssets();
   }
 
+  getGuidelinesFromFiles(returnSuffix = false) {
+    const prompt = CONFIG['Guidelines Prompt'];
+    if (!prompt?.length) {
+      PmaxGenerationService.alert(
+        `❗Cannot extract the guidelines. Please specify "Guidelines Prompt" in config!`
+      );
+      return;
+    }
+
+    const files = this.getGuidelineFiles(
+      PmaxGenerationService.getSheet().getName()
+    );
+    if (!files?.length) {
+      return PmaxGenerationService.alert('No guideline files are found');
+    }
+
+    console.log('prompt, files', prompt, files);
+    const guidelines = this._vertexAiApi.callGeminiApi(prompt, files);
+    console.log('Extracted guidelines:', guidelines);
+
+    if (returnSuffix) {
+      return guidelines;
+    }
+
+    PmaxGenerationService.alert(
+      `Text-to-Image prompt suffix: "${guidelines.trim()}"`
+    );
+  }
+
+  static getGuidelinesFromFiles() {
+    const pmaxGenerationService = new PmaxGenerationService();
+    pmaxGenerationService.getGuidelinesFromFiles();
+  }
+
+  getGuidelineFiles(dir: string) {
+    return this._gcsApi
+      .listFilesWithExtensions(`${dir}/guidelines`, Object.keys(mimeTypes))
+      .map(f => `gs://${f.bucket}/${f.name}`);
+  }
+
   static getSheet() {
     return (
       SpreadsheetApp.getActiveSheet() ??
@@ -427,8 +468,4 @@ export class PmaxGenerationService extends Triggerable {
       )!
     );
   }
-}
-
-function test_generateTextAssets() {
-  PmaxGenerationService.generateTextAssets();
 }

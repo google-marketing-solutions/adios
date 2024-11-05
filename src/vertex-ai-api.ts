@@ -14,6 +14,14 @@
  * limitations under the License.
  */
 
+export const mimeTypes = {
+  png: 'image/png',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  txt: 'text/plain',
+  pdf: 'application/pdf',
+};
+
 interface VisionApiResponse {
   predictions: [
     {
@@ -173,7 +181,7 @@ export class VertexAiApi {
    * @remarks
    * Note: Only one of `fileUri` or `image` should be provided. If both are provided, `image` will be ignored.
    */
-  callGeminiApi(text: string, fileUri = '', image = '') {
+  callGeminiApi(text: string, fileUri?: string | string[], image?: string) {
     const options = Object.assign({}, this._baseOptions);
 
     const mimeType = 'image/png';
@@ -183,10 +191,20 @@ export class VertexAiApi {
         inlineData: { image, mimeType },
       });
     } else if (fileUri) {
-      parts.push({
-        fileData: { fileUri, mimeType },
-      });
+      if ('string' === typeof fileUri) {
+        parts.push({
+          fileData: { fileUri, mimeType: this.getMimeType(fileUri) },
+        });
+      } else {
+        fileUri.forEach(file => {
+          parts.push({
+            fileData: { fileUri: file, mimeType: this.getMimeType(file) },
+          });
+        });
+      }
     }
+
+    console.log('parts', parts);
 
     const payload = {
       contents: {
@@ -233,5 +251,14 @@ export class VertexAiApi {
       )
       .join('');
     return geminiResponse;
+  }
+
+  getMimeType(fileName: string) {
+    const fileExt = fileName.split('.').pop();
+    if (fileExt && fileExt in mimeTypes) {
+      return mimeTypes[fileExt as keyof typeof mimeTypes];
+    }
+
+    throw new Error(`File type "${fileExt}" is not supported`);
   }
 }

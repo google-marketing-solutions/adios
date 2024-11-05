@@ -15,14 +15,18 @@
  */
 
 import { ADIOS_MODES, ADIOS_MODE_CELL, sheet } from './config';
-import { showGCSFileUploader } from './gcsFileUploader';
+import { showGCSFileUploader } from './gcs-file-uploader';
 
 export const menu = null;
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('DemandGen 🚀')
     //.addItem('Download campaigns from Ads', 'notImplemented')
-    .addItem('Upload guidelines (IC/brand/etc.)', showGCSFileUploader.name)
+    .addItem('Upload guidelines (CI/brand/etc.)', showGCSFileUploader.name)
+    .addItem(
+      'Extract the guidelines',
+      'PmaxGenerationService.getGuidelinesFromFiles'
+    )
     .addItem(
       'Generate: Text Assets',
       'PmaxGenerationService.generateTextAssets'

@@ -45,6 +45,7 @@ interface Config {
   'Gemini Model'?: string;
   'Image Generation Model'?: string;
   'DemandGen Prompt': string;
+  'Guidelines Prompt'?: string;
 }
 
 export const sheet =
@@ -81,6 +82,7 @@ const DEFAULT_CONFIG = {
   'Gemini Model': undefined,
   'Image Generation Model': undefined,
   'DemandGen Prompt': '',
+  'Guidelines Prompt': undefined,
 };
 
 export const ADIOS_MODES = {

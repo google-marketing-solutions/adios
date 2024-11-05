@@ -82,13 +82,10 @@ class GCSFileUploader {
         dir + '/' + file.name
       )}`;
 
-    const formData = new FormData();
-    formData.append(file.name, file);
-
     try {
       const response = await fetch(gcsApiUrl, {
         method: 'POST',
-        body: formData,
+        body: file,
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },

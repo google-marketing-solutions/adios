@@ -94,6 +94,34 @@ export class GcsApi {
     return result;
   }
 
+  listFilesWithExtensions(dir: string, extensions: string[]) {
+    const matchGlob = `${dir}/*.{${extensions.join(',')}}`;
+
+    const url = `${this._BASE_PATH}/storage/v1/b/${
+      this._bucket
+    }/o?matchGlob=${encodeURIComponent(matchGlob)}`;
+    const accessToken = ScriptApp.getOAuthToken();
+
+    console.log('fetch', matchGlob, url);
+
+    const response = UrlFetchApp.fetch(url, {
+      method: 'get',
+      muteHttpExceptions: true,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    console.log('response.getContentText()', response.getContentText());
+
+    const result: GoogleCloud.Storage.ListResponse = JSON.parse(
+      response.getContentText()
+    );
+    console.log('result', result?.items, result);
+
+    return result?.items;
+  }
+
   listAllImages(accountId: string) {
     return this.listImages(accountId, '*', ['*']);
   }
