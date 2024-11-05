@@ -40,12 +40,16 @@ export class PmaxGenerationService extends Triggerable {
       CONFIG['Gemini Model'],
       CONFIG['Image Generation Model']
     );
+
+    CONFIG['Google Ads Mock Sheet'] =
+      PmaxGenerationService.getSheet().getName();
     this._googleAdsApi = GoogleAdsApiFactory.createObject();
   }
 
   run() {
     const MAX_TRIES = 3;
     this.deleteTrigger();
+
     const adGroups = this._googleAdsApi.getAdGroups();
 
     const lastImageGenerationProcessedAdGroupId =
@@ -364,10 +368,22 @@ export class PmaxGenerationService extends Triggerable {
     pmaxGenerationService.run();
   }
 
+  static sheetIsNotAcopy(name: string) {
+    return name.startsWith('[Make A COPY]');
+  }
+
+  static alert() {
+    SpreadsheetApp.getUi().alert(
+      '⚠️ Note: You cannot run on this sheet, please make a copy!'
+    );
+  }
+
   generateTextAssets() {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
-      CONFIG['Google Ads Mock Sheet']
-    )!;
+    const sheet = PmaxGenerationService.getSheet();
+    if (PmaxGenerationService.sheetIsNotAcopy(sheet.getName())) {
+      PmaxGenerationService.alert();
+      return;
+    }
 
     const adGroups = sheet
       ?.getRange('A2:C')
@@ -401,6 +417,15 @@ export class PmaxGenerationService extends Triggerable {
   static generateTextAssets() {
     const pmaxGenerationService = new PmaxGenerationService();
     pmaxGenerationService.generateTextAssets();
+  }
+
+  static getSheet() {
+    return (
+      SpreadsheetApp.getActiveSheet() ??
+      SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
+        CONFIG['Google Ads Mock Sheet']
+      )!
+    );
   }
 }
 

@@ -19,16 +19,23 @@ export const menu = null;
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('DemandGen 🚀')
+    .addItem('Download campaigns from Ads', 'notImplemented')
     .addItem(
-      'Generate: Text Assets ',
+      'Generate: Text Assets',
       'PmaxGenerationService.generateTextAssets'
     )
     .addItem('Generate: Image Assets', 'PmaxGenerationService.manuallyRun')
-    .addItem('Upload to Ads', 'void')
-    .addItem('Suggest improvements', 'void')
+    .addItem('Upload to Ads', 'notImplemented')
+    .addItem('Suggest improvements', 'notImplemented')
     .addToUi();
   // Show only the corresponding rows for the Adios Mode on page load
   toggleRows(sheet.getRange(ADIOS_MODE_CELL).getValue());
+}
+
+function notImplemented() {
+  SpreadsheetApp.getUi().alert(
+    '⚠️ Demo Environment: Sorry, this feature is off now'
+  );
 }
 
 function onEdit(e: GoogleAppsScript.Events.SheetsOnEdit) {

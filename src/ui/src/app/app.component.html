@@ -14,16 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <mat-toolbar color="primary">
-  <span>Adios</span>
+  <span>🚀 DemandGen Rocket</span>
   <span class="spacer"></span>
-  <mat-slider color="accent"
+  <mat-slider
+    color="accent"
     id="image-slider"
     min="1"
     max="5"
     step="1"
-    (value)="imageSize"
-    (change)="resizeImages($event)">
-    <input matSliderThumb>
+    (value)="(imageSize)"
+    (change)="resizeImages($event)"
+  >
+    <input matSliderThumb />
   </mat-slider>
   <button
     mat-icon-button

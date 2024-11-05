@@ -15,7 +15,9 @@
  */
 export const uiHelper = null;
 function doGet() {
-  return HtmlService.createTemplateFromFile('ui').evaluate().setTitle('Adios');
+  return HtmlService.createTemplateFromFile('ui')
+    .evaluate()
+    .setTitle('🚀 DemandGen Rocket');
 }
 
 function include(filename: string) {
