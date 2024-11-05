@@ -8,7 +8,8 @@
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/adwords",
     "https://www.googleapis.com/auth/script.external_request",
-    "https://www.googleapis.com/auth/script.scriptapp"
+    "https://www.googleapis.com/auth/script.scriptapp",
+    "https://www.googleapis.com/auth/script.container.ui"
   ],
   "webapp": {
     "executeAs": "USER_ACCESSING",
