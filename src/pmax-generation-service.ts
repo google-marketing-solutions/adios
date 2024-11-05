@@ -106,6 +106,8 @@ export class PmaxGenerationService extends Triggerable {
         `Generating ${adGroupImgCount} images for ${adGroup.adGroup.name}(${adGroup.adGroup.id})...`
       );
 
+      const guidelines = this.getGuidelinesFromFiles(true);
+
       // Process it in batches of max VISION_API_LIMIT images (as for now, 4)
       while (generatedImages < adGroupImgCount && numTries <= MAX_TRIES) {
         const imgCount = Math.min(
@@ -199,7 +201,8 @@ export class PmaxGenerationService extends Triggerable {
         }
 
         if (CONFIG['ImgGen Prompt Suffix']) {
-          imgPrompt += ' ' + CONFIG['ImgGen Prompt Suffix'];
+          //imgPrompt += ' ' + CONFIG['ImgGen Prompt Suffix'];
+          imgPrompt += ' ' + guidelines;
         }
 
         Logger.log(
@@ -420,7 +423,7 @@ export class PmaxGenerationService extends Triggerable {
     pmaxGenerationService.generateTextAssets();
   }
 
-  getGuidelinesFromFiles(returnSuffix = false) {
+  getGuidelinesFromFiles(shouldReturnSuffix = false) {
     const prompt = CONFIG['Guidelines Prompt'];
     if (!prompt?.length) {
       PmaxGenerationService.alert(
@@ -440,7 +443,7 @@ export class PmaxGenerationService extends Triggerable {
     const guidelines = this._vertexAiApi.callGeminiApi(prompt, files);
     console.log('Extracted guidelines:', guidelines);
 
-    if (returnSuffix) {
+    if (shouldReturnSuffix) {
       return guidelines;
     }
 
