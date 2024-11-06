@@ -112,12 +112,9 @@ export class GcsApi {
       },
     });
 
-    console.log('response.getContentText()', response.getContentText());
-
     const result: GoogleCloud.Storage.ListResponse = JSON.parse(
       response.getContentText()
     );
-    console.log('result', result?.items, result);
 
     return result?.items;
   }

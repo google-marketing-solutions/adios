@@ -198,8 +198,6 @@ export class PmaxGenerationService extends Triggerable {
           }
         }
 
-        //imgPrompt += `\nBig text on image: "${adGroup.adGroup.name}"\n`;
-
         if (CONFIG['Prompt translations sheet']) {
           imgPrompt = this.applyTranslations(imgPrompt);
         }
@@ -225,10 +223,7 @@ export class PmaxGenerationService extends Triggerable {
               imgCount,
               aspectRatio
             );
-
-            console.log('newImages[0]', newImages[0].slice(0, 100));
             numberOfGeneratedImages += newImages.length;
-
             if (aspectRatio in images && images[aspectRatio]) {
               images[aspectRatio] = images[aspectRatio]?.concat(newImages);
             } else {
@@ -456,19 +451,20 @@ export class PmaxGenerationService extends Triggerable {
     const files = this.getGuidelineFiles(
       PmaxGenerationService.getSheet().getName()
     );
-    if (!files?.length) {
-      return PmaxGenerationService.alert('No guideline files are found');
+    let guidelines = '';
+    if (files?.length) {
+      guidelines = this._vertexAiApi.callGeminiApi(prompt, files);
+      console.log('Extracted guidelines:', guidelines);
     }
-
-    const guidelines = this._vertexAiApi.callGeminiApi(prompt, files);
-    console.log('Extracted guidelines:', guidelines);
 
     if (shouldReturnSuffix) {
       return guidelines;
     }
 
     PmaxGenerationService.alert(
-      `Text-to-Image prompt suffix: "${guidelines.trim()}"`
+      `Text-to-Image prompt suffix: "${
+        guidelines ? guidelines.trim() : 'No guidelines are found'
+      }"`
     );
   }
 
@@ -480,7 +476,7 @@ export class PmaxGenerationService extends Triggerable {
   getGuidelineFiles(dir: string) {
     return this._gcsApi
       .listFilesWithExtensions(`${dir}/guidelines`, Object.keys(mimeTypes))
-      .map(f => `gs://${f.bucket}/${f.name}`);
+      ?.map(f => `gs://${f.bucket}/${f.name}`);
   }
 
   static getSheet() {
