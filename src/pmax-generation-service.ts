@@ -25,11 +25,15 @@ import {
   VertexAiApi,
 } from './vertex-ai-api';
 
+const aspectRatios = ['1:1', '16:9', '3:4'] as const;
+type GeneratedImagesWithAspectRatio = {
+  [K in (typeof aspectRatios)[number]]?: string[];
+};
+
 export class PmaxGenerationService extends Triggerable {
   private readonly _gcsApi;
   private readonly _vertexAiApi;
   private readonly _googleAdsApi;
-  private readonly _aspectRatios = ['1:1', '16:9', '3:4'];
 
   constructor() {
     super();
@@ -200,24 +204,50 @@ export class PmaxGenerationService extends Triggerable {
           imgPrompt = this.applyTranslations(imgPrompt);
         }
 
-        if (CONFIG['ImgGen Prompt Suffix']) {
-          //imgPrompt += ' ' + CONFIG['ImgGen Prompt Suffix'];
+        if (guidelines) {
           imgPrompt += ' ' + guidelines;
+        }
+
+        if (CONFIG['ImgGen Prompt Suffix']) {
+          imgPrompt += ' ' + CONFIG['ImgGen Prompt Suffix'];
         }
 
         Logger.log(
           `Imagen Prompt for AdGroup ${adGroup.adGroup.name}: "${imgPrompt}"`
         );
 
-        let images: string[] = [];
+        const images: GeneratedImagesWithAspectRatio = {};
+        let numberOfGeneratedImages = 0;
         try {
-          for (const aspectRatio of this._aspectRatios) {
+          for (const aspectRatio of aspectRatios) {
             const newImages = this._vertexAiApi.callImageGenerationApi(
               imgPrompt,
               imgCount,
               aspectRatio
             );
-            images = images.concat(newImages);
+
+            console.log('newImages[0]', newImages[0].slice(0, 100));
+            numberOfGeneratedImages += newImages.length;
+
+            if (aspectRatio in images && images[aspectRatio]) {
+              console.log('aspectRatio in images && images[aspectRatio]');
+              images[aspectRatio] = images[aspectRatio]?.concat(newImages);
+            } else {
+              console.log('ELSE:aspectRatio in images && images[aspectRatio]');
+              images[aspectRatio] = newImages;
+            }
+            console.log(
+              'images[aspectRatio]',
+              images?.[aspectRatio]?.[0].slice(0, 100)
+            );
+          }
+
+          Logger.log(
+            `Received ${numberOfGeneratedImages} images for ${adGroup.adGroup.name}(${adGroup.adGroup.id})...`
+          );
+          if (!numberOfGeneratedImages) {
+            numTries++;
+            continue;
           }
         } catch (e) {
           if (e instanceof ImageGenerationApiCallError) {
@@ -229,31 +259,37 @@ export class PmaxGenerationService extends Triggerable {
           }
         }
 
-        Logger.log(
-          `Received ${images?.length || 0} images for ${adGroup.adGroup.name}(${
-            adGroup.adGroup.id
-          })...`
-        );
-        if (!images || !images.length) {
-          numTries++;
-          continue;
-        }
-        for (const image of images) {
-          const filename = this.generateImageFileName(
-            adGroup.adGroup.id,
-            adGroup.adGroup.name
+        for (const aspectRatio in images) {
+          console.log(
+            'aspectRatio',
+            aspectRatio,
+            'images',
+            images[aspectRatio as (typeof aspectRatios)[number]]
           );
-          const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}`;
-          const imageBlob = Utilities.newBlob(
-            Utilities.base64Decode(image),
-            'image/png',
-            filename
+
+          images[aspectRatio as (typeof aspectRatios)[number]]?.forEach(
+            image => {
+              const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}/${aspectRatio}`;
+              console.log('folder', folder);
+
+              const filename = this.generateImageFileName(
+                adGroup.adGroup.id,
+                adGroup.adGroup.name
+              );
+
+              console.log('filename', filename, 'image', image);
+              const imageBlob = Utilities.newBlob(
+                Utilities.base64Decode(image),
+                'image/png',
+                filename
+              );
+              this._gcsApi.uploadImage(imageBlob, filename, folder);
+            }
           );
-          this._gcsApi.uploadImage(imageBlob, filename, folder);
         }
 
         // Update generatedImages to finish the while loop
-        generatedImages += images.length;
+        generatedImages += numberOfGeneratedImages;
       }
       PropertiesService.getScriptProperties().setProperty(
         'lastImageGenerationProcessedAdGroupId',
