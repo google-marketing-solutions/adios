@@ -230,16 +230,10 @@ export class PmaxGenerationService extends Triggerable {
             numberOfGeneratedImages += newImages.length;
 
             if (aspectRatio in images && images[aspectRatio]) {
-              console.log('aspectRatio in images && images[aspectRatio]');
               images[aspectRatio] = images[aspectRatio]?.concat(newImages);
             } else {
-              console.log('ELSE:aspectRatio in images && images[aspectRatio]');
               images[aspectRatio] = newImages;
             }
-            console.log(
-              'images[aspectRatio]',
-              images?.[aspectRatio]?.[0].slice(0, 100)
-            );
           }
 
           Logger.log(
@@ -260,24 +254,15 @@ export class PmaxGenerationService extends Triggerable {
         }
 
         for (const aspectRatio in images) {
-          console.log(
-            'aspectRatio',
-            aspectRatio,
-            'images',
-            images[aspectRatio as (typeof aspectRatios)[number]]
-          );
+          const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}/${aspectRatio}`;
+          console.log('Saving files to the folder', folder);
 
           images[aspectRatio as (typeof aspectRatios)[number]]?.forEach(
             image => {
-              const folder = `${adGroup.customer.id}/${adGroup.adGroup.id}/${CONFIG['Generated DIR']}/${aspectRatio}`;
-              console.log('folder', folder);
-
               const filename = this.generateImageFileName(
                 adGroup.adGroup.id,
                 adGroup.adGroup.name
               );
-
-              console.log('filename', filename, 'image', image);
               const imageBlob = Utilities.newBlob(
                 Utilities.base64Decode(image),
                 'image/png',
@@ -475,7 +460,6 @@ export class PmaxGenerationService extends Triggerable {
       return PmaxGenerationService.alert('No guideline files are found');
     }
 
-    console.log('prompt, files', prompt, files);
     const guidelines = this._vertexAiApi.callGeminiApi(prompt, files);
     console.log('Extracted guidelines:', guidelines);
 
