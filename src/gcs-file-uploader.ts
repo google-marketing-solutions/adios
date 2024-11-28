@@ -18,57 +18,29 @@ import { CONFIG } from './config';
 const activeSheetName = SpreadsheetApp.getActiveSheet().getName();
 const storageBucket = CONFIG['GCS Bucket'];
 
-const gcsUploaderHtml = `
-  <style>
-    @keyframes bounceIn {
-      0% {
-        transform: scale(0.1);
-        opacity: 0;
-      }
-      60% {
-        transform: scale(1.2);
-        opacity: 1;
-      }
-      100% {
-        transform: scale(1);
-      }
-    }
-  </style>
-  <script>##script##</script>
-  <div id="status" style="display: none;">
-    <span style="animation: bounceIn 2s;">⏳</span>
-    Loading... please wait
-  </div>
-  <div>
-      <label for="file">Select all files you want to upload</label>
-      <input id="gcsFileUploader" type="file" multiple="multiple" />
-  </div>
-  <div style="margin-top: 20px;">
-      <button
-          type="button"
-          onClick="GCSFileUploader.uploadSelectedFiles('${storageBucket}', '${activeSheetName}', '${ScriptApp.getOAuthToken()}')"
-      >
-          Upload to GCS bucket
-      </button>
-  </div>
-`;
+function getGcsUploaderHtml(gcsDir: string) {
+  return `
+    <script>##script##</script>
+    <div id="status" style="display: none;">
+      <span style="animation: bounceIn 2s;">⏳</span>
+      Loading... please wait
+    </div>
+    <div>
+        <label for="file">Select all files you want to upload</label>
+        <input id="gcsFileUploader" type="file" multiple="multiple" />
+    </div>
+    <div style="margin-top: 20px;">
+        <button
+            type="button"
+            onClick="GCSFileUploader.uploadSelectedFiles('${storageBucket}', '${activeSheetName}', '${ScriptApp.getOAuthToken()}', '${gcsDir}')"
+        >
+            Upload to GCS bucket
+        </button>
+    </div>
+  `;
+}
 
 class GCSFileUploader {
-  static status = {
-    show: () => {
-      const status = document.getElementById('status');
-      if (status) {
-        status.style.display = 'inline';
-      }
-    },
-    hide: () => {
-      const status = document.getElementById('status');
-      if (status) {
-        status.style.display = 'none';
-      }
-    },
-  };
-
   static async sendFile(
     bucket: string,
     dir: string,
@@ -102,7 +74,8 @@ class GCSFileUploader {
   static async uploadSelectedFiles(
     bucket: string,
     dir: string,
-    accessToken: string
+    accessToken: string,
+    gcsDir: string
   ) {
     const files = (
       document.getElementById('gcsFileUploader') as HTMLInputElement
@@ -111,17 +84,14 @@ class GCSFileUploader {
     if (files && files.length) {
       for (let i = 0; i < files.length; i++) {
         try {
-          //GCSFileUploader.status.show();
           await GCSFileUploader.sendFile(
             bucket,
-            dir + '/guidelines',
+            dir + '/' + gcsDir,
             accessToken,
             files[i]
           );
-          //GCSFileUploader.status.hide();
         } catch (e: unknown) {
           console.error(e);
-          //GCSFileUploader.status.hide();
           if (e instanceof Error) {
             alert(`❗ERROR: ${e.message}`);
           }
@@ -135,7 +105,7 @@ class GCSFileUploader {
   }
 }
 
-export const showGCSFileUploader = () => {
+const showGCSFileUploader = (gcsDir: string) => {
   if ('Config' === activeSheetName) {
     return SpreadsheetApp.getUi().alert(
       `❗ Sorry, you cannot use this function on the "Config" sheet :)
@@ -143,7 +113,7 @@ export const showGCSFileUploader = () => {
     );
   }
 
-  const html = gcsUploaderHtml.replace(
+  const html = getGcsUploaderHtml(gcsDir).replace(
     '##script##',
     GCSFileUploader.toString()
   );
@@ -155,4 +125,12 @@ export const showGCSFileUploader = () => {
     htmlOutput,
     'Upload Files to GCS (Google Cloud Storage)'
   );
+};
+
+export const showGCSFileUploaderForGuidelines = () => {
+  showGCSFileUploader('guidelines');
+};
+
+export const showGCSFileUploaderForRepurpose = () => {
+  showGCSFileUploader('repurpose');
 };
