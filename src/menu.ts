@@ -25,7 +25,7 @@ function onOpen() {
         .addItem('Image generation', 'ImageGenerationService.manuallyRun')
         .addItem('Image upload', 'ImageUploadService.manuallyRun')
         .addItem('Image assets linking', 'ImageExtensionService.manuallyRun')
-        .addItem('Image Pause', 'ImagePauseService.manuallyRun')
+        .addItem('Image pause', 'ImagePauseService.manuallyRun')
         .addItem('Create experiments', 'runExperimentsService')
         .addItem('Policy validation', 'runGeminiValidationService')
     )

@@ -74,7 +74,7 @@ export class ImagePauseService extends Triggerable {
         ])
         ?.items?.map(e => e.name.split('/').slice(-1)[0]);
 
-      if (uploadedImages && uploadedImages.length > 0) {
+      if (uploadedImages?.length > 0) {
         const adGroupAssets = this._googleAdsApi.getAdGroupAssetsForAdGroup(
           adGroup.adGroup.id
         );
@@ -102,7 +102,7 @@ export class ImagePauseService extends Triggerable {
       );
     }
     Logger.log('Finished Pause Process.');
-    //If script completes without timing out, clear the stored ad group ID and any triggers
+    //If the script completes without timing out, clear the stored ad group ID and any triggers
     PropertiesService.getScriptProperties().deleteProperty(lastProcessedKey);
     this.deleteTrigger();
   }
