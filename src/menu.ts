@@ -25,6 +25,7 @@ function onOpen() {
         .addItem('Image generation', 'ImageGenerationService.manuallyRun')
         .addItem('Image upload', 'ImageUploadService.manuallyRun')
         .addItem('Image assets linking', 'ImageExtensionService.manuallyRun')
+        .addItem('Image pause', 'ImagePauseService.manuallyRun')
         .addItem('Create experiments', 'runExperimentsService')
         .addItem('Policy validation', 'runGeminiValidationService')
     )
@@ -65,6 +66,7 @@ const allowedFunctions = [
   'ImageGenerationService.manuallyRun',
   'ImageUploadService.manuallyRun',
   'ImageExtensionService.manuallyRun',
+  'ImagePauseService.manuallyRun',
 ];
 class AdiosTriggers {
   /**

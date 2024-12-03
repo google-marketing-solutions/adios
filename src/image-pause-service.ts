@@ -18,7 +18,7 @@ import { GcsApi } from './gcs-api';
 import { GoogleAdsApi } from './google-ads-api';
 import { Triggerable } from './triggerable';
 
-export class ImageUploadService extends Triggerable {
+export class ImagePauseService extends Triggerable {
   private readonly _gcsApi;
   private readonly _googleAdsApi;
   private readonly _config;
@@ -38,17 +38,16 @@ export class ImageUploadService extends Triggerable {
 
   run() {
     this.deleteTrigger();
-    Logger.log(`config bucket chosen: ${this._config['GCS Bucket']}`);
     const adGroups = this._googleAdsApi.getAdGroups();
     const lastProcessedKey = this._isPromotionMode
-      ? 'lastPromotionImageUploadProcessedAdGroupId'
-      : 'lastImageUploadProcessedAdGroupId';
-    const lastImageUploadProcessedAdGroupId =
+      ? 'lastPromotionImagePauseProcessedAdGroupId'
+      : 'lastImagePauseProcessedAdGroupId';
+    const lastImagePauseProcessedAdGroupId =
       PropertiesService.getScriptProperties().getProperty(lastProcessedKey);
     let startIndex = 0;
-    if (lastImageUploadProcessedAdGroupId) {
+    if (lastImagePauseProcessedAdGroupId) {
       const lastIndex = adGroups.findIndex(
-        adGroup => adGroup.adGroup.id === lastImageUploadProcessedAdGroupId
+        adGroup => adGroup.adGroup.id === lastImagePauseProcessedAdGroupId
       );
       startIndex = Math.max(lastIndex, 0);
     }
@@ -68,64 +67,78 @@ export class ImageUploadService extends Triggerable {
       Logger.log(
         `Processing Ad Group ${adGroup.adGroup.name} (${adGroup.adGroup.id})...`
       );
-      const imgFolder =
-        this._config['Validated DIR'] || this._config['Generated DIR'];
-      const images = this._gcsApi.getImages(
-        this._config['Account ID'],
-        adGroup.adGroup.id,
-        [imgFolder]
-      ) as GoogleCloud.Storage.Image[];
-      // Upload new images
-      if (images.length === 0) {
-        Logger.log('No images to upload.');
-      } else {
-        this._googleAdsApi.uploadImageAssets(images);
-        this._gcsApi.moveImages(
-          this._config['Account ID'],
-          adGroup.adGroup.id,
-          images,
-          imgFolder,
-          this._config['Uploaded DIR']
-        );
-        PropertiesService.getScriptProperties().setProperty(
-          lastProcessedKey,
+
+      const uploadedImages = this._gcsApi
+        .listImages(this._config['Account ID'], adGroup.adGroup.id, [
+          this._config['Uploaded DIR'],
+        ])
+        ?.items?.map(e => e.name.split('/').slice(-1)[0]);
+
+      if (uploadedImages?.length > 0) {
+        const adGroupAssets = this._googleAdsApi.getAdGroupAssetsForAdGroup(
           adGroup.adGroup.id
         );
+        const assetsToPause = adGroupAssets
+          .filter(asset => uploadedImages.includes(asset.asset.name))
+          .map(asset => asset.adGroupAsset.resourceName);
+
+        if (assetsToPause.length > 0) {
+          Logger.log(
+            `Pausing ${assetsToPause.length} ad group assets for ad group ${adGroup.adGroup.id}...`
+          );
+          this._googleAdsApi.pauseAdGroupAssets(assetsToPause);
+        } else {
+          Logger.log(`No assets to pause for ad group ${adGroup.adGroup.id}.`);
+        }
+      } else {
+        Logger.log(
+          `No uploaded images found for ad group ${adGroup.adGroup.id}.`
+        );
       }
-      // TODO: Remove assets from the Asset Library
+
+      PropertiesService.getScriptProperties().setProperty(
+        lastProcessedKey,
+        adGroup.adGroup.id
+      );
     }
-    Logger.log('Finished uploading images.');
-    // If script completes without timing out, clear the stored ad group ID and any triggers
+    Logger.log('Finished Pause Process.');
+    //If the script completes without timing out, clear the stored ad group ID and any triggers
     PropertiesService.getScriptProperties().deleteProperty(lastProcessedKey);
     this.deleteTrigger();
   }
 
   static triggeredRun() {
     const isPromotionMode = inPromotionMode();
+    Logger.log(`triggeredRun method:`);
+    Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
+
     PropertiesService.getScriptProperties().setProperty(
-      `${ImageUploadService.name}StartTime`,
+      `${ImagePauseService.name}StartTime`,
       new Date().getTime().toString()
     );
-    const imageUploadService = new ImageUploadService(isPromotionMode);
-    imageUploadService.run();
+    const imagePauseService = new ImagePauseService(isPromotionMode);
+    imagePauseService.run();
   }
 
   static manuallyRun() {
     const isPromotionMode = inPromotionMode();
+    Logger.log(`manuallyRun method:`);
+    Logger.log(`Is Promotion Mode: ${isPromotionMode}`);
+
     PropertiesService.getScriptProperties().setProperty(
-      `${ImageUploadService.name}StartTime`,
+      `${ImagePauseService.name}StartTime`,
       new Date().getTime().toString()
     );
     const lastProcessedKey = isPromotionMode
-      ? 'lastPromotionImageUploadProcessedAdGroupId'
-      : 'lastImageUploadProcessedAdGroupId';
-    const lastImageUploadProcessedAdGroupId =
+      ? 'lastPromotionImagePauseProcessedAdGroupId'
+      : 'lastImagePauseProcessedAdGroupId';
+    const lastImagePauseProcessedAdGroupId =
       PropertiesService.getScriptProperties().getProperty(lastProcessedKey);
-    if (lastImageUploadProcessedAdGroupId) {
+    if (lastImagePauseProcessedAdGroupId) {
       PropertiesService.getScriptProperties().deleteProperty(lastProcessedKey);
       Logger.log('Cleared last processed Ad Group ID for a fresh manual run.');
     }
-    const imageUploadService = new ImageUploadService(isPromotionMode);
-    imageUploadService.run();
+    const imagePauseService = new ImagePauseService(isPromotionMode);
+    imagePauseService.run();
   }
 }
