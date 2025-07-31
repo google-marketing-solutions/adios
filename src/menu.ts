@@ -47,14 +47,14 @@ function onEdit(e: GoogleAppsScript.Events.SheetsOnEdit) {
 function toggleRows(adiosMode: string) {
   switch (adiosMode) {
     case ADIOS_MODES.AD_GROUP:
-      // Show rows 7,8. Hide rows 9,10,11
-      sheet.showRows(7, 2);
-      sheet.hideRows(9, 3);
+      // Show rows 8, 9. Hide rows 10, 11, 12
+      sheet.showRows(8, 2);
+      sheet.hideRows(10, 3);
       break;
     case ADIOS_MODES.KEYWORDS:
-      // Hide rows 7,8. Show rows 9,10,11
-      sheet.showRows(9, 3);
-      sheet.hideRows(7, 2);
+      // Hide rows 8, 9. Show rows 10, 11, 12
+      sheet.showRows(10, 3);
+      sheet.hideRows(8, 2);
       break;
     default:
       console.error(`Unknown mode: ${adiosMode}`);

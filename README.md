@@ -98,6 +98,8 @@ Note: these features can be used separately, e.g. you can just upload images to 
 
 https://github.com/google-marketing-solutions/adios/assets/3335483/f22172d3-38f1-4fdb-b366-67a33700180e
 
+\*\* [Adios for multiple account upload sheet](https://docs.google.com/spreadsheets/d/1Rl340v76IMSC5eOAG31rq90TBtdbii_JZO88wSHHxHw/edit?resourcekey=0-hFnxlWeKbDqvgZtJke-KJQ&gid=528843970#gid=528843970)
+
 1. Make a copy of the [template Spreadsheet: Adios v1.3](https://docs.google.com/spreadsheets/d/1e4OXlUaAYI1B0n7j5WOGEbzNsmAAFfkGg8rXZXejk3c/edit?usp=sharing) (in the main menu `File > Make a copy`). Earlier versions:
 
    - [Adios v1.2](https://docs.google.com/spreadsheets/d/1DUNphGZIRL6mPDyrqgXErL-7p-gs0WmTqIjZl2ZXdSM/edit?usp=sharing)

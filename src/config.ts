@@ -44,6 +44,7 @@ interface Config {
   'VertexAI Api Domain Part'?: string;
   'Gemini Model'?: string;
   'Image Generation Model'?: string;
+  'Additional Accounts For Upload'?: string;
 }
 
 export const sheet =
@@ -79,13 +80,14 @@ const DEFAULT_CONFIG = {
   'VertexAI Api Domain Part': undefined,
   'Gemini Model': undefined,
   'Image Generation Model': undefined,
+  'Additional Accounts For Upload': '',
 };
 
 export const ADIOS_MODES = {
   AD_GROUP: 'AdGroup Name',
   KEYWORDS: 'AdGroup Keywords',
 };
-export const ADIOS_MODE_CELL = 'B6';
+export const ADIOS_MODE_CELL = 'B7';
 
 export const CONFIG: Config =
   sheet
