@@ -145,6 +145,7 @@ export class GeminiValidationService {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function runGeminiValidationService() {
   const geminiValidationService = new GeminiValidationService();
   geminiValidationService.run();

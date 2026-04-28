@@ -15,9 +15,63 @@
  */
 import { CONFIG } from './config';
 
+export interface AdGroupSearchResult {
+  adGroup: {
+    id: string;
+    name: string;
+    resourceName: string;
+  };
+  customer: {
+    id: string;
+  };
+}
+
+export interface KeywordSearchResult {
+  adGroupCriterion: {
+    keyword: {
+      text: string;
+    };
+  };
+}
+
+export interface AssetSearchResult {
+  asset: {
+    resourceName: string;
+    name: string;
+  };
+}
+
+export interface AdGroupAssetSearchResult {
+  adGroup: {
+    id: string;
+  };
+  adGroupAsset: {
+    resourceName: string;
+    asset: string;
+  };
+  asset: {
+    name: string;
+  };
+}
+
+export interface ExperimentArmSearchResult {
+  experimentArm: {
+    campaigns: string[];
+  };
+}
+
+export interface AdGroupAssetForCampaignSearchResult {
+  adGroupAsset: {
+    resourceName: string;
+  };
+  campaign: {
+    id: string;
+  };
+}
+
 export abstract class GoogleAdsApiInterface {
-  abstract getAdGroups(): any[];
-  abstract getKeywordsForAdGroup(id: string): any[];
+  abstract getAdGroups(): AdGroupSearchResult[];
+  abstract getKeywordsForAdGroup(id: string): KeywordSearchResult[];
 }
 
 export class GoogleAdsApi implements GoogleAdsApiInterface {
@@ -52,7 +106,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
     return JSON.parse(httpResponse.getContentText('UTF-8'));
   }
 
-  _buildUrl(url: string, params: any) {
+  _buildUrl(url: string, params: Record<string, string | number | boolean>) {
     const paramString = Object.keys(params)
       .map(key => {
         return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
@@ -61,14 +115,14 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
     return url + (url.indexOf('?') >= 0 ? '&' : '?') + paramString;
   }
 
-  get(path: string, parameters: any) {
+  get(path: string, parameters: Record<string, string | number | boolean>) {
     const options = this._commonOptions;
     const url = this._buildUrl(this._basePath + path, parameters);
     options.method = 'get';
     return this._getResult(UrlFetchApp.fetch(url, options));
   }
 
-  post(path: string, request: any, nextPageToken?: string) {
+  post(path: string, request: object, nextPageToken?: string) {
     const options = this._commonOptions;
     options.method = 'post';
     options.payload = JSON.stringify(request);
@@ -78,9 +132,9 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
     return this._getResult(UrlFetchApp.fetch(this._basePath + path, options));
   }
 
-  executeSearch(query: string) {
+  executeSearch<T = Record<string, unknown>>(query: string) {
     let nextPageToken: string | undefined = undefined;
-    let results: any[] = [];
+    let results: T[] = [];
     const request = {
       query,
     };
@@ -97,8 +151,10 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
     return results;
   }
 
-  getAdGroups() {
-    return this.executeSearch(GoogleAdsApi.QUERIES.ADGROUPS);
+  getAdGroups(): AdGroupSearchResult[] {
+    return this.executeSearch<AdGroupSearchResult>(
+      GoogleAdsApi.QUERIES.ADGROUPS
+    );
   }
 
   uploadImageAssets(files: GoogleCloud.Storage.Image[]) {
@@ -187,16 +243,16 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
 
   getAssetsForAdGroup(adGroupId: string) {
     const adGroupAssets = this.getAdGroupAssetsForAdGroup(adGroupId).reduce(
-      (acc, e) => ({
+      (acc: Record<string, string>, e: AdGroupAssetSearchResult) => ({
         ...acc,
         [e.adGroupAsset.asset]: e.adGroupAsset.resourceName,
       }),
-      {}
+      {} as Record<string, string>
     );
 
-    const assets = this.executeSearch(
+    const assets = this.executeSearch<AssetSearchResult>(
       GoogleAdsApi.QUERIES.ASSETS + ` AND asset.name LIKE '${adGroupId}|%'`
-    ).map(e => ({
+    ).map((e: AssetSearchResult) => ({
       name: e.asset.name,
       resourceName: e.asset.resourceName,
       adGroupAssetResourceName: adGroupAssets[e.asset.resourceName],
@@ -211,7 +267,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
    * @param {Array.<Object>} operations
    * @return {Object}
    */
-  _executeMutateOperations(operations: Object[]): object {
+  _executeMutateOperations(operations: object[]): object {
     return this.post('/googleAds:mutate', { mutateOperations: operations });
   }
 
@@ -318,7 +374,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
         SELECT asset.resource_name, asset.name FROM asset WHERE asset.type = 'IMAGE'
       `,
       ADGROUPS: `
-        SELECT ad_group.name, ad_group.id, customer.id FROM ad_group  WHERE campaign.id IN (${CONFIG['Campaign IDs']}) AND ad_group.status = 'ENABLED'
+        SELECT ad_group.name, ad_group.id, customer.id, ad_group.resource_name FROM ad_group  WHERE campaign.id IN (${CONFIG['Campaign IDs']}) AND ad_group.status = 'ENABLED'
       `,
       ADGROUP_EXTENSION_SETTINGS: `
         SELECT ad_group_extension_setting.resource_name, ad_group_extension_setting.extension_feed_items, ad_group.id FROM ad_group_extension_setting WHERE ad_group_extension_setting.extension_type = 'IMAGE'
@@ -344,15 +400,16 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
    * @param campaignIds List of campaigns where experiments need to be created
    */
   filterOutCampaignsWithExperiments(campaignIds: string[]) {
-    const campaignsWithExperiments = this.executeSearch(
-      GoogleAdsApi.QUERIES.EXPERIMENT_ARMS
-    )
-      .map(e => e.experimentArm.campaigns)
-      .reduce(
-        (acc, value) =>
-          acc.concat(value.map((e: string) => e.split('/').slice(-1)).flat()),
-        []
-      );
+    const campaignsWithExperiments =
+      this.executeSearch<ExperimentArmSearchResult>(
+        GoogleAdsApi.QUERIES.EXPERIMENT_ARMS
+      )
+        .map(e => e.experimentArm.campaigns)
+        .reduce(
+          (acc, value) =>
+            acc.concat(value.map((e: string) => e.split('/').slice(-1)).flat()),
+          []
+        );
 
     return campaignIds.filter(e => !campaignsWithExperiments.includes(e));
   }
@@ -444,14 +501,16 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
    *
    * @param campaignResourceName Resource name
    */
-  getAdGroupAssetsForCampaign(campaignResourceName: string) {
+  getAdGroupAssetsForCampaign(
+    campaignResourceName: string
+  ): AdGroupAssetForCampaignSearchResult[] {
     const campaignId = this._getIdFromResourceName(campaignResourceName);
     const query = GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_CAMPAIGN_ID.replace(
       '<campaign_id>',
       campaignId
     );
 
-    return this.executeSearch(query);
+    return this.executeSearch<AdGroupAssetForCampaignSearchResult>(query);
   }
 
   /**
@@ -460,14 +519,14 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
    *
    * @param adGroupId Ad Group ID
    */
-  getAdGroupAssetsForAdGroup(adGroupId: string) {
+  getAdGroupAssetsForAdGroup(adGroupId: string): AdGroupAssetSearchResult[] {
     const query =
       GoogleAdsApi.QUERIES.AD_GROUP_ASSETS_FOR_AD_GROUP_ID.replaceAll(
         '<ad_group_id>',
         adGroupId
       );
 
-    return this.executeSearch(query);
+    return this.executeSearch<AdGroupAssetSearchResult>(query);
   }
 
   /**
@@ -491,13 +550,13 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
    *
    * @param adGroupId Ad Group ID
    */
-  getKeywordsForAdGroup(adGroupId: string) {
+  getKeywordsForAdGroup(adGroupId: string): KeywordSearchResult[] {
     const query = GoogleAdsApi.QUERIES.KEYWORDS_FOR_ADGROUP_ID.replaceAll(
       '<ad_group_id>',
       adGroupId
     );
 
-    return this.executeSearch(query);
+    return this.executeSearch<KeywordSearchResult>(query);
   }
 
   /**

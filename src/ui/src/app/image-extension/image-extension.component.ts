@@ -17,11 +17,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import {
-  Image,
-  ImageIssue,
-  IMAGE_STATUS,
-} from '../api-calls/api-calls.service.interface';
+import { Image, IMAGE_STATUS } from '../api-calls/api-calls.service.interface';
 
 @Component({
   selector: 'image-extension',

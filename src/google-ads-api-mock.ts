@@ -77,6 +77,7 @@ class GoogleAdsApiMock implements GoogleAdsApiInterface {
       adGroup: {
         id: row[0],
         name: row[0],
+        resourceName: `customers/${GoogleAdsApiFactory.mockAccountId}/adGroups/${row[0]}`,
       },
     }));
   }

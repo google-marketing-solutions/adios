@@ -53,7 +53,7 @@ export class GcsApi {
 
     const response = UrlFetchApp.fetch(url, {
       method: 'post',
-      contentType: blob.getContentType(),
+      contentType: blob.getContentType() || undefined,
       payload: bytes,
       muteHttpExceptions: true,
       headers: {

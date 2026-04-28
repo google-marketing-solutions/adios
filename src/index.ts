@@ -22,12 +22,56 @@ import { ExperimentsService } from './experiments-service';
 import { GeminiValidationService } from './gemini-validation-service';
 import { FRONTEND_HELPER } from './frontend-helper';
 import { uiHelper } from './ui-helper';
+import { CONFIG } from './config';
 
-menu;
-ImageExtensionService;
-ImageGenerationService;
-ImageUploadService;
-ExperimentsService;
-GeminiValidationService;
-FRONTEND_HELPER;
-uiHelper;
+declare global {
+  var ImageGenerationService: {
+    manuallyRun: () => void;
+    triggeredRun: () => void;
+  };
+  var ImageUploadService: {
+    manuallyRun: () => void;
+    triggeredRun: () => void;
+  };
+  var ImageExtensionService: {
+    manuallyRun: () => void;
+    triggeredRun: () => void;
+  };
+  var runExperimentsService: () => void;
+  var runGeminiValidationService: () => void;
+  var FRONTEND_HELPER: typeof import('./frontend-helper').FRONTEND_HELPER;
+  var uiHelper: typeof import('./ui-helper').uiHelper;
+  var menu: typeof import('./menu').menu;
+}
+
+// Expose services to global scope via wrappers
+globalThis.ImageGenerationService = {
+  manuallyRun: () => ImageGenerationService.manuallyRun(),
+  triggeredRun: () => ImageGenerationService.triggeredRun(),
+};
+
+globalThis.ImageUploadService = {
+  manuallyRun: () => ImageUploadService.manuallyRun(),
+  triggeredRun: () => ImageUploadService.triggeredRun(),
+};
+
+globalThis.ImageExtensionService = {
+  manuallyRun: () => ImageExtensionService.manuallyRun(),
+  triggeredRun: () => ImageExtensionService.triggeredRun(),
+};
+
+globalThis.runExperimentsService = () => {
+  const experimentsService = new ExperimentsService(CONFIG['Campaign IDs']);
+  experimentsService.run();
+};
+
+globalThis.runGeminiValidationService = () => {
+  const geminiValidationService = new GeminiValidationService();
+  geminiValidationService.run();
+};
+
+// For helpers that don't have clear entry points or are just objects,
+// we can just assign them to globalThis to prevent tree-shaking and expose them if needed.
+globalThis.FRONTEND_HELPER = FRONTEND_HELPER;
+globalThis.uiHelper = uiHelper;
+globalThis.menu = menu;

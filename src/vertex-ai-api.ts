@@ -18,7 +18,7 @@ interface VisionApiResponse {
   predictions: [
     {
       bytesBase64Encoded: string;
-    }
+    },
   ];
 }
 
@@ -33,6 +33,23 @@ interface GeminiRequest {
     mimeType: string;
   };
 }
+
+interface GeminiPart {
+  text?: string;
+}
+
+interface GeminiContent {
+  parts?: GeminiPart[];
+}
+
+interface GeminiCandidate {
+  content?: GeminiContent;
+}
+
+interface GeminiApiResponse {
+  candidates: GeminiCandidate[];
+}
+
 /**
  * Custom error class for Gemini API call failures.
  */
@@ -212,7 +229,7 @@ export class VertexAiApi {
       throw new GeminiApiCallError(result.getContentText());
     }
 
-    let resultParsed: any;
+    let resultParsed: GeminiApiResponse;
     try {
       resultParsed = JSON.parse(result.getContentText('UTF-8'));
     } catch (e) {
@@ -225,8 +242,10 @@ export class VertexAiApi {
     }
 
     const geminiResponse = resultParsed.candidates
-      .map((candidate: any) =>
-        candidate?.content?.parts?.map((part: any) => part?.text).join('')
+      .map((candidate: GeminiCandidate) =>
+        candidate?.content?.parts
+          ?.map((part: GeminiPart) => part?.text)
+          .join('')
       )
       .join('');
     return geminiResponse;

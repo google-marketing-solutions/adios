@@ -54,6 +54,7 @@ export interface Image {
 
 const gcsApi = new GcsApi(CONFIG['GCS Bucket']);
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getData = () => {
   const gcsImages = gcsApi.listAllImages(GoogleAdsApiFactory.getAdsAccountId());
   const adGroups: { [id: string]: Image[] } = {};
@@ -115,6 +116,7 @@ const getData = () => {
   return result;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const setImageStatus = (images: Image[], status: IMAGE_STATUS) => {
   const gcsApi = new GcsApi(CONFIG['GCS Bucket']);
   images.forEach(image => {
@@ -171,7 +173,10 @@ class PolicyStatusByAdGroup {
       const json = JSON.parse(gcsApi.getFile(fullName, true).toString());
 
       return json.reduce(
-        (accumulator: any, currentValue: ImagePolicyViolations) => ({
+        (
+          accumulator: { [key: string]: PolicyViolation[] },
+          currentValue: ImagePolicyViolations
+        ) => ({
           ...accumulator,
           [currentValue.image]: currentValue.violations,
         }),

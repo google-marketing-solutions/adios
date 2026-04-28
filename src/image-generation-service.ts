@@ -136,7 +136,7 @@ export class ImageGenerationService extends Triggerable {
             const keywordList = [
               ...new Set(
                 keywordInfo
-                  .map(x => x.adGroupCriterion.keyword.text)
+                  .map(x => x.adGroupCriterion?.keyword?.text)
                   .filter(x => !!x)
               ),
             ];
@@ -263,7 +263,7 @@ export class ImageGenerationService extends Triggerable {
    * @returns {string} a file name that's less than 128 characters long, that
    *   takes the form `adGroupId|adGroupName|timestamp`
    */
-  generateImageFileName(adGroupId: number, adGroupName: string) {
+  generateImageFileName(adGroupId: string, adGroupName: string) {
     // Remove any slashes in the ad group name as that would be problematic with
     // the file path
     adGroupName = adGroupName.replaceAll('/', ''); // TODO: Escape "|"
@@ -274,7 +274,7 @@ export class ImageGenerationService extends Triggerable {
     // These are the | characters added to the final string.
     const extraChars = 2;
     const adGroupNameLimit =
-      fileNameLimit - now.length - adGroupId.toString().length - extraChars;
+      fileNameLimit - now.length - adGroupId.length - extraChars;
     const trimmedAdGroupName = adGroupName.slice(0, adGroupNameLimit);
     return `${adGroupId}|${trimmedAdGroupName}|${Date.now()}`;
   }

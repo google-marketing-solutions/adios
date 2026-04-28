@@ -46,7 +46,7 @@ declare namespace GoogleCloud {
       contentLanguage: string;
       cacheControl: string;
       crc32c: string;
-      componentCount: integer;
+      componentCount: number;
       etag: string;
       kmsKeyName: string;
       temporaryHold: boolean;
