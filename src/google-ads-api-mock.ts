@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG } from './config';
-import { GoogleAdsApi, GoogleAdsApiInterface } from './google-ads-api';
+import {CONFIG} from './config';
+import {GoogleAdsApi, GoogleAdsApiInterface} from './google-ads-api';
 
 export class GoogleAdsApiFactory {
   static mockAccountId = 'Mock';
@@ -73,10 +73,11 @@ class GoogleAdsApiMock implements GoogleAdsApiInterface {
     }
 
     return this.data.map(row => ({
-      customer: { id: GoogleAdsApiFactory.mockAccountId },
+      customer: {id: GoogleAdsApiFactory.mockAccountId},
       adGroup: {
         id: row[0],
         name: row[0],
+        resourceName: `customers/${GoogleAdsApiFactory.mockAccountId}/adGroups/${row[0]}`,
       },
     }));
   }

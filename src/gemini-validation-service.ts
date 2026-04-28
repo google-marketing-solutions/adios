@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG } from './config';
-import { GcsApi } from './gcs-api';
-import { VertexAiApi } from './vertex-ai-api';
-import { GoogleAdsApiFactory } from './google-ads-api-mock';
+import {CONFIG} from './config';
+import {GcsApi} from './gcs-api';
+import {VertexAiApi} from './vertex-ai-api';
+import {GoogleAdsApiFactory} from './google-ads-api-mock';
 
 export const POLICY_VIOLATIONS_FILE = 'policyViolations.json';
 
@@ -145,6 +145,7 @@ export class GeminiValidationService {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function runGeminiValidationService() {
   const geminiValidationService = new GeminiValidationService();
   geminiValidationService.run();

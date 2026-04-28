@@ -32,7 +32,7 @@ declare namespace GoogleAds {
         create: {
           type: string;
           name: string;
-          imageAsset: { data: string };
+          imageAsset: {data: string};
           resourceName?: string;
         };
       };

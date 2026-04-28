@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Observable } from 'rxjs';
+import {Observable} from 'rxjs';
 export enum IMAGE_STATUS {
   GENERATED = 'Generated',
   VALIDATED = 'Validated',

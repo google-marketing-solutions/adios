@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG } from './config';
-import { GcsApi } from './gcs-api';
+import {CONFIG} from './config';
+import {GcsApi} from './gcs-api';
 import {
   ImagePolicyViolations,
   PolicyViolation,
   POLICY_VIOLATIONS_FILE,
 } from './gemini-validation-service';
-import { GoogleAdsApiFactory } from './google-ads-api-mock';
+import {GoogleAdsApiFactory} from './google-ads-api-mock';
 
 export const FRONTEND_HELPER = null;
 
@@ -54,9 +54,10 @@ export interface Image {
 
 const gcsApi = new GcsApi(CONFIG['GCS Bucket']);
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getData = () => {
   const gcsImages = gcsApi.listAllImages(GoogleAdsApiFactory.getAdsAccountId());
-  const adGroups: { [id: string]: Image[] } = {};
+  const adGroups: {[id: string]: Image[]} = {};
   if (!gcsImages.items) {
     return [];
   }
@@ -115,6 +116,7 @@ const getData = () => {
   return result;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const setImageStatus = (images: Image[], status: IMAGE_STATUS) => {
   const gcsApi = new GcsApi(CONFIG['GCS Bucket']);
   images.forEach(image => {
@@ -137,7 +139,7 @@ class PolicyStatusByAdGroup {
    *  specific ad group.
    */
   static adGroupIssues: {
-    [adGroupId: string]: { [filename: string]: PolicyViolation[] };
+    [adGroupId: string]: {[filename: string]: PolicyViolation[]};
   } = {};
 
   static getIssues(adGroupId: string, filename: string) {
@@ -171,7 +173,10 @@ class PolicyStatusByAdGroup {
       const json = JSON.parse(gcsApi.getFile(fullName, true).toString());
 
       return json.reduce(
-        (accumulator: any, currentValue: ImagePolicyViolations) => ({
+        (
+          accumulator: {[key: string]: PolicyViolation[]},
+          currentValue: ImagePolicyViolations
+        ) => ({
           ...accumulator,
           [currentValue.image]: currentValue.violations,
         }),

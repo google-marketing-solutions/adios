@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 export const uiHelper = null;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function doGet() {
   return HtmlService.createTemplateFromFile('ui').evaluate().setTitle('Adios');
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function include(filename: string) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }

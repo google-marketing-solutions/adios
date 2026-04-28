@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-import { ADIOS_MODES, ADIOS_MODE_CELL, sheet } from './config';
+import {ADIOS_MODES, ADIOS_MODE_CELL, sheet} from './config';
 export const menu = null;
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('Adios')
@@ -38,6 +40,7 @@ function onOpen() {
   toggleRows(sheet.getRange(ADIOS_MODE_CELL).getValue());
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function onEdit(e: GoogleAppsScript.Events.SheetsOnEdit) {
   if (e.range.getA1Notation() === ADIOS_MODE_CELL) {
     const adiosMode = sheet.getRange(ADIOS_MODE_CELL).getValue();
@@ -66,6 +69,7 @@ const allowedFunctions = [
   'ImageUploadService.manuallyRun',
   'ImageExtensionService.manuallyRun',
 ];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class AdiosTriggers {
   /**
    * Adds time driven triggers.

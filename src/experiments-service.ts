@@ -13,8 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG } from './config';
-import { GoogleAdsApi } from './google-ads-api';
+import {CONFIG} from './config';
+import {
+  AdGroupAssetForCampaignSearchResult,
+  GoogleAdsApi,
+} from './google-ads-api';
 
 export class ExperimentsService {
   private readonly _googleAdsApi;
@@ -80,7 +83,10 @@ export class ExperimentsService {
 
       const assetsToRemove = this._googleAdsApi
         .getAdGroupAssetsForCampaign(campaignCopy)
-        .map(e => e.adGroupAsset.resourceName);
+        .map(
+          (e: AdGroupAssetForCampaignSearchResult) =>
+            e.adGroupAsset.resourceName
+        );
       Logger.log(
         `Following ${assetsToRemove.length} assets will be removed: ${assetsToRemove}`
       );
@@ -102,6 +108,7 @@ export class ExperimentsService {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function runExperimentsService() {
   const experimentsService = new ExperimentsService(CONFIG['Campaign IDs']);
   experimentsService.run();

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ApiCallsService } from '../app/api-calls/api-calls.service';
+import {ApiCallsService} from '../app/api-calls/api-calls.service';
 
 export const environment = {
   production: true,
-  providers: [{ provide: ApiCallsService }],
+  providers: [{provide: ApiCallsService}],
 };

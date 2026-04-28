@@ -93,5 +93,5 @@ export const CONFIG: Config =
     .getDisplayValues()
     .filter(e => e[0])
     .reduce((res, e) => {
-      return { ...res, [e[0]]: e[1] };
+      return {...res, [e[0]]: e[1]};
     }, DEFAULT_CONFIG) ?? DEFAULT_CONFIG;

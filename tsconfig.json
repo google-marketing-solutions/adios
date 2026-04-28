@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    "types": [
+      "google-apps-script",
+      "jest"
+    ],
     "target": "es2020",
     "module": "es2020",
     "lib": [
@@ -7,7 +11,7 @@
       "ES2021.String",
       "dom"
     ],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "outDir": "dist",
     "rootDir": ".",
     "strict": true,
