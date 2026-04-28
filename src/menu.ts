@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ADIOS_MODES, ADIOS_MODE_CELL, sheet } from './config';
+import {ADIOS_MODES, ADIOS_MODE_CELL, sheet} from './config';
 export const menu = null;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

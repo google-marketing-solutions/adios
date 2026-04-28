@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ADIOS_MODES, CONFIG } from './config';
-import { GcsApi } from './gcs-api';
-import { GoogleAdsApiFactory } from './google-ads-api-mock';
-import { Triggerable } from './triggerable';
+import {ADIOS_MODES, CONFIG} from './config';
+import {GcsApi} from './gcs-api';
+import {GoogleAdsApiFactory} from './google-ads-api-mock';
+import {Triggerable} from './triggerable';
 import {
   GeminiApiCallError,
   ImageGenerationApiCallError,
@@ -296,7 +296,7 @@ export class ImageGenerationService extends Triggerable {
    * If an object with { 'city': 'London' } is provided it will replace the
    * placeholder and return "A photo of a London in sharp, 4k".
    */
-  createPrompt(obj: { [key: string]: string }) {
+  createPrompt(obj: {[key: string]: string}) {
     let prompt = CONFIG['ImgGen Prompt'];
     for (const [key, value] of Object.entries(obj)) {
       prompt = prompt.replaceAll('${' + key + '}', value);

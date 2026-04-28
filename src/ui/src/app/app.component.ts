@@ -13,28 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Component, OnInit, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import {Component, OnInit, ViewChild} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {MatToolbarModule} from '@angular/material/toolbar';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
+import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {
   MatPaginator,
   MatPaginatorModule,
   PageEvent,
 } from '@angular/material/paginator';
-import { MatCardModule } from '@angular/material/card';
-import { MatSliderModule } from '@angular/material/slider';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { ApiCallsService } from './api-calls/api-calls.service';
-import { environment } from '../environments/environment';
+import {MatCardModule} from '@angular/material/card';
+import {MatSliderModule} from '@angular/material/slider';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {ApiCallsService} from './api-calls/api-calls.service';
+import {environment} from '../environments/environment';
 import {
   AdGroup,
   IMAGE_STATUS,
   Image,
 } from './api-calls/api-calls.service.interface';
-import { ImageExtensionComponent } from './image-extension/image-extension.component';
+import {ImageExtensionComponent} from './image-extension/image-extension.component';
 
 @Component({
   selector: 'app-root',

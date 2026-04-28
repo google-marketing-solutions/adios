@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG } from './config';
+import {CONFIG} from './config';
 
 export interface AdGroupSearchResult {
   adGroup: {
@@ -268,7 +268,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
    * @return {Object}
    */
   _executeMutateOperations(operations: object[]): object {
-    return this.post('/googleAds:mutate', { mutateOperations: operations });
+    return this.post('/googleAds:mutate', {mutateOperations: operations});
   }
 
   /**
@@ -289,7 +289,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
         create: {
           type: 'IMAGE',
           name: fileName,
-          imageAsset: { data: Utilities.base64Encode(fileBytes) },
+          imageAsset: {data: Utilities.base64Encode(fileBytes)},
         },
       },
     };
@@ -429,7 +429,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
     };
 
     const operationResult = this.post('/experiments:mutate', {
-      operations: [{ create: experiment }],
+      operations: [{create: experiment}],
     });
 
     return operationResult.results[0].resourceName;
@@ -465,7 +465,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
 
     const operationResult = this.post('/experimentArms:mutate', {
       customer_id: customerId,
-      operations: [{ create: contrtolArm }, { create: testArm }],
+      operations: [{create: contrtolArm}, {create: testArm}],
       // To get automatically created campaign name
       response_content_type: 'MUTABLE_RESOURCE',
     });
@@ -566,7 +566,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
    */
   removeAssetsFromAdGroup(assets: string[]) {
     return this.post('/adGroupAssets:mutate', {
-      operations: assets.map(e => ({ remove: e })),
+      operations: assets.map(e => ({remove: e})),
     });
   }
 }

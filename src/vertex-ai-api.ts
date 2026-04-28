@@ -148,7 +148,7 @@ export class VertexAiApi {
   callImageGenerationApi(prompt: string, sampleCount = 4) {
     const options = Object.assign({}, this._baseOptions);
     const payload = {
-      instances: [{ prompt }],
+      instances: [{prompt}],
       parameters: {
         sampleCount,
       },
@@ -191,14 +191,14 @@ export class VertexAiApi {
     const options = Object.assign({}, this._baseOptions);
 
     const mimeType = 'image/png';
-    const parts: GeminiRequest[] = [{ text }];
+    const parts: GeminiRequest[] = [{text}];
     if (image) {
       parts.push({
-        inlineData: { image, mimeType },
+        inlineData: {image, mimeType},
       });
     } else if (fileUri) {
       parts.push({
-        fileData: { fileUri, mimeType },
+        fileData: {fileUri, mimeType},
       });
     }
 

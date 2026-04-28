@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Component, Input } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { Image, IMAGE_STATUS } from '../api-calls/api-calls.service.interface';
+import {Component, Input} from '@angular/core';
+import {CommonModule, NgOptimizedImage} from '@angular/common';
+import {MatIconModule} from '@angular/material/icon';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {Image, IMAGE_STATUS} from '../api-calls/api-calls.service.interface';
 
 @Component({
   selector: 'image-extension',
@@ -27,7 +27,7 @@ import { Image, IMAGE_STATUS } from '../api-calls/api-calls.service.interface';
   styleUrls: ['./image-extension.component.css'],
 })
 export class ImageExtensionComponent {
-  @Input({ required: true }) image!: Image;
+  @Input({required: true}) image!: Image;
   @Input() imageSize: number = 1;
 
   getIcon = (image: Image) => {
@@ -53,22 +53,22 @@ export class ImageExtensionComponent {
 
   getStyle = (image: Image) => {
     if (image?.issues?.length) {
-      return { color: '#EA4335' };
+      return {color: '#EA4335'};
     }
 
     switch (image.status) {
       case IMAGE_STATUS.GENERATED:
-        return { color: '#FBBC04' };
+        return {color: '#FBBC04'};
       case IMAGE_STATUS.VALIDATED:
       case IMAGE_STATUS.UPLOADED:
-        return { color: '#34A853' };
+        return {color: '#34A853'};
       case IMAGE_STATUS.DISAPPROVED:
       case IMAGE_STATUS.BAD_PERFORMANCE:
       case IMAGE_STATUS.REJECTED:
-        return { color: '#EA4335' };
+        return {color: '#EA4335'};
 
       default:
-        return { color: 'white' };
+        return {color: 'white'};
     }
   };
 

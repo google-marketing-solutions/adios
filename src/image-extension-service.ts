@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CONFIG } from './config';
-import { GcsApi } from './gcs-api';
-import { GoogleAdsApi } from './google-ads-api';
-import { Triggerable } from './triggerable';
+import {CONFIG} from './config';
+import {GcsApi} from './gcs-api';
+import {GoogleAdsApi} from './google-ads-api';
+import {Triggerable} from './triggerable';
 
 export class ImageExtensionService extends Triggerable {
   private readonly MAX_AD_GROUP_ASSETS = 20;
