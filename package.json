@@ -1,0 +1,6 @@
+{
+  "name": "adios-2.0-advanced-obsolete-node-root",
+  "version": "2.0.0",
+  "description": "[DEPRECATED] The backend has been migrated to Python 3 / FastAPI (`pyproject.toml`). If building the Angular 19+ frontend as a standalone client, manage its dependencies in `frontend/package.json`.",
+  "private": true
+}

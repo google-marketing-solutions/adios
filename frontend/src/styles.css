@@ -1,0 +1,140 @@
+:root {
+  --primary-color: #1a73e8;
+  --primary-hover: #1557b0;
+  --bg-color: #f8f9fa;
+  --card-bg: #ffffff;
+  --text-color: #202124;
+  --text-muted: #5f6368;
+  --border-color: #dadce0;
+  --success-color: #34a853;
+  --error-color: #ea4335;
+  --transition-speed: 200ms;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.nav-links {
+  display: flex;
+  gap: 12px;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.angular-badge {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.fastapi-badge {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.dashboard-container {
+  max-width: 960px;
+  margin: 32px auto;
+  padding: 0 16px;
+  display: grid;
+  gap: 24px;
+}
+
+.status-card, .info-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow var(--transition-speed) ease;
+}
+
+.status-card:hover, .info-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.status-card h2, .info-card h3 {
+  margin-bottom: 16px;
+  font-size: 1.15rem;
+  color: var(--text-color);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 1rem;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot.green {
+  background-color: var(--success-color);
+}
+
+.metadata-list {
+  list-style: none;
+  margin-bottom: 24px;
+  color: var(--text-muted);
+}
+
+.metadata-list li {
+  margin-bottom: 8px;
+}
+
+.btn-refresh {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.btn-refresh:hover {
+  background-color: var(--primary-hover);
+}
+
+.status-error {
+  color: var(--error-color);
+  padding: 16px;
+  background-color: #fce8e6;
+  border-radius: 4px;
+}

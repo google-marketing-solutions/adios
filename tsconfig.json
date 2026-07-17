@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "note": "[DEPRECATED] Backend migrated to Python 3 / FastAPI. Use tsconfig inside the frontend/ directory for Angular 19+ client builds."
+  }
+}

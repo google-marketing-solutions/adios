@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adios-2-0-advanced"
+version = "2.0.0"
+description = "Enterprise-grade automation and creative enhancement platform for managing, generating, and optimizing Performance Max (PMax) campaign assets and Google Merchant Center (GMC) product media at scale via FastAPI."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "UNLICENSED" }
+authors = [
+    { name = "Google Marketing Solutions / Adios Team" }
+]
+keywords = [
+    "pmax",
+    "google-ads",
+    "merchant-center",
+    "vertex-ai",
+    "automation",
+    "fastapi",
+    "python"
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "google-ads>=25.1.0",
+    "google-api-python-client>=2.155.0",
+    "google-cloud-storage>=2.19.0",
+    "google-cloud-aiplatform>=1.75.0",
+    "google-auth>=2.36.0",
+    "httpx>=0.28.0",
+    "python-multipart>=0.0.20"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "httpx>=0.28.0",
+    "ruff>=0.8.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
