@@ -8,7 +8,7 @@ Enterprise-grade Web App automation and creative enhancement platform for managi
 
 # Tech Stack
 *   **Backend Language**: Python 3.11+ (FastAPI / Pydantic / Uvicorn)
-*   **Frontend Language**: TypeScript (Angular 19+ Web App)
+*   **Frontend Language**: TypeScript (Angular 22+ Web App)
 *   **Key Dependencies**: `google-cloud-aiplatform` (Vertex AI), `google-ads` (Google Ads API), `google-api-python-client` (Content API for Shopping, YouTube Data API v3), `pydantic` (v2 Strict Validation), `pytest`, `ruff`
 
 # Hierarchical Context & Precedence
@@ -46,7 +46,7 @@ The Adios 2.0 Advanced backend is built on Python 3.11+, leveraging FastAPI and 
 ### Code Execution & Immutability Patterns
 *   **Config & Dependency Injection:** Use FastAPI `Depends()` for service injection, database/API client lifecycle management, and authentication headers.
 *   **Modern Python Idioms:** Use `match / case` for structural pattern matching, `dataclasses` or `BaseModel` for data transfer objects, and explicit exception chaining (`raise CustomError(...) from exc`).
-*   **Frontend / API Boundary:** The Angular 19+ frontend communicates with the FastAPI backend strictly via REST JSON boundaries (`/v1/...`). Never leak backend internal stack traces or Python object structures to frontend responses.
+*   **Frontend / API Boundary:** The Angular 22+ frontend communicates with the FastAPI backend strictly via REST JSON boundaries (`/v1/...`). Never leak backend internal stack traces or Python object structures to frontend responses.
 
 ## 🌐 Best Practices for API Development
 
@@ -114,7 +114,7 @@ Consistent layout rules, predictable transition timing, and robust accessibility
 | UX Category | Specification | Target Metric / Standard |
 | :--- | :--- | :--- |
 | **Layout & Grid** | **8px Grid System** | Align all structural margins, padding, and positioning elements to multiples of 8px (e.g., 8px, 16px, 24px, 32px) to ensure uniform whitespace. |
-| **Component Architecture** | **Angular 19+ Material & Standalone & Signals** | Enforce material components and material design system. Enforce standalone components (`standalone: true`), strict TypeScript and template type checking (`strictTemplates: true`), and reactive **Signals** (`signal()`, `computed()`, `input()`, `output()`, and `resource()` API for REST endpoints). Avoid legacy NgModule patterns and unnecessary RxJS/Zone.js boilerplate. |
+| **Component Architecture** | **Angular 22+ Material & Standalone & Signals** | Enforce material components and material design system. Enforce standalone components (`standalone: true`), strict TypeScript and template type checking (`strictTemplates: true`), and reactive **Signals** (`signal()`, `computed()`, `input()`, `output()`, and `resource()` API for REST endpoints). Avoid legacy NgModule patterns and unnecessary RxJS/Zone.js boilerplate. |
 | **Aesthetics** | **Standardized Theme** | Establish a strict primary color palette, explicit typography scaling, and soft CSS shadows over harsh, hard-coded borders. |
 | **Motion** | **Native CSS Transitions** | Enforce transition windows between **150ms and 300ms** utilizing native CSS. Avoid `@angular/animations` or heavy JS animations for simple transitions to prevent change detection and rendering overhead. |
 | **Feedback** | **Visual Confirmation** | All active controls (buttons, links, form inputs) must explicitly implement hover states, active transitions, and visible focus rings. |
@@ -165,7 +165,7 @@ A healthy testing strategy separates rapid, isolated **unit tests** from deep, r
 | **Testing Scope** | Verifies isolated Pydantic schemas, helper utilities, pure algorithms, and single FastAPI endpoints via `TestClient`. | Verifies full user flows, multi-page routing, and complete backend network exchanges against Google Ads API mocks. |
 | **Environment** | `pytest` + `pytest-asyncio` with `TestClient` (running over ASGI). | Headless browser drivers (Playwright / Cypress) against sandboxed FastAPI instances or API mock servers. |
 | **External I/O** | All network requests to Google Ads API, Content API, and Vertex AI are completely mocked using `pytest.MonkeyPatch` or `unittest.mock`. | Runs against sandboxed environments with network interception or mock backends to verify true contract adherence. |
-| **Best Practices** | • Ensure a **clean state** between individual tests via `pytest` fixtures.<br>• Validate both successful Pydantic model serialization and structured JSON error responses. | • Simulate realistic user actions across the Angular 19+ standalone UI.<br>• Verify boundary serialization between Angular Signals/resource REST clients and FastAPI endpoints. |
+| **Best Practices** | • Ensure a **clean state** between individual tests via `pytest` fixtures.<br>• Validate both successful Pydantic model serialization and structured JSON error responses. | • Simulate realistic user actions across the Angular 22+ standalone UI.<br>• Verify boundary serialization between Angular Signals/resource REST clients and FastAPI endpoints. |
 
 #### Python Unit Test Example (Pytest + FastAPI TestClient)
 ```python

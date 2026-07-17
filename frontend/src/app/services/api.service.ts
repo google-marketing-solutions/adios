@@ -8,7 +8,7 @@ export interface HealthResponse {
 }
 
 export interface ErrorDetail {
-  domain: str;
+  domain: string;
   reason: string;
   message: string;
 }

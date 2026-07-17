@@ -34,6 +34,7 @@ node_modules/
 # TypeScript output
 dist/
 *.tsbuildinfo
+.angular/
 
 # Environment variables
 .env
@@ -49,3 +50,11 @@ dist/
 !.vscode/extensions.json
 *.sublime-workspace
 *.sublime-project
+
+# Python files
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/

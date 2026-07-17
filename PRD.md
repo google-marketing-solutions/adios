@@ -86,7 +86,7 @@ graph TD
 > **Campaign-level features (1, 4, 6)** operate via the **Google Ads API** directly on Asset Groups across campaigns.
 > **Product-level features (2, 3, 7)** operate via the **Content API for Shopping** on individual Product IDs within Google Merchant Center.
 > The user interface should reflect this natural boundary with dedicated tabs or modules, while allowing cross-pollination (e.g., pushing a newly animated product video from the Merchant Center Studio directly into a PMax Asset Group).
-> **API Boundary & Tech Stack:** The backend tier is engineered in **Python 3.11+ / FastAPI / Pydantic v2 / Uvicorn**. The **Angular 19+ (TypeScript)** frontend single-page web app (built with Standalone Components and Signals) communicates strictly across decoupled REST JSON endpoints (`/v1/campaigns/...`, `/v1/products/...`, `/v1/ai/...`). No Python runtime structures or internal stack traces leak across the REST boundary.
+> **API Boundary & Tech Stack:** The backend tier is engineered in **Python 3.11+ / FastAPI / Pydantic v2 / Uvicorn**. The **Angular 22+ (TypeScript)** frontend single-page web app (built with Standalone Components and Signals) communicates strictly across decoupled REST JSON endpoints (`/v1/campaigns/...`, `/v1/products/...`, `/v1/ai/...`). No Python runtime structures or internal stack traces leak across the REST boundary.
 
 ---
 
@@ -119,7 +119,7 @@ graph TD
 4. **Service Account & API Governance:**
    Dedicated OAuth/Service Account credentials must be established for Google Ads API, Content API for Shopping, and YouTube Data API with granular scoping.
 5. **Strict Pydantic v2 Schema Validation & Resource-Oriented API Boundaries:**
-   All API endpoints exposed by the FastAPI backend must validate request and response payloads via strict **Pydantic v2 (`BaseModel`) schemas**. Errors must be returned as structured JSON containing canonical HTTP status codes, error domains, and actionable messages, ensuring a clean decoupling between the backend service and the client Angular 19+ Web App.
+   All API endpoints exposed by the FastAPI backend must validate request and response payloads via strict **Pydantic v2 (`BaseModel`) schemas**. Errors must be returned as structured JSON containing canonical HTTP status codes, error domains, and actionable messages, ensuring a clean decoupling between the backend service and the client Angular 22+ Web App.
 
 ---
 

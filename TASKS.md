@@ -8,7 +8,7 @@
 > **Steering Guidelines:** [AGENTS.md](./AGENTS.md)  
 > **Status:** Active Agile Execution Plan & Backlog  
 > **Methodology:** Agile Playbook — Vertical Decomposition into Epics, User Stories (INVEST), and SMART Tasks (<16h effort)  
-> **Target Stack:** Python 3.11+ / FastAPI / Pydantic v2 / Pytest / Ruff (Backend API) + Angular 19+ / TypeScript (Frontend Web App Standalone Components & Signals; 0% Apps Script / clasp)
+> **Target Stack:** Python 3.11+ / FastAPI / Pydantic v2 / Pytest / Ruff (Backend API) + Angular 22+ / TypeScript (Frontend Web App Standalone Components & Signals; 0% Apps Script / clasp)
 
 ---
 
@@ -20,7 +20,7 @@ To ensure accountability and prevent scope drift across engineering and product 
 | :--- | :--- | :--- |
 | **Driver (D)** | Engineering Lead / Project Manager Subagent (`codeboon-project_manager`) | Drives sprint planning, vertical task decomposition, dependency unblocking, and continuous verification against [PRD.md](./PRD.md) and [AGENTS.md](./AGENTS.md). |
 | **Approver (A)** | Product Owner (SEA & Brand Lead / User) | Final sign-off on PRD requirements, acceptance criteria verification, HITL workflow design, and production deployment authorization. |
-| **Contributors (C)** | Software Engineers, AI/ML Engineers, QA Automation Leads | Implement Python/FastAPI backend modules (`.py`), GCP/Vertex AI integrations, and Pytest suites following [TASKS.md](./TASKS.md). Implement Angular 19+ TypeScript (`.component.ts` / `.service.ts`) standalone frontend components. |
+| **Contributors (C)** | Software Engineers, AI/ML Engineers, QA Automation Leads | Implement Python/FastAPI backend modules (`.py`), GCP/Vertex AI integrations, and Pytest suites following [TASKS.md](./TASKS.md). Implement Angular 22+ TypeScript (`.component.ts` / `.service.ts`) standalone frontend components. |
 | **Informed (I)** | Performance Marketing Managers, E-commerce Operations, Legal/Brand Compliance | Receive bi-weekly sprint demo reports, telemetry dashboards (`Ad Strength` / time savings), and legal guardrail audits. |
 
 ---
@@ -55,15 +55,15 @@ All tasks are scoped to **<16 hours** of engineering effort (`[XS]` ≤ 2h, `[S]
 **Goal:** Establish verified Python/FastAPI project scaffolding, enforce EU cloud compute/storage data residency, provision dynamic hierarchical GCS buckets, govern API authentication via Service Accounts, and ingest machine-readable brand schemas.
 
 ### User Story 0.1: Project Foundation & Build Toolchain
-> *As an engineer, I want a standardized Python 3 / FastAPI backend and Angular 19+ frontend development environment with automated linting, type-checking, and testing pipelines, so that all API services and UI components compile and run reliably.*
+> *As an engineer, I want a standardized Python 3 / FastAPI backend and Angular 22+ frontend development environment with automated linting, type-checking, and testing pipelines, so that all API services and UI components compile and run reliably.*
 
-- [x] **TASK-000: Initialize Python 3 / FastAPI & Angular 19+ Web App Project Foundation & Verification Harness**
+- [x] **TASK-000: Initialize Python 3 / FastAPI & Angular 22+ Web App Project Foundation & Verification Harness**
   - *Priority:* `P0` | *Effort:* `[M]` (6h) | *Dependencies:* `None` | *PRD Ref:* Section 6.4 | *Target File(s):* [pyproject.toml](./pyproject.toml), [requirements.txt](./requirements.txt), [src/main.py](./src/main.py), [tests/test_health.py](./tests/test_health.py), [frontend/package.json](./frontend/package.json)
-  - *Description:* Complete and verify backend configurations ([pyproject.toml](./pyproject.toml), [requirements.txt](./requirements.txt), `ruff`, `mypy`, `pytest`), and source directory structure (`src/campaign/`, `src/product/`, `src/core/`). Configure Uvicorn ASGI server and FastAPI entry point ([src/main.py](./src/main.py)) and baseline health harness ([tests/test_health.py](./tests/test_health.py)). Verify Angular 19+ standalone frontend workspace initialized in `frontend/` with package dependencies, enforcing zero legacy Apps Script or NodeJS backends.
+  - *Description:* Complete and verify backend configurations ([pyproject.toml](./pyproject.toml), [requirements.txt](./requirements.txt), `ruff`, `mypy`, `pytest`), and source directory structure (`src/campaign/`, `src/product/`, `src/core/`). Configure Uvicorn ASGI server and FastAPI entry point ([src/main.py](./src/main.py)) and baseline health harness ([tests/test_health.py](./tests/test_health.py)). Verify Angular 22+ standalone frontend workspace initialized in `frontend/` with package dependencies, enforcing zero legacy Apps Script or NodeJS backends.
   - *Acceptance Criteria (Given/When/Then):*
     - **Given** a clean checkout of the repository in a virtual environment (`python -m venv .venv`) and Node environment,
     - **When** the developer executes `pip install -e .[dev]` and `npm install` inside `frontend/`, then runs `pytest` alongside `ruff check src tests`, and `npm run build` in `frontend/`,
-    - **Then** all linters pass without errors, unit tests pass successfully, FastAPI starts cleanly, and the Angular 19 frontend compiles standalone components successfully.
+    - **Then** all linters pass without errors, unit tests pass successfully, FastAPI starts cleanly, and the Angular 22 frontend compiles standalone components successfully.
 
 ### User Story 0.2: Cloud Governance & Data Residency Lock
 > *As a brand compliance officer, I want all AI model inference and GCS storage operations locked to strict European regulatory jurisdictions (`europe-west1` / `europe-west3`), so that our enterprise organization complies with EU data sovereignty laws.*

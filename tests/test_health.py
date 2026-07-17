@@ -25,13 +25,14 @@ def test_health_check_returns_healthy_status_and_metadata(client: TestClient) ->
     assert data["api_version"] == "v1"
 
 
-def test_global_exception_handler_returns_structured_json(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_global_exception_handler_returns_structured_json() -> None:
     """Verifies that unhandled exceptions are caught by the global exception handler and return structured JSON."""
-    async def mock_faulty_health() -> None:
+    @app.get("/_test_unhandled_error")
+    async def trigger_unhandled_error() -> None:
         raise RuntimeError("Simulated database connection failure")
 
-    monkeypatch.setattr("src.main.health_check", mock_faulty_health)
-    response = client.get("/health")
+    local_client = TestClient(app, raise_server_exceptions=False)
+    response = local_client.get("/_test_unhandled_error")
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
     data = response.json()

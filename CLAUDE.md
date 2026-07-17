@@ -13,3 +13,9 @@ When working on specific domains, inspect the modular rules located in `_agents/
 - `_agents/rules/pacing.md`
 - `_agents/rules/glob-scoped-rules.md`
 - `_agents/rules/subagent-orchestration.md`
+
+## Core Commands
+- Run backend tests: `.venv/bin/pytest`
+- Run backend linter: `.venv/bin/ruff check src/ tests/`
+- Run frontend build: `npm run build` (in `frontend/` directory)
+- Run local development orchestrator: `./local/start-servers.sh`
