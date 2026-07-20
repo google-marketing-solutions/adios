@@ -40,7 +40,7 @@ import { SettingsPanelComponent } from '../config/settings-panel.component';
         <header class="topbar h-16 bg-white border-b px-8 flex items-center justify-between shrink-0">
           <div class="flex items-center gap-3">
             <span class="client-id text-xs font-bold px-2 py-1 rounded select-all">
-              Client ID: 994-118-2026
+              CLIENT ID: 994-118-2026
             </span>
             <div class="divider h-4 w-px bg-slate-200 hidden sm:block"></div>
             <p class="connected-text text-xs text-slate-500 font-medium hidden sm:block m-0">
@@ -62,23 +62,9 @@ import { SettingsPanelComponent } from '../config/settings-panel.component';
 
             <div class="divider h-4 w-px bg-slate-200"></div>
 
-            <!-- Health check API status -->
-            <div class="health-indicator flex items-center gap-2 text-xs px-3 py-1 rounded font-medium">
-              @if (apiService.isLoading()) {
-                <span class="loading-dot"></span>
-                <span>Connecting to API...</span>
-              } @else if (apiService.error()) {
-                <span class="status-dot red"></span>
-                <span class="text-rose">API Offline</span>
-              } @else if (apiService.healthStatus()) {
-                <span class="status-dot green"></span>
-                <span class="text-emerald">API Online</span>
-              }
-            </div>
-
             <!-- AI Engine Stats indicator -->
             <div class="ai-status flex items-center gap-2 text-xs px-3 py-1 rounded font-medium">
-              <mat-icon class="text-brand text-xs">auto_awesome</mat-icon>
+              <mat-icon class="text-xs">auto_awesome</mat-icon>
               <span>AI Engine: Online</span>
             </div>
           </div>
@@ -135,14 +121,10 @@ import { SettingsPanelComponent } from '../config/settings-panel.component';
       width: 14px;
       height: 14px;
     }
-    .health-indicator {
-      background-color: #f8f9fa;
-      border: 1px solid #dadce0;
-    }
     .ai-status {
-      background-color: rgba(26, 115, 232, 0.05);
-      border: 1px solid rgba(26, 115, 232, 0.1);
-      color: #1a73e8;
+      background-color: #e6f4ea;
+      border: 1px solid #ceead6;
+      color: #137333;
     }
     .text-brand {
       color: #1a73e8;

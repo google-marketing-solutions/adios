@@ -207,7 +207,9 @@ body {
 
 /* Typography & Visuals */
 .font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
 .font-medium { font-weight: 500; }
+.font-inter { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 .text-muted { color: var(--text-muted); }
 .text-sm { font-size: 0.875rem; }
 .text-xs { font-size: 0.75rem; }
@@ -269,6 +271,7 @@ body {
 .bg-indigo { background-color: #1a73e8; }
 .bg-brand { background-color: #0f9d58; }
 .text-brand { color: #1a73e8; }
+.text-white { color: #ffffff; }
 .text-slate-800 { color: #202124; }
 .text-slate-700 { color: #3c4043; }
 .text-slate-500 { color: #5f6368; }
@@ -414,6 +417,8 @@ body {
 /* Colors and states */
 .bg-emerald { background-color: #34a853; }
 .border-emerald { border-color: #34a853; }
+.border-brand { border-color: #0f9d58; }
+.border-none { border: none !important; }
 .text-emerald { color: #34a853; }
 .bg-emerald-light { background-color: #e8f5e9; }
 .hover\:bg-brand-dark:hover { background-color: #0b7e46; }
@@ -431,6 +436,11 @@ body {
 .opacity-0 { opacity: 0; }
 .opacity-40 { opacity: 0.4; }
 .opacity-50 { opacity: 0.5; }
+
+button:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
 
 /* Custom toggle switch */
 .sr-only {

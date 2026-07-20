@@ -247,7 +247,7 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
             </div>
 
             <!-- Replacement Configuration Controls (Step 3 & 4) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-indigo-50 border border-indigo-100 p-4 rounded">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 border border-slate-200 p-5 rounded-xl">
               <div class="space-y-1.5 flex flex-col">
                 <label class="text-xs font-bold text-slate-700">Swap Rule: KPI Optimization Preference</label>
                 <p class="text-[10px] text-slate-500 leading-normal m-0 mb-1">
@@ -284,13 +284,13 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
             <!-- Sync Save button -->
             <div class="flex items-center justify-between pt-2">
               <div class="text-[11px] text-muted flex items-center gap-1.5">
-                <mat-icon class="text-emerald icon-size">check_circle</mat-icon>
+                <mat-icon class="text-emerald icon-size">check_circle_outline</mat-icon>
                 <span>Protected images will be locked. Underperforming ones replaced.</span>
               </div>
               <button
                 (click)="handleSaveAndSync()"
                 [disabled]="syncStatus().message.includes('Synchronizing')"
-                class="flex items-center gap-2 px-6 py-2.5 rounded bg-brand text-white text-xs font-bold border-none transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                class="flex items-center gap-2 px-6 py-2.5 rounded bg-brand text-white text-xs font-semibold border-none transition-all cursor-pointer shadow-sm disabled:opacity-50"
               >
                 <span>Save & Deploy Assets</span>
                 <mat-icon class="icon-size">arrow_forward</mat-icon>
@@ -346,21 +346,21 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
                 @let isLocked = asset.isProtected || isPatternProtected;
                 <div 
                   [class.locked-card]="isLocked"
-                  class="border rounded p-3 flex gap-3 items-center justify-between transition-all bg-white"
+                  class="border rounded-xl p-3 flex gap-3 items-center justify-between transition-all bg-white shadow-xs"
                 >
                   <div class="flex items-center gap-2.5 min-w-0">
-                    <img [src]="asset.url" [alt]="asset.name" class="w-10 h-10 object-cover rounded border shrink-0" />
+                    <img [src]="asset.url" [alt]="asset.name" class="w-10 h-10 object-cover rounded-lg border shrink-0" />
                     <div class="min-w-0">
                       <div class="flex items-center gap-1.5">
-                        <p class="text-xs font-bold text-slate-700 truncate m-0">{{ asset.name }}</p>
+                        <p class="text-xs font-bold text-slate-800 truncate m-0">{{ asset.name }}</p>
                         @if (isLocked) {
                           <mat-icon class="text-indigo icon-xs">shield</mat-icon>
                         }
                       </div>
-                      <p class="text-[10px] text-muted flex items-center gap-1 font-mono m-0 mt-0.5">
+                      <p class="text-[10px] text-slate-500 flex items-center gap-1 font-mono m-0 mt-0.5">
                         <span>CTR: {{ asset.kpiValue }}%</span>
                         <span>•</span>
-                        <span [class]="'performance-badge px-1 rounded text-[8px] font-bold uppercase ' + (asset.performanceScore === 'Best' ? 'bg-emerald-light text-emerald' : 'bg-slate-100 text-slate-600')">
+                        <span [class]="'performance-badge px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ' + (asset.performanceScore === 'Best' ? 'bg-emerald-light text-emerald' : 'bg-slate-100 text-slate-600')">
                           {{ asset.performanceScore }}
                         </span>
                       </p>
@@ -370,9 +370,9 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
                   <div class="flex flex-col items-end gap-1 shrink-0">
                     <button
                       (click)="toggleProtectedAsset(asset.id)"
-                      [class]="'btn-lock px-2 py-1 rounded text-[10px] font-bold border cursor-pointer transition-all ' + (asset.isProtected ? 'bg-indigo border-indigo text-white' : 'bg-white text-slate-500 hover:bg-slate-50')"
+                      [class]="'btn-lock px-3 py-1 rounded-md text-[11px] font-bold border cursor-pointer transition-all ' + (isLocked ? 'bg-indigo border-indigo text-white shadow-xs' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50')"
                     >
-                      {{ asset.isProtected ? 'Locked' : 'Lock' }}
+                      {{ isLocked ? 'Locked' : 'Lock' }}
                     </button>
 
                     @if (asset.scheduledTiming) {

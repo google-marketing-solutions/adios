@@ -60,7 +60,7 @@ const mockGeneratedBackgrounds: Record<string, string> = {
                 @for (cat of ['All', 'Food', 'Non-Food']; track cat) {
                   <button
                     (click)="selectedCategory.set(cat)"
-                    [class]="'px-3 py-1 rounded text-xs font-bold transition-all border cursor-pointer ' + (selectedCategory() === cat ? 'bg-emerald border-emerald text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50')"
+                    [class]="'px-3 py-1 rounded text-xs font-semibold font-inter transition-all border cursor-pointer ' + (selectedCategory() === cat ? 'bg-brand border-brand text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50')"
                   >
                     {{ cat }}
                   </button>
@@ -181,7 +181,7 @@ const mockGeneratedBackgrounds: Record<string, string> = {
             <button
               (click)="handleBulkGenerate()"
               [disabled]="selectedProductIds().length === 0"
-              class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-brand hover:bg-brand-dark text-white text-xs font-bold border-none transition-all cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-brand hover:bg-brand-dark text-white text-xs font-semibold font-inter border-none transition-all cursor-pointer shadow-sm"
             >
               <mat-icon class="icon-size">auto_awesome</mat-icon>
               <span>Bulk Generate backgrounds ({{ selectedProductIds().length }})</span>
