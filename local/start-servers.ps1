@@ -28,7 +28,33 @@ if (Test-Path $LocalNode) {
     Write-Host "Local Node.js runtime not found. Using system node." -ForegroundColor Yellow
 }
 
-# 3. Start Backend
+# 3. Load environment configuration from config.txt
+$ConfigFile = Join-Path $RepoDir "config.txt"
+$TemplateFile = Join-Path $RepoDir "config.template.txt"
+
+if (-not (Test-Path $ConfigFile)) {
+    if (Test-Path $TemplateFile) {
+        Write-Host "config.txt not found. Copying config.template.txt to config.txt..." -ForegroundColor Yellow
+        Copy-Item $TemplateFile $ConfigFile
+    }
+}
+
+if (Test-Path $ConfigFile) {
+    Write-Host "Loading environment configuration from config.txt..." -ForegroundColor Green
+    Get-Content $ConfigFile | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#")) {
+            $parts = $line -split "=", 2
+            if ($parts.Count -eq 2) {
+                $varName = $parts[0].Trim()
+                $varValue = $parts[1].Trim().Trim('"').Trim("'")
+                [System.Environment]::SetEnvironmentVariable($varName, $varValue, [System.EnvironmentVariableTarget]::Process)
+            }
+        }
+    }
+}
+
+# 4. Start Backend
 Write-Host "Starting FastAPI Backend on http://localhost:8000..." -ForegroundColor Green
 $BackendProcess = Start-Process -FilePath $PythonBin -ArgumentList "-m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload" -NoNewWindow -PassThru -ErrorAction Stop
 
