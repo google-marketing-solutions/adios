@@ -133,7 +133,7 @@ async def get_accessible_accounts(
     user_access_token = _extract_bearer_token(authorization)
     query_error: str | None = None
 
-    if creds.developer_token and creds.developer_token != "mock_developer_token_2026":
+    if creds.developer_token:
         try:
             # 1. Fetch accessible customer accounts (must NOT include login_customer_id header)
             googleads_client = default_auth_provider.get_google_ads_client(
@@ -307,8 +307,7 @@ async def get_asset_groups(
     user_access_token = _extract_bearer_token(authorization)
     query_error: str | None = None
 
-    # Try querying live Google Ads API if real credentials exist, else return mock PMax groups
-    if creds.developer_token and creds.developer_token != "mock_developer_token_2026":
+    if creds.developer_token:
         query = """
             SELECT
               asset_group.id,

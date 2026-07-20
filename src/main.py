@@ -39,6 +39,10 @@ class GoogleAuthRequest(BaseModel):
     id_token: str = Field(..., description="Google ID Token JWT received on the client-side")
 
 
+class AuthConfigResponse(BaseModel):
+    client_id: str = Field(..., description="Google Login OAuth Client ID")
+
+
 class UserProfileResponse(BaseModel):
     email: str = Field(..., description="Verified user email address")
     name: str = Field(..., description="User full display name")
@@ -94,6 +98,21 @@ async def health_check() -> HealthResponse:
         architecture="Python 3 / FastAPI / Pydantic v2 / Uvicorn",
         api_version="v1",
     )
+
+
+@app.get(
+    "/v1/auth/config",
+    response_model=AuthConfigResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Authentication"],
+    summary="Get Public OAuth Client ID Config",
+)
+async def get_auth_config() -> AuthConfigResponse:
+    """Returns the Google OAuth Client ID loaded from environment/config.txt."""
+    import os
+
+    client_id = os.getenv("GOOGLE_LOGIN_CLIENT_ID", "")
+    return AuthConfigResponse(client_id=client_id)
 
 
 @app.post(

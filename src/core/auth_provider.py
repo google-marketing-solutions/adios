@@ -37,7 +37,7 @@ class AuthTokenProvider:
         Returns:
             GoogleAdsCredentials object with validation.
         """
-        developer_token = os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "mock_developer_token_2026")
+        developer_token = os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "")
         client_id = (
             os.getenv("GOOGLE_ADS_CLIENT_ID")
             or os.getenv("GOOGLE_LOGIN_CLIENT_ID")
@@ -48,7 +48,7 @@ class AuthTokenProvider:
             or os.getenv("GOOGLE_LOGIN_CLIENT_SECRET")
             or ""
         )
-        refresh_token = os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "mock_refresh_token")
+        refresh_token = os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "")
         login_customer_id = (
             os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID")
             or os.getenv("GOOGLE_ADS_MCC_CUSTOMER_ID")

@@ -34,16 +34,31 @@ export class AuthService {
     return this.tokenState() || localStorage.getItem('adios_access_token');
   }
 
-  loginWithGoogle(): void {
-    const clientId = '180826927633-8h8n7nu89e81fehg4goo37gck191lmr6.apps.googleusercontent.com';
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth-handler');
-    const scope = encodeURIComponent('openid email profile https://www.googleapis.com/auth/adwords');
-    const responseType = encodeURIComponent('id_token token');
-    const nonce = Math.random().toString(36).substring(2);
-    
-    // Redirect to Google's OAuth 2.0 endpoint for implicit flow
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}&nonce=${nonce}`;
-    window.location.href = authUrl;
+  async loginWithGoogle(): Promise<void> {
+    try {
+      const configRes = await fetch('/v1/auth/config');
+      if (!configRes.ok) {
+        throw new Error('Failed to load Google OAuth Client ID configuration from server');
+      }
+      const config = await configRes.json();
+      const clientId = config.client_id;
+      if (!clientId) {
+        alert('Google OAuth Client ID is not configured. Please add GOOGLE_LOGIN_CLIENT_ID to config.txt.');
+        return;
+      }
+
+      const redirectUri = encodeURIComponent(window.location.origin + '/auth-handler');
+      const scope = encodeURIComponent('openid email profile https://www.googleapis.com/auth/adwords');
+      const responseType = encodeURIComponent('id_token token');
+      const nonce = Math.random().toString(36).substring(2);
+      
+      // Redirect to Google's OAuth 2.0 endpoint for implicit flow
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}&nonce=${nonce}`;
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Error initiating Google authentication:', error);
+      alert('Unable to initiate Google Sign-In. Please verify backend connection and config.txt setup.');
+    }
   }
 
   async handleAuthCallback(idToken: string, accessToken?: string | null): Promise<void> {
