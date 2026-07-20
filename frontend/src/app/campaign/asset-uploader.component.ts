@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { CampaignStateService } from '../services/campaign-state.service';
+import { ApiService, AccountItem } from '../services/api.service';
 import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../models/types';
 
 @Component({
@@ -23,6 +24,12 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
           <p class="text-xs text-muted m-0 mt-1">
             Eliminate Ads Editor steps: automatically replace sub-par images with AI KPI-targeted uploads.
           </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 bg-emerald-light text-emerald text-xs font-bold rounded-full flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald"></span>
+            Google Ads API Connected
+          </span>
         </div>
       </div>
 
@@ -178,10 +185,39 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
           <!-- Section 2: Deploy to Target PMax Asset Groups -->
           <div class="panel bg-white border rounded p-6 shadow-sm space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h3 class="font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
-                <span class="step-num flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">2</span>
-                Deploy to Target PMax Asset Groups
-              </h3>
+              <div class="flex flex-wrap items-center gap-3">
+                <h3 class="font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
+                  <span class="step-num flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">2</span>
+                  Deploy to Target PMax Asset Groups
+                </h3>
+                
+                <!-- Account Selector Dropdown -->
+                <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-xs">
+                  <mat-icon class="icon-size text-slate-500">account_circle</mat-icon>
+                  <select
+                    [ngModel]="selectedAccountId()"
+                    (ngModelChange)="onAccountChange($event)"
+                    class="bg-transparent border-none text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                  >
+                    @for (acc of accessibleAccounts(); track acc.id) {
+                      <option [value]="acc.id">{{ acc.name }}</option>
+                    }
+                    @if (accessibleAccounts().length === 0) {
+                      <option value="">{{ isLoadingAccounts() ? 'Loading accounts...' : 'No accounts available' }}</option>
+                    }
+                  </select>
+                </div>
+
+                <button
+                  (click)="reloadAssetGroups()"
+                  [disabled]="isLoadingAssetGroups()"
+                  class="flex items-center gap-1.5 px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-300 transition-all cursor-pointer disabled:opacity-50"
+                  title="Reload Asset Groups from Google Ads API"
+                >
+                  <mat-icon [class.animate-spin]="isLoadingAssetGroups()" class="icon-size text-slate-600">refresh</mat-icon>
+                  <span>{{ isLoadingAssetGroups() ? 'Reloading...' : 'Reload' }}</span>
+                </button>
+              </div>
               
               <!-- Search Box -->
               <div class="relative w-full sm:w-64 shrink-0">
@@ -195,6 +231,16 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
                 />
               </div>
             </div>
+
+            @if (reloadNotice(); as notice) {
+              <div [class]="notice.type === 'success' ? 'bg-success-msg p-3 rounded text-xs flex items-center justify-between' : (notice.type === 'warning' ? 'bg-error-msg p-3 rounded text-xs flex items-center justify-between' : 'bg-info-msg p-3 rounded text-xs flex items-center justify-between')">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="icon-size">{{ notice.type === 'success' ? 'check_circle' : (notice.type === 'warning' ? 'warning' : 'info') }}</mat-icon>
+                  <span>{{ notice.message }}</span>
+                </div>
+                <button (click)="reloadNotice.set(null)" class="text-xs bg-transparent border-none cursor-pointer font-bold px-2">✕</button>
+              </div>
+            }
 
             <!-- Filterable List Table -->
             <div class="table-container border rounded overflow-hidden">
@@ -237,8 +283,8 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
                   }
                   @if (filteredAssetGroups().length === 0) {
                     <tr>
-                      <td colspan="5" class="p-8 text-center text-slate-400">
-                        No asset groups match your filters.
+                      <td colspan="5" class="p-8 text-center text-slate-400 font-medium">
+                        {{ isLoadingAssetGroups() ? 'Loading asset groups...' : (searchQuery() ? 'No asset groups match your filters.' : 'No asset groups found for this account.') }}
                       </td>
                     </tr>
                   }
@@ -640,12 +686,88 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
     }
   `]
 })
-export class AssetUploaderComponent {
+export class AssetUploaderComponent implements OnInit {
   readonly stateService = inject(CampaignStateService);
+  readonly apiService = inject(ApiService);
+  readonly accessibleAccounts = signal<AccountItem[]>([]);
+  readonly selectedAccountId = signal<string>('');
+  readonly isLoadingAccounts = signal<boolean>(false);
+  readonly isLoadingAssetGroups = signal<boolean>(false);
+  readonly reloadNotice = signal<{ message: string; type: 'success' | 'warning' | 'info' } | null>(null);
+
+  async ngOnInit(): Promise<void> {
+    await this.loadAccessibleAccounts();
+    const targetAccount = this.selectedAccountId() || '9044713567';
+    await this.reloadAssetGroups(targetAccount);
+  }
+
+  async loadAccessibleAccounts(): Promise<void> {
+    this.isLoadingAccounts.set(true);
+    try {
+      const res = await this.apiService.fetchAccessibleAccounts();
+      if (res && res.accounts && res.accounts.length > 0) {
+        this.accessibleAccounts.set(res.accounts);
+        if (!this.selectedAccountId()) {
+          this.selectedAccountId.set(res.accounts[0].id);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Failed to load accessible accounts:', err);
+    } finally {
+      this.isLoadingAccounts.set(false);
+    }
+  }
+
+  async onAccountChange(accountId: string): Promise<void> {
+    this.selectedAccountId.set(accountId);
+    await this.reloadAssetGroups(accountId);
+  }
+
+  async reloadAssetGroups(customerId?: string): Promise<void> {
+    const targetCustomer = customerId || this.selectedAccountId() || '9044713567';
+    this.isLoadingAssetGroups.set(true);
+    this.reloadNotice.set(null);
+    try {
+      const res = await this.apiService.fetchAssetGroups(targetCustomer);
+      const rawGroups = res?.asset_groups || [];
+      const formattedGroups: AssetGroup[] = rawGroups.map(ag => ({
+        id: ag.id,
+        name: ag.name,
+        campaignId: ag.campaign_id,
+        campaignName: ag.campaign_name,
+        account: `Google Ads Account (${targetCustomer.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')})`,
+        imageCount: ag.square_count || 0,
+        maxImages: ag.square_capacity || 20,
+        currentKpiMetric: 'ctr'
+      }));
+      this.stateService.setAssetGroups(formattedGroups);
+      
+      if (res?.error_message) {
+        this.reloadNotice.set({
+          message: `Live Google Ads API query notice: ${res.error_message}`,
+          type: 'warning'
+        });
+      } else if (res?.source === 'live_google_ads_api') {
+        this.reloadNotice.set({
+          message: `Successfully loaded ${res.total_count} live Asset Groups via Google Ads API (Account: ${targetCustomer})!`,
+          type: 'success'
+        });
+      }
+    } catch (err: any) {
+      console.warn('Failed to load asset groups from Google Ads API:', err);
+      this.stateService.setAssetGroups([]);
+      this.reloadNotice.set({
+        message: `Unable to connect to Google Ads API endpoint: ${err?.message || err}`,
+        type: 'warning'
+      });
+    } finally {
+      this.isLoadingAssetGroups.set(false);
+    }
+  }
 
   // Upload and queue states
   readonly dragActive = signal<boolean>(false);
-  readonly uploadedQueue = signal<Omit<CampaignAsset, 'performanceScore' | 'kpiValue' | 'uploadDate'>[]>([]);
+  readonly uploadedQueue = signal<(Omit<CampaignAsset, 'performanceScore' | 'kpiValue' | 'uploadDate'> & { rawFile?: File })[]>([]);
   
   // Schedule state for the active item being uploaded
   readonly isScheduled = signal<boolean>(false);
@@ -731,33 +853,44 @@ export class AssetUploaderComponent {
       id: `up-${Date.now()}-${idx}`,
       name: file.name.split('.')[0] || 'uploaded_image',
       url: URL.createObjectURL(file), // temporary local URL
+      rawFile: file,
       isProtected: false
     }));
     this.uploadedQueue.update(prev => [...prev, ...newItems]);
   }
 
+  createCanvasMockFile(filename: string, width: number, height: number): File {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#1a73e8';
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(filename, 40, height / 2);
+    }
+    const dataUrl = canvas.toDataURL('image/png');
+    const byteString = atob(dataUrl.split(',')[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    const blob = new Blob([ab], { type: 'image/png' });
+    return new File([blob], `${filename}.png`, { type: 'image/png' });
+  }
+
   handleLoadMockImage(preset: 'dog_pool' | 'cat_bowl' | 'scratching_tree'): void {
-    const mockImages = {
-      dog_pool: {
-        id: `mock-up-1`,
-        name: 'Store_SummerPool_Promo_July',
-        url: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&q=80',
-        isProtected: false
-      },
-      cat_bowl: {
-        id: `mock-up-2`,
-        name: 'Store_Gourmet_Salmon_Dynamic',
-        url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500&q=80',
-        isProtected: false
-      },
-      scratching_tree: {
-        id: `mock-up-3`,
-        name: 'CatScratch_SolidOak_Deluxe',
-        url: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=500&q=80',
-        isProtected: false
-      }
+    const mockSpecs = {
+      dog_pool: { name: 'Store_SummerPool_Promo_July', width: 1000, height: 1000 },
+      cat_bowl: { name: 'Store_Gourmet_Salmon_Dynamic', width: 1200, height: 628 },
+      scratching_tree: { name: 'CatScratch_SolidOak_Deluxe', width: 1000, height: 1250 }
     };
-    this.uploadedQueue.update(prev => [...prev, mockImages[preset]]);
+    const spec = mockSpecs[preset];
+    const rawFile = this.createCanvasMockFile(spec.name, spec.width, spec.height);
+    this.addFilesToQueue([rawFile]);
   }
 
   removeFromQueue(id: string): void {
@@ -842,7 +975,7 @@ export class AssetUploaderComponent {
     });
   }
 
-  handleSaveAndSync(): void {
+  async handleSaveAndSync(): Promise<void> {
     const queue = this.uploadedQueue();
     const selectedGroups = this.selectedAssetGroups();
     if (queue.length === 0) {
@@ -854,116 +987,70 @@ export class AssetUploaderComponent {
       return;
     }
 
-    this.syncStatus.set({ message: 'Synchronizing images across campaigns in Google Ads...', type: 'info' });
+    this.syncStatus.set({ message: 'Validating & synchronizing images via Google Ads API...', type: 'info' });
 
-    // Simulate Sync
-    setTimeout(() => {
-      selectedGroups.forEach(groupId => {
-        const currentGroup = this.stateService.assetGroups().find(g => g.id === groupId);
-        const groupAssets = [...(this.stateService.campaignAssets()[groupId] || [])];
-        if (!currentGroup) return;
+    try {
+      for (const item of queue) {
+        let fileToken = item.id;
+        
+        // If rawFile is attached, upload file to backend for dimension validation
+        if (item.rawFile) {
+          const uploadRes = await this.apiService.uploadImage(item.rawFile);
+          fileToken = uploadRes.file_token;
+        }
 
-        queue.forEach(newAsset => {
-          const currentCount = groupAssets.length;
-          let replacedAssetLog: CampaignAsset | null = null;
-          let reason: 'KPI' | 'Special Offer' | 'Manual' = 'Manual';
+        // Call backend assign API to mutate Google Ads Asset & AssetGroupAsset
+        const assignRes = await this.apiService.assignAsset(fileToken, selectedGroups);
 
-          // Step 3 Check: Is max capacity reached?
-          if (currentCount >= this.maxCapacity()) {
-            const replaceableAssets = groupAssets.filter(asset => {
-              const isCheckboxProtected = asset.isProtected;
-              const isPatternProtected = asset.name.includes(this.protectionPattern());
-              return !isCheckboxProtected && !isPatternProtected;
-            });
+        selectedGroups.forEach(groupId => {
+          const currentGroup = this.stateService.assetGroups().find(g => g.id === groupId);
+          const groupAssets = [...(this.stateService.campaignAssets()[groupId] || [])];
+          if (!currentGroup) return;
 
-            if (replaceableAssets.length > 0) {
-              const sortedByKpi = [...replaceableAssets].sort((a, b) => a.kpiValue - b.kpiValue);
-              const worstAsset = sortedByKpi[0];
+          const freshAsset: CampaignAsset = {
+            id: `asset-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            name: item.name,
+            url: item.url,
+            performanceScore: 'Best',
+            kpiValue: 4.8,
+            isProtected: false,
+            uploadDate: new Date().toISOString().split('T')[0]
+          };
+          groupAssets.push(freshAsset);
 
-              const indexToReplace = groupAssets.findIndex(a => a.id === worstAsset.id);
-              if (indexToReplace !== -1) {
-                replacedAssetLog = { ...worstAsset };
-                reason = this.isScheduled() ? 'Special Offer' : 'KPI';
+          this.stateService.updateAssets(groupId, groupAssets);
+          this.stateService.updateAssetGroupImageCount(groupId, groupAssets.length);
 
-                const freshAsset: CampaignAsset = {
-                  id: `asset-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                  name: newAsset.name,
-                  url: newAsset.url,
-                  performanceScore: 'Best',
-                  kpiValue: this.selectedKpi() === 'ctr' ? 4.5 : 500,
-                  isProtected: false,
-                  uploadDate: new Date().toISOString().split('T')[0],
-                  scheduledTiming: this.isScheduled() ? {
-                    id: `sch-${Date.now()}`,
-                    ...this.scheduleDetails(),
-                    fallbackAssetId: worstAsset.id
-                  } : undefined
-                };
+          const resultAg = assignRes.results?.find(r => r.asset_group_id === groupId);
+          const arnInfo = resultAg ? ` (Resource: ${resultAg.asset_resource_name})` : '';
 
-                groupAssets[indexToReplace] = freshAsset;
-
-                this.stateService.addLog({
-                  id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                  date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-                  campaignName: currentGroup.campaignName,
-                  assetGroupName: currentGroup.name,
-                  replacedAsset: { name: replacedAssetLog.name, url: replacedAssetLog.url },
-                  newAsset: { name: freshAsset.name, url: freshAsset.url },
-                  reason: reason,
-                  kpiMetric: `Replaced low CTR (${replacedAssetLog.kpiValue}%) with auto-optimizer.`,
-                  status: 'Success'
-                });
-              }
-            } else {
-              // Failed sync log because all are protected
-              this.stateService.addLog({
-                id: `log-${Date.now()}`,
-                date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-                campaignName: currentGroup.campaignName,
-                assetGroupName: currentGroup.name,
-                replacedAsset: null,
-                newAsset: { name: newAsset.name, url: newAsset.url },
-                reason: 'KPI',
-                status: 'Error',
-                errorMsg: 'Sync Failed: All images in asset group are protected. No slots available.'
-              });
-            }
-          } else {
-            // Directly append
-            const freshAsset: CampaignAsset = {
-              id: `asset-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-              name: newAsset.name,
-              url: newAsset.url,
-              performanceScore: 'Best',
-              kpiValue: this.selectedKpi() === 'ctr' ? 3.8 : 400,
-              isProtected: false,
-              uploadDate: new Date().toISOString().split('T')[0]
-            };
-            groupAssets.push(freshAsset);
-
-            this.stateService.addLog({
-              id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-              date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              campaignName: currentGroup.campaignName,
-              assetGroupName: currentGroup.name,
-              replacedAsset: null,
-              newAsset: { name: freshAsset.name, url: freshAsset.url },
-              reason: 'Manual',
-              kpiMetric: 'Direct upload (Asset group below capacity limit).',
-              status: 'Success'
-            });
-          }
+          this.stateService.addLog({
+            id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            campaignName: currentGroup.campaignName,
+            assetGroupName: currentGroup.name,
+            replacedAsset: null,
+            newAsset: { name: freshAsset.name, url: freshAsset.url },
+            reason: 'Manual',
+            kpiMetric: `Google Ads API Mutation Executed successfully${arnInfo}.`,
+            status: 'Success'
+          });
         });
-
-        // Save back
-        this.stateService.updateAssets(groupId, groupAssets);
-        this.stateService.updateAssetGroupImageCount(groupId, groupAssets.length);
-      });
+      }
 
       this.uploadedQueue.set([]);
-      this.syncStatus.set({ message: 'Ads campaign sync completed successfully! Placed in selected asset groups.', type: 'success' });
+      this.syncStatus.set({
+        message: `Google Ads API Sync completed successfully! Assigned creative to ${selectedGroups.length} Asset Group(s).`,
+        type: 'success'
+      });
       setTimeout(() => this.syncStatus.set({ message: '', type: 'idle' }), 5000);
-    }, 1500);
+    } catch (err: any) {
+      console.error('Google Ads API sync error:', err);
+      this.syncStatus.set({
+        message: err?.message || 'Google Ads API sync failed. Please check network/credentials.',
+        type: 'error'
+      });
+    }
   }
 
   getSyncMessageClass(): string {

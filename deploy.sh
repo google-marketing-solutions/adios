@@ -43,10 +43,19 @@ if ! command -v gcloud &> /dev/null; then
   error "Google Cloud SDK (gcloud) is not installed. Please install it first: https://cloud.google.com/sdk"
 fi
 
+# Load variables from config.txt if present
+CONFIG_FILE="$(dirname "$0")/config.txt"
+if [ -f "${CONFIG_FILE}" ]; then
+  log "Loading environment configuration from 'config.txt'..."
+  set -o allexport
+  eval "$(grep -v '^#' "${CONFIG_FILE}" | grep -v '^[[:space:]]*$' | sed 's/^/export /')"
+  set +o allexport
+fi
+
 # 3. Retrieve GCP Project ID
-GCP_PROJECT=$(gcloud config get-value project 2>/dev/null || echo "")
+GCP_PROJECT="${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || echo "")}"
 if [ -z "${GCP_PROJECT}" ]; then
-  error "No active GCP project found. Please set one using: gcloud config set project [PROJECT_ID]"
+  error "No active GCP project found. Please set one in config.txt or using: gcloud config set project [PROJECT_ID]"
 fi
 
 # Allow overriding variables via environment variables
@@ -105,6 +114,7 @@ gcloud run deploy "${BACKEND_SERVICE}" \
   --region "${GCP_REGION}" \
   --allow-unauthenticated \
   --port 8080 \
+  --set-env-vars "GCP_PROJECT_ID=${GCP_PROJECT},GOOGLE_LOGIN_CLIENT_ID=${GOOGLE_LOGIN_CLIENT_ID:-},GOOGLE_LOGIN_CLIENT_SECRET=${GOOGLE_LOGIN_CLIENT_SECRET:-},GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN:-},GOOGLE_ADS_MCC_CUSTOMER_ID=${GOOGLE_ADS_MCC_CUSTOMER_ID:-${GOOGLE_ADS_CUSTOMER_ID:-}}" \
   --project="${GCP_PROJECT}"
 
 # Retrieve Backend Service URL

@@ -1,0 +1,20 @@
+# ==============================================================================
+# Adios 2.0 Environment Configuration Template
+# ==============================================================================
+# Copy this file to 'config.txt' in the project root and populate with active credentials:
+#   cp config.template.txt config.txt
+#
+# 'config.txt' is git-ignored and used by server-start.sh and deploy.sh.
+# ==============================================================================
+
+# Google Login OAuth Client ID & Secret
+GOOGLE_LOGIN_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+GOOGLE_LOGIN_CLIENT_SECRET="your-google-client-secret"
+
+# Google Ads API Credentials
+GOOGLE_ADS_DEVELOPER_TOKEN="your-developer-token"
+GOOGLE_ADS_MCC_CUSTOMER_ID="994-118-2026"
+
+# GCP Project & Regional Deployment Settings
+GCP_PROJECT_ID="your-gcp-project-id"
+GCP_REGION="europe-west1"

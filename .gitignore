@@ -40,6 +40,7 @@ dist/
 .env
 .env.local
 .env.*.local
+config.txt
 
 # IDE / OS
 .DS_Store

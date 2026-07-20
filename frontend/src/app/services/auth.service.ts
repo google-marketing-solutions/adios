@@ -13,6 +13,7 @@ export interface UserProfile {
 export class AuthService {
   private readonly router = inject(Router);
   private readonly userState = signal<UserProfile | null>(null);
+  private readonly tokenState = signal<string | null>(localStorage.getItem('adios_access_token'));
 
   readonly currentUser = computed(() => this.userState());
   readonly isAuthenticated = computed(() => !!this.userState());
@@ -29,11 +30,15 @@ export class AuthService {
     }
   }
 
+  getAccessToken(): string | null {
+    return this.tokenState() || localStorage.getItem('adios_access_token');
+  }
+
   loginWithGoogle(): void {
-    const clientId = '141897281999-fh3h38o9f0j2onicr518q0l66j4tskvu.apps.googleusercontent.com';
+    const clientId = '180826927633-8h8n7nu89e81fehg4goo37gck191lmr6.apps.googleusercontent.com';
     const redirectUri = encodeURIComponent(window.location.origin + '/auth-handler');
-    const scope = encodeURIComponent('openid email profile');
-    const responseType = 'id_token';
+    const scope = encodeURIComponent('openid email profile https://www.googleapis.com/auth/adwords');
+    const responseType = encodeURIComponent('id_token token');
     const nonce = Math.random().toString(36).substring(2);
     
     // Redirect to Google's OAuth 2.0 endpoint for implicit flow
@@ -41,7 +46,7 @@ export class AuthService {
     window.location.href = authUrl;
   }
 
-  async handleAuthCallback(idToken: string): Promise<void> {
+  async handleAuthCallback(idToken: string, accessToken?: string | null): Promise<void> {
     try {
       const response = await fetch('/v1/auth/google', {
         method: 'POST',
@@ -59,6 +64,11 @@ export class AuthService {
       const userProfile: UserProfile = await response.json();
       this.userState.set(userProfile);
       localStorage.setItem('adios_user', JSON.stringify(userProfile));
+
+      if (accessToken) {
+        this.tokenState.set(accessToken);
+        localStorage.setItem('adios_access_token', accessToken);
+      }
       
       // Redirect home
       await this.router.navigate(['/']);
@@ -70,7 +80,9 @@ export class AuthService {
 
   async logout(): Promise<void> {
     this.userState.set(null);
+    this.tokenState.set(null);
     localStorage.removeItem('adios_user');
+    localStorage.removeItem('adios_access_token');
     await this.router.navigate(['/login']);
   }
 }

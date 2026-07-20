@@ -20,6 +20,65 @@ export interface StructuredErrorResponse {
   details?: ErrorDetail[];
 }
 
+export interface AssetGroupItem {
+  id: string;
+  name: string;
+  campaign_id: string;
+  campaign_name: string;
+  status: string;
+  square_count: number;
+  square_capacity: number;
+  landscape_count: number;
+  landscape_capacity: number;
+  portrait_count: number;
+  portrait_capacity: number;
+}
+
+export interface AssetGroupListResponse {
+  total_count: number;
+  asset_groups: AssetGroupItem[];
+  source?: string;
+  error_message?: string;
+}
+
+export interface AccountItem {
+  id: string;
+  name: string;
+  descriptive_name?: string;
+  is_manager?: boolean;
+}
+
+export interface AccountListResponse {
+  total_count: number;
+  accounts: AccountItem[];
+  source?: string;
+  error_message?: string;
+}
+
+export interface ImageUploadResponse {
+  file_token: string;
+  filename: string;
+  width: number;
+  height: number;
+  ratio_type: string;
+  field_type: string;
+  aspect_ratio: number;
+}
+
+export interface AssignmentResult {
+  asset_group_id: string;
+  status: string;
+  asset_resource_name: string;
+  asset_group_asset_resource_name: string;
+}
+
+export interface AssignResponse {
+  file_token: string;
+  field_type: string;
+  total_assigned: number;
+  results: AssignmentResult[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -36,12 +95,21 @@ export class ApiService {
     this.checkHealth();
   }
 
+  private getHeaders(extra: Record<string, string> = {}): Record<string, string> {
+    const headers: Record<string, string> = { ...extra };
+    const token = localStorage.getItem('adios_access_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
   async checkHealth(): Promise<void> {
     this.loadingState.set(true);
     this.errorState.set(null);
     try {
       const response = await fetch('/health', {
-        headers: { 'Accept': 'application/json' }
+        headers: this.getHeaders({ 'Accept': 'application/json' })
       });
       if (!response.ok) {
         const errJson = await response.json().catch(() => null);
@@ -62,5 +130,65 @@ export class ApiService {
     } finally {
       this.loadingState.set(false);
     }
+  }
+
+  async fetchAccessibleAccounts(): Promise<AccountListResponse> {
+    const response = await fetch('/v1/campaign/accounts', {
+      headers: this.getHeaders({ 'Accept': 'application/json' })
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to load accessible accounts' }));
+      throw new Error(err.detail || 'Failed to fetch customer accounts');
+    }
+    return response.json();
+  }
+
+  async fetchAssetGroups(customerId?: string): Promise<AssetGroupListResponse> {
+    const url = customerId
+      ? `/v1/campaign/asset-groups?customer_id=${encodeURIComponent(customerId)}`
+      : '/v1/campaign/asset-groups';
+    const response = await fetch(url, {
+      headers: this.getHeaders({ 'Accept': 'application/json' })
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to load asset groups' }));
+      throw new Error(err.detail || 'Failed to fetch asset groups from Google Ads API');
+    }
+    return response.json();
+  }
+
+  async uploadImage(file: File): Promise<ImageUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/v1/campaign/upload', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: formData
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to upload image' }));
+      throw new Error(err.detail || 'Image validation failed');
+    }
+    return response.json();
+  }
+
+  async assignAsset(fileToken: string, assetGroupIds: string[], customerId?: string): Promise<AssignResponse> {
+    const response = await fetch('/v1/campaign/assign', {
+      method: 'POST',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        file_token: fileToken,
+        asset_group_ids: assetGroupIds,
+        customer_id: customerId || '9044713567'
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to assign assets' }));
+      throw new Error(err.detail || 'Assignment failed');
+    }
+    return response.json();
   }
 }

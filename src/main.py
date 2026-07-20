@@ -53,6 +53,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+from src.campaign.bulk_assign_controller import router as campaign_router
+app.include_router(campaign_router)
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -101,9 +104,15 @@ async def health_check() -> HealthResponse:
     summary="Verify Google Sign-In ID Token",
 )
 async def verify_google_token(payload: GoogleAuthRequest) -> UserProfileResponse:
-    """Verifies a Google ID token and returns the user's profile information."""
     try:
-        client_id = "141897281999-fh3h38o9f0j2onicr518q0l66j4tskvu.apps.googleusercontent.com"
+        import os
+
+        client_id = os.getenv("GOOGLE_LOGIN_CLIENT_ID")
+        if not client_id:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="GOOGLE_LOGIN_CLIENT_ID environment variable is not set in config.txt",
+            )
         
         from google.auth.transport import requests
         from google.oauth2 import id_token

@@ -6,6 +6,11 @@ from unittest.mock import patch
 from src.main import app
 
 
+@pytest.fixture(autouse=True)
+def setup_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GOOGLE_LOGIN_CLIENT_ID", "test_google_login_client_id")
+
+
 @pytest.fixture
 def client() -> TestClient:
     """Fixture providing a FastAPI TestClient instance."""
@@ -37,7 +42,7 @@ def test_verify_google_token_success(client: TestClient) -> None:
         mock_verify.assert_called_once()
         args, kwargs = mock_verify.call_args
         assert args[0] == "valid_mock_token_123"
-        assert kwargs["audience"] == "141897281999-fh3h38o9f0j2onicr518q0l66j4tskvu.apps.googleusercontent.com"
+        assert kwargs["audience"] == "test_google_login_client_id"
 
 
 def test_verify_google_token_invalid_issuer(client: TestClient) -> None:

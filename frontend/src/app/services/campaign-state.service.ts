@@ -33,7 +33,7 @@ export class CampaignStateService {
 
   // Core Data Stores (Signals)
   readonly campaigns = signal<Campaign[]>(mockCampaigns);
-  readonly assetGroups = signal<AssetGroup[]>(mockAssetGroups);
+  readonly assetGroups = signal<AssetGroup[]>([]);
   readonly campaignAssets = signal<Record<string, CampaignAsset[]>>(mockCampaignAssets);
   readonly merchantProducts = signal<MerchantProduct[]>(mockMerchantProducts);
   readonly replacementLogs = signal<ReplacementLog[]>(mockReplacementLogs);
@@ -55,6 +55,10 @@ export class CampaignStateService {
   });
 
   // Actions / Reducers
+  setAssetGroups(groups: AssetGroup[]): void {
+    this.assetGroups.set(groups);
+  }
+
   setActiveSection(section: ActiveSection): void {
     this.activeSection.set(section);
   }

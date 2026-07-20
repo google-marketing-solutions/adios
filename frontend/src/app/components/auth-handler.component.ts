@@ -102,14 +102,15 @@ export class AuthHandlerComponent implements OnInit {
   readonly errorMsg = signal<string | null>(null);
 
   ngOnInit(): void {
-    // Read the fragment hash (e.g. #id_token=...&state=...)
+    // Read the fragment hash (e.g. #id_token=...&access_token=...)
     this.route.fragment.subscribe({
       next: (fragment) => {
         if (fragment) {
           const params = new URLSearchParams(fragment);
           const idToken = params.get('id_token');
+          const accessToken = params.get('access_token');
           if (idToken) {
-            this.verifyToken(idToken);
+            this.verifyToken(idToken, accessToken);
           } else {
             this.errorMsg.set('No Google authentication token was found in the redirect response.');
           }
@@ -130,9 +131,9 @@ export class AuthHandlerComponent implements OnInit {
     });
   }
 
-  private async verifyToken(idToken: string): Promise<void> {
+  private async verifyToken(idToken: string, accessToken?: string | null): Promise<void> {
     try {
-      await this.authService.handleAuthCallback(idToken);
+      await this.authService.handleAuthCallback(idToken, accessToken);
     } catch (err: any) {
       this.errorMsg.set(err?.message || 'Failed to verify session credentials with the backend.');
     }
