@@ -11,19 +11,28 @@ Write-Host "====================================================================
 # 1. Determine Python location
 $PythonBin = "python"
 $LocalPython = Join-Path $RepoDir "runtimes\python\python.exe"
+$VenvPython = Join-Path $RepoDir ".venv\Scripts\python.exe"
 if (Test-Path $LocalPython) {
     $PythonBin = $LocalPython
     Write-Host "Using local Python: $PythonBin" -ForegroundColor Green
+} elseif (Test-Path $VenvPython) {
+    $PythonBin = $VenvPython
+    Write-Host "Using virtual environment Python: $PythonBin" -ForegroundColor Green
 } else {
     Write-Host "Local Python runtime not found. Using system python." -ForegroundColor Yellow
 }
 
 # 2. Determine Node location
 $LocalNode = Join-Path $RepoDir "runtimes\node"
+$LocalNodeAlt = Join-Path $RepoDir ".node_local"
 if (Test-Path $LocalNode) {
     # Add local Node to path for the process
     $env:PATH = "$LocalNode;" + $env:PATH
     Write-Host "Using local Node.js: $LocalNode" -ForegroundColor Green
+} elseif (Test-Path $LocalNodeAlt) {
+    # Add local Node to path for the process
+    $env:PATH = "$LocalNodeAlt;" + $env:PATH
+    Write-Host "Using local Node.js: $LocalNodeAlt" -ForegroundColor Green
 } else {
     Write-Host "Local Node.js runtime not found. Using system node." -ForegroundColor Yellow
 }

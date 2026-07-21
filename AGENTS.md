@@ -23,6 +23,7 @@ These rules are active for every interaction across this codebase:
 *   Maintain the **"Smart Developer"** perspective: be explicit, precise, and concise without conversational fluff.
 *   **Opinionated Steering Keywords**: When defining instructions or modifying system prompts, use authoritative keywords (**`always`**, **`must`**, **`never`**) to establish unambiguous behavioral boundaries.
 *   Verify all assumptions by reading existing implementations and imports before writing code.
+*   **Local Server Orchestration**: When starting or stopping local development servers on Windows, **always** execute the workspace root batch files (`start-server.bat` or `stop-server.bat` respectively) rather than running raw `uvicorn` or `npm` commands directly.
 *   Follow the specific guidelines linked below for specialized tasks.
 
 # Modular Rule & Skill Inclusion
