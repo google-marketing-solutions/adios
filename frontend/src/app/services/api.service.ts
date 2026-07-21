@@ -79,6 +79,23 @@ export interface AssignResponse {
   results: AssignmentResult[];
 }
 
+export interface CampaignAssetItem {
+  id: string;
+  name: string;
+  url: string;
+  performance_score: string;
+  kpi_value?: number;
+  is_protected: boolean;
+  upload_date: string;
+}
+
+export interface CampaignAssetListResponse {
+  total_count: number;
+  assets: CampaignAssetItem[];
+  source?: string;
+  error_message?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -153,6 +170,39 @@ export class ApiService {
     if (!response.ok) {
       const err = await response.json().catch(() => ({ detail: 'Failed to load asset groups' }));
       throw new Error(err.detail || 'Failed to fetch asset groups from Google Ads API');
+    }
+    return response.json();
+  }
+
+  async fetchCampaignAssets(customerId?: string): Promise<CampaignAssetListResponse> {
+    const url = customerId
+      ? `/v1/campaign/assets?customer_id=${encodeURIComponent(customerId)}`
+      : '/v1/campaign/assets';
+    const response = await fetch(url, {
+      headers: this.getHeaders({ 'Accept': 'application/json' })
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to load assets' }));
+      throw new Error(err.detail || 'Failed to fetch assets from Google Ads API');
+    }
+    return response.json();
+  }
+
+  async toggleAssetProtection(assetId: string, isProtected: boolean): Promise<any> {
+    const response = await fetch('/v1/campaign/assets/toggle-protection', {
+      method: 'POST',
+      headers: this.getHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify({
+        asset_id: assetId,
+        is_protected: isProtected
+      })
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to update protection status' }));
+      throw new Error(err.detail || 'Failed to update protection status');
     }
     return response.json();
   }

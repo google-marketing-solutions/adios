@@ -7,9 +7,67 @@ import { authGuard } from './shared/auth.guard';
 export const routes: Routes = [
   {
     path: '',
+    redirectTo: 'uploader',
+    pathMatch: 'full'
+  },
+  {
+    path: 'uploader',
     component: MainLayoutComponent,
     canActivate: [authGuard],
-    title: 'Adios 2.0 Advanced | Unified Interface'
+    data: { section: 'uploader' },
+    title: 'Asset Group Uploader | Adios 2.0'
+  },
+  {
+    path: 'image-protector',
+    component: MainLayoutComponent,
+    canActivate: [authGuard],
+    data: { section: 'protection' },
+    title: 'Image Protector | Adios 2.0'
+  },
+  {
+    path: 'protection',
+    redirectTo: 'image-protector',
+    pathMatch: 'full'
+  },
+  {
+    path: 'sovereign-guard',
+    component: MainLayoutComponent,
+    canActivate: [authGuard],
+    data: { section: 'sovereign-guard' },
+    title: 'Sovereign Guard | Adios 2.0'
+  },
+  {
+    path: 'background-studio',
+    component: MainLayoutComponent,
+    canActivate: [authGuard],
+    data: { section: 'background' },
+    title: 'AI Background Studio | Adios 2.0'
+  },
+  {
+    path: 'animation-machine',
+    component: MainLayoutComponent,
+    canActivate: [authGuard],
+    data: { section: 'animation' },
+    title: 'Animation Machine | Adios 2.0'
+  },
+  {
+    path: 'spell-check',
+    component: MainLayoutComponent,
+    canActivate: [authGuard],
+    data: { section: 'spell' },
+    title: 'Spell Check Center | Adios 2.0'
+  },
+  {
+    path: 'rules-presets',
+    component: MainLayoutComponent,
+    canActivate: [authGuard],
+    data: { section: 'settings' },
+    title: 'Rules & Presets | Adios 2.0'
+  },
+  {
+    path: 'settings',
+    redirectTo: 'rules-presets',
+    pathMatch: 'full'
   },
   {
     path: 'login',
@@ -23,6 +81,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: ''
+    redirectTo: 'uploader'
   }
 ];

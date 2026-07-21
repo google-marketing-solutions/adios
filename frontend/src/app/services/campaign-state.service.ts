@@ -81,14 +81,15 @@ export class CampaignStateService {
     this.supportedFormats.set(formats);
   }
 
-  toggleAssetProtection(assetIdentifier: string, isProtected: boolean): void {
+  toggleAssetProtection(assetIdentifier: string, isProtected?: boolean): void {
     // Account-wide protection toggle: updates asset across ALL asset groups
     this.campaignAssets.update(prevMap => {
       const updatedMap: Record<string, CampaignAsset[]> = {};
       for (const groupKey of Object.keys(prevMap)) {
         updatedMap[groupKey] = prevMap[groupKey].map(asset => {
           if (asset.id === assetIdentifier || asset.url === assetIdentifier) {
-            return { ...asset, isProtected };
+            const nextVal = isProtected !== undefined ? isProtected : !asset.isProtected;
+            return { ...asset, isProtected: nextVal };
           }
           return asset;
         });

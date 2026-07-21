@@ -5,6 +5,7 @@
 
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { CampaignStateService } from '../services/campaign-state.service';
 import { AuthService } from '../services/auth.service';
@@ -12,6 +13,7 @@ import { ActiveSection } from '../models/types';
 
 interface MenuItem {
   id: ActiveSection;
+  route: string;
   label: string;
   description: string;
   icon: string;
@@ -22,7 +24,7 @@ interface MenuItem {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, RouterLink, MatIconModule],
   template: `
     <div class="sidebar flex flex-col h-full bg-white border-r select-none">
       <!-- Platform Title -->
@@ -42,9 +44,10 @@ interface MenuItem {
       <div class="navigation-list grow px-4 py-6 flex flex-col gap-2">
         @for (item of menuItems; track item.id) {
           @let isActive = stateService.activeSection() === item.id;
-          <button
+          <a
+            [routerLink]="item.route"
             (click)="stateService.setActiveSection(item.id)"
-            [class]="'nav-button w-full text-left p-3 rounded border flex items-start gap-3 transition-all ' + (isActive ? 'active-nav ' + item.activeBorderClass : 'inactive-nav')"
+            [class]="'nav-button w-full text-left p-3 rounded border flex items-start gap-3 transition-all no-underline ' + (isActive ? 'active-nav ' + item.activeBorderClass : 'inactive-nav')"
           >
             <div [class]="'icon-container p-2 rounded border ' + (isActive ? item.activeColorClass : 'bg-light border-light')">
               <mat-icon class="icon-size shrink-0">{{ item.icon }}</mat-icon>
@@ -62,7 +65,7 @@ interface MenuItem {
               </div>
               <p class="text-xs text-muted mt-1 truncate">{{ item.description }}</p>
             </div>
-          </button>
+          </a>
         }
       </div>
 
@@ -111,6 +114,11 @@ interface MenuItem {
       border: 1px solid transparent;
       border-left-width: 4px;
       cursor: pointer;
+      text-decoration: none !important;
+      color: inherit;
+    }
+    .nav-button, .nav-button *, .nav-button:hover, .nav-button:focus, .nav-button:active, .nav-button:visited {
+      text-decoration: none !important;
     }
     .nav-button:hover {
       background-color: #f8f9fa;
@@ -168,6 +176,14 @@ interface MenuItem {
       background-color: rgba(95, 99, 104, 0.1);
       border-color: rgba(95, 99, 104, 0.2);
     }
+    .icon-protection-active {
+      color: #4f46e5;
+      background-color: rgba(79, 70, 229, 0.1);
+      border-color: rgba(79, 70, 229, 0.2);
+    }
+    .border-protection-active {
+      border-left-color: #4f46e5;
+    }
     .badge-error {
       background-color: #d93025;
       padding: 2px 6px;
@@ -219,6 +235,7 @@ export class SidebarComponent {
   readonly menuItems: MenuItem[] = [
     {
       id: 'uploader',
+      route: '/uploader',
       label: 'Asset Group Uploader',
       description: 'Image deployment & KPI replacement',
       icon: 'cloud_upload',
@@ -226,7 +243,17 @@ export class SidebarComponent {
       activeBorderClass: 'border-uploader-active',
     },
     {
+      id: 'protection',
+      route: '/image-protector',
+      label: 'Image Protector',
+      description: 'Account-wide protected assets',
+      icon: 'shield',
+      activeColorClass: 'icon-protection-active',
+      activeBorderClass: 'border-protection-active',
+    },
+    {
       id: 'sovereign-guard',
+      route: '/sovereign-guard',
       label: 'Sovereign Guard',
       description: 'Account-wide protected asset lock list',
       icon: 'security',
@@ -235,6 +262,7 @@ export class SidebarComponent {
     },
     {
       id: 'background',
+      route: '/background-studio',
       label: 'AI Background Studio',
       description: 'Seasonal background replacement',
       icon: 'image',
@@ -243,6 +271,7 @@ export class SidebarComponent {
     },
     {
       id: 'animation',
+      route: '/animation-machine',
       label: 'Animation Machine',
       description: 'PMax video link asset generation',
       icon: 'movie',
@@ -251,6 +280,7 @@ export class SidebarComponent {
     },
     {
       id: 'spell',
+      route: '/spell-check',
       label: 'Spell Check Center',
       description: 'Headline & description audit',
       icon: 'spellcheck',
@@ -259,6 +289,7 @@ export class SidebarComponent {
     },
     {
       id: 'settings',
+      route: '/rules-presets',
       label: 'Rules & Presets',
       description: 'Category configs & brand guidelines',
       icon: 'tune',

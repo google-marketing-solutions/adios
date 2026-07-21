@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../services/api.service';
 import { CampaignStateService } from '../services/campaign-state.service';
 import { SidebarComponent } from './sidebar.component';
@@ -14,6 +15,7 @@ import { BackgroundStudioComponent } from '../product/background-studio.componen
 import { AnimationComponent } from '../video/animation.component';
 import { SpellCheckComponent } from '../text/spell-check.component';
 import { SettingsPanelComponent } from '../config/settings-panel.component';
+import { ProtectedAssetsComponent } from '../campaign/protected-assets.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -26,7 +28,8 @@ import { SettingsPanelComponent } from '../config/settings-panel.component';
     BackgroundStudioComponent,
     AnimationComponent,
     SpellCheckComponent,
-    SettingsPanelComponent
+    SettingsPanelComponent,
+    ProtectedAssetsComponent
   ],
   template: `
     <div class="main-layout font-sans">
@@ -41,6 +44,9 @@ import { SettingsPanelComponent } from '../config/settings-panel.component';
           @switch (stateService.activeSection()) {
             @case ('uploader') {
               <app-asset-uploader [mode]="'uploader'"></app-asset-uploader>
+            }
+            @case ('protection') {
+              <app-protected-assets></app-protected-assets>
             }
             @case ('sovereign-guard') {
               <app-asset-uploader [mode]="'sovereign-guard'"></app-asset-uploader>
@@ -71,11 +77,20 @@ import { SettingsPanelComponent } from '../config/settings-panel.component';
     }
   `]
 })
-export class MainLayoutComponent {
+export class MainLayoutComponent implements OnInit {
   readonly apiService = inject(ApiService);
   readonly stateService = inject(CampaignStateService);
+  private readonly route = inject(ActivatedRoute);
 
   constructor() {
     this.apiService.checkHealth();
+  }
+
+  ngOnInit(): void {
+    this.route.data.subscribe(data => {
+      if (data['section']) {
+        this.stateService.setActiveSection(data['section']);
+      }
+    });
   }
 }

@@ -135,3 +135,22 @@ def test_trigger_scheduler_endpoint() -> None:
     assert "started_jobs" in data
     assert "unlinked_jobs" in data
 
+
+def test_get_campaign_assets_endpoint() -> None:
+    res = client.get("/v1/campaign/assets")
+    assert res.status_code == status.HTTP_200_OK
+    data = res.json()
+    assert "total_count" in data
+    assert "assets" in data
+
+
+def test_toggle_asset_protection_endpoint() -> None:
+    payload = {"asset_id": "test_asset_999", "is_protected": True}
+    res = client.post("/v1/campaign/assets/toggle-protection", json=payload)
+    assert res.status_code == status.HTTP_200_OK
+    data = res.json()
+    assert data["asset_id"] == "test_asset_999"
+    assert data["is_protected"] is True
+    assert data["success"] is True
+
+

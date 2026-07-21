@@ -36,6 +36,8 @@ export interface CampaignAsset {
   url: string;
   performanceScore: 'Low' | 'Good' | 'Best' | 'Pending';
   kpiValue: number; // e.g., CTR % or Impressions count
+  impressions?: number;
+  clicks?: number;
   isProtected: boolean;
   account?: string;
   scheduledTiming?: ScheduledTiming;
@@ -59,6 +61,7 @@ export interface ReplacementLog {
   kpiMetric?: string;
   status: 'Success' | 'Error';
   errorMsg?: string;
+  fullApiError?: string;
 }
 
 export interface MerchantProduct {
@@ -103,5 +106,5 @@ export interface CategoryPreset {
   safetyMargins: number; // Padding around elements
 }
 
-export type ActiveSection = 'uploader' | 'sovereign-guard' | 'background' | 'animation' | 'spell' | 'settings';
+export type ActiveSection = 'uploader' | 'sovereign-guard' | 'background' | 'animation' | 'spell' | 'settings' | 'protection';
 

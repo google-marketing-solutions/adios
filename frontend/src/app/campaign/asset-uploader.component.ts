@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { CampaignStateService } from '../services/campaign-state.service';
-import { ApiService, AccountItem } from '../services/api.service';
+import { ApiService, AccountItem, AssignResponse } from '../services/api.service';
 import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../models/types';
 
 export interface QueueItem {
@@ -141,7 +141,7 @@ export interface QueueItem {
                         (click)="applyBulkSchedule()"
                         class="px-4 py-1 rounded bg-brand hover:bg-brand-hover text-white text-xs font-semibold border-none cursor-pointer transition-all shrink-0 shadow-xs ml-1"
                       >
-                        Apply to all
+                        {{ applyScheduleButtonText() }}
                       </button>
                     </div>
                   </div>
@@ -407,39 +407,140 @@ export interface QueueItem {
                 </table>
               </div>
 
-              <!-- Setup Options below table stay visible -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 border border-slate-200 p-5 rounded-xl">
-                <div class="space-y-1.5 flex flex-col">
-                  <label class="text-xs font-bold text-slate-700">Swap Rule: KPI Optimization Preference</label>
-                  <p class="text-[10px] text-slate-500 leading-normal m-0 mb-1">
-                    If the group is full ({{ maxCapacity() }} images), the algorithm automatically ejects the lowest performer.
-                  </p>
-                  <select 
-                    [(ngModel)]="selectedKpi"
-                    class="text-xs bg-white border rounded p-2 focus:outline-none"
-                  >
-                    <option value="ctr">Lowest Click-Through Rate (CTR)</option>
-                    <option value="impressions">Lowest Absolute Impressions</option>
-                    <option value="conversions">Lowest Conversion Volume</option>
-                    <option value="value">Lowest ROAS / Conversion Value</option>
-                  </select>
+              <!-- Setup Options below table: Reworked Swap Rule & Performance Filters -->
+              <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <div>
+                    <h3 class="text-xs font-bold text-slate-800 m-0">Swap Rule & Performance Filters</h3>
+                    <p class="text-[10px] text-slate-500 m-0 mt-0.5">Configure lookback window, minimum thresholds, and eviction KPI metric.</p>
+                  </div>
+                  @if (enableMinImpressions() && enableMinClicks()) {
+                    <div class="text-[10px] text-slate-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded flex items-center gap-1">
+                      <mat-icon class="icon-size text-blue-600">info</mat-icon>
+                      <span>Intersection Active (AND)</span>
+                    </div>
+                  }
                 </div>
 
-                <div class="space-y-1.5 flex flex-col">
-                  <label class="text-xs font-bold text-slate-700">Protected Names Exclusion Pattern</label>
-                  <p class="text-[10px] text-slate-500 leading-normal m-0 mb-1">
-                    Images with names containing this pattern will never be replaced across the account.
-                  </p>
-                  <div class="relative">
-                    <mat-icon class="absolute left-3 top-2.5 text-slate-400 icon-size">shield</mat-icon>
-                    <input 
-                      type="text" 
-                      [(ngModel)]="protectionPattern"
-                      class="w-full text-xs pl-8 pr-3 py-2 border rounded bg-white focus:outline-none font-mono"
-                      placeholder="e.g. _Protected"
-                    />
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <!-- 1. Lookback Window Dropdown -->
+                  <div class="space-y-1.5 flex flex-col">
+                    <label class="text-xs font-bold text-slate-700">Lookback Window</label>
+                    <select 
+                      [ngModel]="lookbackWindow()" 
+                      (ngModelChange)="lookbackWindow.set($event)"
+                      class="w-full text-xs bg-white border rounded p-2 focus:outline-none"
+                    >
+                      <option value="7d">Last 7 Days (7d)</option>
+                      <option value="30d">Last 30 Days (30d)</option>
+                      <option value="quarter">Last Full Quarter</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                    @if (lookbackWindow() === 'custom') {
+                      <div class="flex items-center gap-1 mt-1">
+                        <input 
+                          type="number" 
+                          [ngModel]="customLookbackDays()" 
+                          (ngModelChange)="customLookbackDays.set($event)"
+                          min="1" max="365"
+                          class="w-20 text-xs border rounded p-1 text-center bg-white"
+                        />
+                        <span class="text-[10px] text-slate-500">days</span>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- 2. Min Impressions Toggle + Custom Field -->
+                  <div class="space-y-1.5 flex flex-col md:border-l md:border-slate-200 md:pl-4">
+                    <div class="flex items-center justify-between">
+                      <label class="text-xs font-bold text-slate-700 cursor-pointer flex items-center gap-1.5">
+                        <input 
+                          type="checkbox" 
+                          [ngModel]="enableMinImpressions()" 
+                          (ngModelChange)="enableMinImpressions.set($event)"
+                          class="rounded text-brand focus:ring-0 cursor-pointer"
+                        />
+                        <span>Min Impressions</span>
+                      </label>
+                      <span [class]="'text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ' + (enableMinImpressions() ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500')">
+                        {{ enableMinImpressions() ? 'ON' : 'OFF' }}
+                      </span>
+                    </div>
+                    @if (enableMinImpressions()) {
+                      <input 
+                        type="number" 
+                        [ngModel]="minImpressions()" 
+                        (ngModelChange)="minImpressions.set($event)"
+                        placeholder="e.g. 1000"
+                        class="w-full text-xs bg-white border rounded p-2 focus:outline-none"
+                      />
+                    } @else {
+                      <p class="text-[10px] text-slate-400 italic m-0 pt-2">No min impressions filter</p>
+                    }
+                  </div>
+
+                  <!-- 3. Min Clicks Toggle + Custom Field -->
+                  <div class="space-y-1.5 flex flex-col md:border-l md:border-slate-200 md:pl-4">
+                    <div class="flex items-center justify-between">
+                      <label class="text-xs font-bold text-slate-700 cursor-pointer flex items-center gap-1.5">
+                        <input 
+                          type="checkbox" 
+                          [ngModel]="enableMinClicks()" 
+                          (ngModelChange)="enableMinClicks.set($event)"
+                          class="rounded text-brand focus:ring-0 cursor-pointer"
+                        />
+                        <span>Min Clicks</span>
+                      </label>
+                      <span [class]="'text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ' + (enableMinClicks() ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500')">
+                        {{ enableMinClicks() ? 'ON' : 'OFF' }}
+                      </span>
+                    </div>
+                    @if (enableMinClicks()) {
+                      <input 
+                        type="number" 
+                        [ngModel]="minClicks()" 
+                        (ngModelChange)="minClicks.set($event)"
+                        placeholder="e.g. 50"
+                        class="w-full text-xs bg-white border rounded p-2 focus:outline-none"
+                      />
+                    } @else {
+                      <p class="text-[10px] text-slate-400 italic m-0 pt-2">No min clicks filter</p>
+                    }
+                  </div>
+
+                  <!-- 4. Define Swap Metric Dropdown -->
+                  <div class="space-y-1.5 flex flex-col md:border-l md:border-slate-200 md:pl-4">
+                    <label class="text-xs font-bold text-slate-700">Define Swap Metric</label>
+                    <select 
+                      [ngModel]="swapMetric()" 
+                      (ngModelChange)="swapMetric.set($event)"
+                      class="w-full text-xs bg-white border rounded p-2 focus:outline-none"
+                    >
+                      <option value="ctr">CTR (Click-Through Rate)</option>
+                      <option value="conv_rate">ConvRate (Conversion Rate)</option>
+                      <option value="cpa">CPA (Cost Per Acquisition)</option>
+                      <option value="roas">ROAS (Return On Ad Spend)</option>
+                    </select>
                   </div>
                 </div>
+
+                <!-- Filter Error Banner -->
+                @if (filterError()) {
+                  <div class="p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-900 text-xs flex items-center justify-between mt-2">
+                    <div class="flex items-center gap-2">
+                      <mat-icon class="text-amber-600 icon-size shrink-0">warning</mat-icon>
+                      <div>
+                        <strong>Error: nothing to be swapped:</strong> Filters should be changed to match eligible assets in selected groups.
+                      </div>
+                    </div>
+                    <button 
+                      (click)="resetFiltersToDefault()" 
+                      class="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 font-semibold rounded text-[10px] border-none cursor-pointer shrink-0"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                }
               </div>
 
               <!-- Sync Save button -->
@@ -629,7 +730,7 @@ export interface QueueItem {
                 <th class="py-3.5 px-4">Campaign & Asset group</th>
                 <th class="py-3.5 px-4">New assigned asset</th>
                 <th class="py-3.5 px-4">Evicted asset</th>
-                <th class="py-3.5 px-4">Details</th>
+                <th class="py-3.5 px-4">Status</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 font-sans">
@@ -674,21 +775,18 @@ export interface QueueItem {
                     }
                   </td>
                   <td class="py-3.5 px-4 align-middle">
-                    <div class="flex flex-col gap-1 min-w-[160px]">
-                      <div class="flex items-center gap-2">
-                        <span [class]="'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ' + getReasonClass(log.reason)">
-                          {{ log.reason }}
-                        </span>
-                        <span [class]="'inline-flex items-center gap-1 text-[11px] font-bold ' + (log.status === 'Success' ? 'text-emerald' : 'text-rose')">
-                          <span [class]="'w-1.5 h-1.5 rounded-full ' + (log.status === 'Success' ? 'bg-emerald' : 'bg-rose')"></span>
-                          {{ log.status }}
-                        </span>
-                      </div>
-                      @if (log.kpiMetric) {
-                        <span class="text-xs text-slate-600 font-medium leading-tight">{{ log.kpiMetric }}</span>
-                      }
+                    <div 
+                      class="inline-flex items-center gap-1.5 text-xs cursor-help leading-normal flex-wrap"
+                      [title]="log.fullApiError || log.errorMsg || (log.status === 'Success' ? 'Google Ads API Mutation executed successfully.' : 'Failed to link asset to Asset Group.')"
+                    >
+                      <span [class]="'w-1.5 h-1.5 rounded-full shrink-0 ' + (log.status === 'Success' ? 'bg-emerald' : 'bg-rose')"></span>
+                      <span [class]="'font-bold ' + (log.status === 'Success' ? 'text-emerald' : 'text-rose')">
+                        {{ log.status === 'Success' ? 'Success' : 'Failed' }}
+                      </span>
                       @if (log.errorMsg) {
-                        <span class="text-[11px] text-rose font-medium leading-tight">{{ log.errorMsg }}</span>
+                        <span class="text-slate-500 font-normal text-xs">
+                          ({{ log.errorMsg }})
+                        </span>
                       }
                     </div>
                   </td>
@@ -756,8 +854,17 @@ export interface QueueItem {
     .border-indigo {
       border-color: #1a73e8;
     }
+    .bg-emerald {
+      background-color: #1e8e3e;
+    }
+    .bg-rose {
+      background-color: #d93025;
+    }
     .bg-emerald-light {
       background-color: rgba(30, 142, 62, 0.1);
+    }
+    .bg-rose-light {
+      background-color: rgba(217, 48, 37, 0.1);
     }
     .panel {
       border-color: #dadce0;
@@ -857,10 +964,19 @@ export class AssetUploaderComponent implements OnInit {
   // Filter / Selection states
   readonly searchQuery = signal<string>('');
   readonly selectedAssetGroups = signal<string[]>([]);
-  readonly selectedKpi = signal<'impressions' | 'ctr' | 'conversions' | 'value'>('ctr');
+  readonly selectedKpi = signal<'impressions' | 'ctr' | 'conversions' | 'roas' | 'conversion_value'>('ctr');
   readonly maxCapacity = signal<number>(20);
   readonly activeViewerGroup = signal<string>('ag1');
   
+  // Reworked Swap Rule & Performance Filter Signals
+  readonly lookbackWindow = signal<'7d' | '30d' | 'quarter' | 'custom'>('30d');
+  readonly customLookbackDays = signal<number>(14);
+  readonly enableMinImpressions = signal<boolean>(false);
+  readonly minImpressions = signal<number>(1000);
+  readonly enableMinClicks = signal<boolean>(false);
+  readonly minClicks = signal<number>(50);
+  readonly swapMetric = signal<'ctr' | 'conv_rate' | 'cpa' | 'roas'>('ctr');
+
   // Custom naming protection pattern
   readonly protectionPattern = signal<string>('_Protected');
 
@@ -870,6 +986,41 @@ export class AssetUploaderComponent implements OnInit {
 
   // Triggering simulation message
   readonly syncStatus = signal<{ message: string; type: 'success' | 'error' | 'info' | 'idle' }>({ message: '', type: 'idle' });
+
+  readonly filterError = computed<boolean>(() => {
+    const minImp = this.enableMinImpressions() ? (this.minImpressions() || 0) : 0;
+    const minClk = this.enableMinClicks() ? (this.minClicks() || 0) : 0;
+
+    // Check if thresholds exclude assets or are unnaturally restrictive
+    if (minImp > 50000 || minClk > 5000) {
+      return true;
+    }
+
+    const selectedGroups = this.selectedAssetGroups();
+    if (selectedGroups.length === 0) return false;
+
+    const groupAssets = selectedGroups.flatMap(gId => this.stateService.campaignAssets()[gId] || []);
+    if (groupAssets.length === 0) return false;
+
+    const eligibleForSwap = groupAssets.filter(a => {
+      if (a.isProtected) return false;
+      const imp = a.impressions ?? (a.kpiValue ? Math.round(a.kpiValue * 500) : 800);
+      const clk = a.clicks ?? (a.kpiValue ? Math.round(a.kpiValue * 25) : 30);
+      return imp >= minImp && clk >= minClk;
+    });
+
+    return groupAssets.length > 0 && eligibleForSwap.length === 0;
+  });
+
+  resetFiltersToDefault(): void {
+    this.lookbackWindow.set('30d');
+    this.customLookbackDays.set(14);
+    this.enableMinImpressions.set(false);
+    this.minImpressions.set(1000);
+    this.enableMinClicks.set(false);
+    this.minClicks.set(50);
+    this.swapMetric.set('ctr');
+  }
 
   async ngOnInit(): Promise<void> {
     if (this.mode === 'sovereign-guard' || this.stateService.activeSection() === 'sovereign-guard') {
@@ -1133,12 +1284,29 @@ export class AssetUploaderComponent implements OnInit {
     }));
   }
 
+  readonly selectedScheduledCount = computed<number>(() => {
+    return this.uploadedQueue().filter(i => i.isScheduled).length;
+  });
+
+  readonly applyScheduleButtonText = computed<string>(() => {
+    const selectedCount = this.selectedScheduledCount();
+    return selectedCount > 0 ? 'Apply to selected' : 'Apply to all';
+  });
+
   applyBulkSchedule(): void {
-    this.uploadedQueue.update(queue => queue.map(item => ({
-      ...item,
-      isScheduled: true,
-      scheduleDetails: { ...this.masterSchedule }
-    })));
+    const queue = this.uploadedQueue();
+    const hasSelected = queue.some(item => item.isScheduled);
+
+    this.uploadedQueue.update(currentQueue => currentQueue.map(item => {
+      if (hasSelected ? item.isScheduled : true) {
+        return {
+          ...item,
+          isScheduled: true,
+          scheduleDetails: { ...this.masterSchedule }
+        };
+      }
+      return item;
+    }));
   }
 
   getItemStartDate(item: QueueItem): string {
@@ -1309,8 +1477,15 @@ export class AssetUploaderComponent implements OnInit {
       this.syncStatus.set({ message: 'Please select at least one PMax Asset Group.', type: 'error' });
       return;
     }
+    if (this.filterError()) {
+      this.syncStatus.set({ message: 'Error: nothing to be swapped: Filters should be changed to match eligible assets.', type: 'error' });
+      return;
+    }
 
     this.syncStatus.set({ message: 'Validating & synchronizing images via Google Ads API...', type: 'info' });
+
+    let hasSuccess = false;
+    let hasFailure = false;
 
     try {
       for (const item of queue) {
@@ -1324,20 +1499,92 @@ export class AssetUploaderComponent implements OnInit {
         const startDate = item.isScheduled && item.scheduleDetails?.startDate ? item.scheduleDetails.startDate : undefined;
         const endDate = item.isScheduled && item.scheduleDetails?.endDate ? item.scheduleDetails.endDate : undefined;
 
-        const assignRes = await this.apiService.assignAsset(
-          fileToken,
-          selectedGroups,
-          this.selectedAccountId(),
-          startDate,
-          endDate
-        );
+        let assignRes: AssignResponse | null = null;
+        let apiErrorMsg: string | null = null;
 
-        selectedGroups.forEach(groupId => {
+        try {
+          assignRes = await this.apiService.assignAsset(
+            fileToken,
+            selectedGroups,
+            this.selectedAccountId(),
+            startDate,
+            endDate
+          );
+        } catch (err: any) {
+          apiErrorMsg = err?.message || 'Google Ads API mutation failed';
+        }
+
+        for (const groupId of selectedGroups) {
           const currentGroup = this.stateService.assetGroups().find(g => g.id === groupId);
           const groupAssets = [...(this.stateService.campaignAssets()[groupId] || [])];
-          if (!currentGroup) return;
+          if (!currentGroup) continue;
 
-          // Fresh newly uploaded image has NO performance metrics (Pending score, 0 KPI)
+          const groupResult = assignRes?.results?.find(r => r.asset_group_id === groupId);
+          const isGroupFailedInBackend = groupResult ? groupResult.status === 'FAILED' : false;
+          const isFull = groupAssets.length >= (currentGroup.maxImages || 20);
+
+          // If API assignment threw an error or backend returned FAILED for this group
+          if (apiErrorMsg || isGroupFailedInBackend) {
+            hasFailure = true;
+            const rawErr = apiErrorMsg || 'Google Ads API mutation failed to link asset to Asset Group.';
+            const lowerErr = rawErr.toLowerCase();
+
+            const isLimitErr = isFull || lowerErr.includes('limit') || lowerErr.includes('20') || lowerErr.includes('capacity') || lowerErr.includes('resource_exhausted') || lowerErr.includes('max_assets');
+            const isMinCompErr = lowerErr.includes('headline') || lowerErr.includes('description') || lowerErr.includes('not_enough') || lowerErr.includes('minimum') || lowerErr.includes('composition') || lowerErr.includes('not met');
+
+            let displayError = rawErr;
+            if (isLimitErr) {
+              displayError = 'Reached limit of 20 images';
+            } else if (isMinCompErr) {
+              displayError = 'Requires minimum composition (headlines/descriptions)';
+            }
+
+            this.stateService.addLog({
+              id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              date: new Date().toISOString(),
+              campaignName: currentGroup.campaignName,
+              assetGroupName: currentGroup.name,
+              replacedAsset: null,
+              newAsset: { name: item.name, url: item.url },
+              reason: item.isScheduled ? 'Special Offer' : 'Manual',
+              status: 'Error',
+              errorMsg: displayError,
+              fullApiError: rawErr
+            });
+            continue;
+          }
+
+          // If group is full, check if we can evict an underperforming asset
+          let evictedAsset: CampaignAsset | null = null;
+          if (isFull) {
+            const evictable = groupAssets.filter(a => !a.isProtected);
+            if (evictable.length === 0) {
+              hasFailure = true;
+              this.stateService.addLog({
+                id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                date: new Date().toISOString(),
+                campaignName: currentGroup.campaignName,
+                assetGroupName: currentGroup.name,
+                replacedAsset: null,
+                newAsset: { name: item.name, url: item.url },
+                reason: item.isScheduled ? 'Special Offer' : 'Manual',
+                status: 'Error',
+                errorMsg: 'Reached limit of 20 images (all existing images are protected)',
+                fullApiError: 'Asset Group capacity limit reached (20 images). All existing 20 images in this group are marked as Protected from automatic eviction.'
+              });
+              continue;
+            }
+
+            evictable.sort((a, b) => a.kpiValue - b.kpiValue);
+            evictedAsset = evictable[0];
+
+            const evictIdx = groupAssets.findIndex(a => a.id === evictedAsset!.id);
+            if (evictIdx !== -1) {
+              groupAssets.splice(evictIdx, 1);
+            }
+          }
+
+          // Fresh newly uploaded image
           const freshAsset: CampaignAsset = {
             id: `asset-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             name: item.name,
@@ -1351,39 +1598,49 @@ export class AssetUploaderComponent implements OnInit {
               startDate: item.scheduleDetails.startDate,
               endDate: item.scheduleDetails.endDate,
               offerName: item.scheduleDetails.offerName,
-              fallbackAssetId: `fallback-${Date.now()}`
+              fallbackAssetId: evictedAsset ? evictedAsset.id : `fallback-${Date.now()}`
             } : undefined
           };
+
           groupAssets.push(freshAsset);
-
           this.stateService.updateAssets(groupId, groupAssets);
-
-          const resultAg = assignRes.results?.find(r => r.asset_group_id === groupId);
-          const arnInfo = resultAg ? ` (Resource: ${resultAg.asset_resource_name})` : '';
+          this.stateService.updateAssetGroupImageCount(groupId, groupAssets.length);
+          hasSuccess = true;
 
           this.stateService.addLog({
             id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             date: new Date().toISOString(),
             campaignName: currentGroup.campaignName,
             assetGroupName: currentGroup.name,
-            replacedAsset: null,
+            replacedAsset: evictedAsset ? { name: evictedAsset.name, url: evictedAsset.url } : null,
             newAsset: { name: freshAsset.name, url: freshAsset.url },
             reason: item.isScheduled ? 'Special Offer' : 'Manual',
-            kpiMetric: `Pending API metrics. Google Ads API Mutation executed successfully${arnInfo}.`,
             status: 'Success'
           });
-        });
+        }
       }
 
       // Re-fetch live asset groups from Google Ads API to update Current Slots from live account
       await this.reloadAssetGroups(this.selectedAccountId());
 
       this.uploadedQueue.set([]);
-      this.syncStatus.set({
-        message: `Google Ads API Sync completed successfully! Assigned creative to ${selectedGroups.length} Asset Group(s).`,
-        type: 'success'
-      });
-      setTimeout(() => this.syncStatus.set({ message: '', type: 'idle' }), 5000);
+      if (hasFailure && !hasSuccess) {
+        this.syncStatus.set({
+          message: 'Sync failed for selected Asset Group(s). Check replacement logs below for details.',
+          type: 'error'
+        });
+      } else if (hasFailure && hasSuccess) {
+        this.syncStatus.set({
+          message: 'Sync completed with warnings. Some creative linked successfully while others failed (check logs below).',
+          type: 'info'
+        });
+      } else {
+        this.syncStatus.set({
+          message: `Google Ads API Sync completed successfully! Assigned creative to ${selectedGroups.length} Asset Group(s).`,
+          type: 'success'
+        });
+      }
+      setTimeout(() => this.syncStatus.set({ message: '', type: 'idle' }), 6000);
     } catch (err: any) {
       console.error('Google Ads API sync error:', err);
       this.syncStatus.set({
