@@ -36,7 +36,7 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
         <!-- Left Column: Image Drop & Queue Setup -->
-        <div class="xl:col-span-2 flex flex-col gap-6">
+        <div class="xl:col-span-3 flex flex-col gap-6">
           
           <!-- Section 1: Upload Brand-New Visual Assets -->
           <div class="panel bg-white border rounded p-6 shadow-sm flex flex-col gap-4">
@@ -359,89 +359,6 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
           </div>
         </div>
 
-        <!-- Right Column: Protected Assets Viewer / Composition -->
-        <div class="xl:col-span-1 space-y-6">
-          <div class="panel bg-white border rounded p-6 shadow-sm flex flex-col gap-4">
-            <div>
-              <h3 class="font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
-                <mat-icon class="text-indigo icon-size">shield</mat-icon>
-                Sovereign Guard / Lock list
-              </h3>
-              <p class="text-xs text-muted mt-1 m-0">
-                Select an asset group below to inspect existing images and protect them from automatic eviction.
-              </p>
-            </div>
-
-            <div class="space-y-1 flex flex-col">
-              <label class="text-[10px] font-bold text-muted uppercase tracking-wider">Inspect Asset Group</label>
-              <select 
-                [ngModel]="activeViewerGroup()"
-                (ngModelChange)="activeViewerGroup.set($event)"
-                class="text-xs bg-slate-50 border rounded p-2 focus:outline-none"
-              >
-                @for (ag of stateService.assetGroups(); track ag.id) {
-                  <option [value]="ag.id">{{ ag.name }}</option>
-                }
-              </select>
-            </div>
-
-            <!-- List of current images -->
-            <div class="current-images-list flex flex-col gap-3 pr-1">
-              @for (asset of currentViewerAssets(); track asset.id) {
-                @let isPatternProtected = asset.name.includes(protectionPattern());
-                @let isLocked = asset.isProtected || isPatternProtected;
-                <div 
-                  [class.locked-card]="isLocked"
-                  class="border rounded-xl p-3 flex gap-3 items-center justify-between transition-all bg-white shadow-xs"
-                >
-                  <div class="flex items-center gap-2.5 min-w-0">
-                    <img [src]="asset.url" [alt]="asset.name" class="w-10 h-10 object-cover rounded-lg border shrink-0" />
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        <p class="text-xs font-bold text-slate-800 truncate m-0">{{ asset.name }}</p>
-                        @if (isLocked) {
-                          <mat-icon class="text-indigo icon-xs">shield</mat-icon>
-                        }
-                      </div>
-                      <p class="text-[10px] text-slate-500 flex items-center gap-1 font-mono m-0 mt-0.5">
-                        <span>CTR: {{ asset.kpiValue }}%</span>
-                        <span>•</span>
-                        <span [class]="'performance-badge px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ' + (asset.performanceScore === 'Best' ? 'bg-emerald-light text-emerald' : 'bg-slate-100 text-slate-600')">
-                          {{ asset.performanceScore }}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="flex flex-col items-end gap-1 shrink-0">
-                    <button
-                      (click)="toggleProtectedAsset(asset.id)"
-                      [class]="'btn-lock px-3 py-1 rounded-md text-[11px] font-bold border cursor-pointer transition-all ' + (isLocked ? 'bg-indigo border-indigo text-white shadow-xs' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50')"
-                    >
-                      {{ isLocked ? 'Locked' : 'Lock' }}
-                    </button>
-
-                    @if (asset.scheduledTiming) {
-                      <button
-                        (click)="simulateScheduleTimeout(asset.id)"
-                        class="btn-timeout text-[9px] text-indigo border-none bg-transparent hover:underline flex items-center gap-0.5 cursor-pointer"
-                        title="Simulate timer end to swap back to backup"
-                      >
-                        <mat-icon class="icon-xs">schedule</mat-icon>
-                        End Promo
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-              @if (currentViewerAssets().length === 0) {
-                <div class="text-center py-8 text-xs text-slate-400">
-                  No images currently assigned.
-                </div>
-              }
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Step 6: Replacement History logs -->
@@ -782,7 +699,6 @@ export class AssetUploaderComponent implements OnInit {
   readonly selectedAssetGroups = signal<string[]>([]);
   readonly selectedKpi = signal<'impressions' | 'ctr' | 'conversions' | 'value'>('ctr');
   readonly maxCapacity = signal<number>(20);
-  readonly activeViewerGroup = signal<string>('ag1');
   
   // Custom naming protection pattern
   readonly protectionPattern = signal<string>('_Protected');
@@ -804,10 +720,7 @@ export class AssetUploaderComponent implements OnInit {
     );
   });
 
-  readonly currentViewerAssets = computed<CampaignAsset[]>(() => {
-    const activeGroup = this.activeViewerGroup();
-    return this.stateService.campaignAssets()[activeGroup] || [];
-  });
+
 
   readonly isAllFilteredSelected = computed<boolean>(() => {
     const filtered = this.filteredAssetGroups();
@@ -921,59 +834,7 @@ export class AssetUploaderComponent implements OnInit {
     }
   }
 
-  toggleProtectedAsset(assetId: string): void {
-    const group = this.activeViewerGroup();
-    const assets = this.stateService.campaignAssets()[group] || [];
-    const updated = assets.map(asset => {
-      if (asset.id === assetId) {
-        return { ...asset, isProtected: !asset.isProtected };
-      }
-      return asset;
-    });
-    this.stateService.updateAssets(group, updated);
-  }
 
-  simulateScheduleTimeout(assetId: string): void {
-    const group = this.activeViewerGroup();
-    const groupAssets = [...(this.stateService.campaignAssets()[group] || [])];
-    const assetToTimeout = groupAssets.find(a => a.id === assetId);
-    if (!assetToTimeout || !assetToTimeout.scheduledTiming) return;
-
-    const fallbackAssetId = assetToTimeout.scheduledTiming.fallbackAssetId;
-    
-    // Create mock previous asset details
-    const fallbackMockAsset: CampaignAsset = {
-      id: fallbackAssetId,
-      name: 'DogFood_OldFallback_Restored',
-      url: 'https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?w=400&q=80',
-      performanceScore: 'Good',
-      kpiValue: 2.1,
-      isProtected: false,
-      uploadDate: new Date().toISOString().split('T')[0]
-    };
-
-    // Replace timed out promo asset with fallback one
-    const updated = groupAssets.map(asset => {
-      if (asset.id === assetId) return fallbackMockAsset;
-      return asset;
-    });
-
-    this.stateService.updateAssets(group, updated);
-    this.stateService.updateAssetGroupImageCount(group, updated.length);
-
-    // Log the automatic fallback sync
-    this.stateService.addLog({
-      id: `log-fallback-${Date.now()}`,
-      date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      campaignName: this.stateService.assetGroups().find(g => g.id === group)?.campaignName || 'Retailer_Campaign',
-      assetGroupName: this.stateService.assetGroups().find(g => g.id === group)?.name || 'Asset Group',
-      replacedAsset: { name: assetToTimeout.name, url: assetToTimeout.url },
-      newAsset: { name: fallbackMockAsset.name, url: fallbackMockAsset.url },
-      reason: 'Special Offer',
-      kpiMetric: `Promo "${assetToTimeout.scheduledTiming.offerName}" expired. Reverted to fallback asset.`,
-      status: 'Success'
-    });
-  }
 
   async handleSaveAndSync(): Promise<void> {
     const queue = this.uploadedQueue();

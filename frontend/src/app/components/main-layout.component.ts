@@ -14,6 +14,7 @@ import { BackgroundStudioComponent } from '../product/background-studio.componen
 import { AnimationComponent } from '../video/animation.component';
 import { SpellCheckComponent } from '../text/spell-check.component';
 import { SettingsPanelComponent } from '../config/settings-panel.component';
+import { ProtectedAssetsComponent } from '../campaign/protected-assets.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -26,7 +27,8 @@ import { SettingsPanelComponent } from '../config/settings-panel.component';
     BackgroundStudioComponent,
     AnimationComponent,
     SpellCheckComponent,
-    SettingsPanelComponent
+    SettingsPanelComponent,
+    ProtectedAssetsComponent
   ],
   template: `
     <div class="main-layout font-sans">
@@ -87,6 +89,9 @@ import { SettingsPanelComponent } from '../config/settings-panel.component';
             }
             @case ('settings') {
               <app-settings-panel></app-settings-panel>
+            }
+            @case ('protection') {
+              <app-protected-assets></app-protected-assets>
             }
           }
         </main>

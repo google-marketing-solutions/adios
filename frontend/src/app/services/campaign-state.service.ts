@@ -87,6 +87,35 @@ export class CampaignStateService {
     }));
   }
 
+  toggleAssetProtection(assetId: string): void {
+    this.campaignAssets.update(prev => {
+      const updated = { ...prev };
+      
+      // Find current protection state
+      let currentIsProtected = false;
+      for (const group of Object.keys(updated)) {
+        const found = updated[group].find(a => a.id === assetId);
+        if (found) {
+          currentIsProtected = found.isProtected;
+          break;
+        }
+      }
+      
+      const targetProtection = !currentIsProtected;
+      
+      // Toggle for all assets matching this ID in any group
+      for (const group of Object.keys(updated)) {
+        updated[group] = updated[group].map(asset => {
+          if (asset.id === assetId) {
+            return { ...asset, isProtected: targetProtection };
+          }
+          return asset;
+        });
+      }
+      return updated;
+    });
+  }
+
   updateAssetGroupImageCount(groupId: string, count: number): void {
     this.assetGroups.update(prev => prev.map(ag => {
       if (ag.id === groupId) {

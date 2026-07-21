@@ -132,6 +132,7 @@ interface MenuItem {
       border-bottom-color: #dadce0;
     }
     .border-uploader-active { border-left-color: #1a73e8; }
+    .border-protection-active { border-left-color: #4f46e5; }
     .border-background-active { border-left-color: #1e8e3e; }
     .border-animation-active { border-left-color: #f9ab00; }
     .border-spell-active { border-left-color: #d93025; }
@@ -177,6 +178,11 @@ interface MenuItem {
       color: #5f6368;
       background-color: rgba(95, 99, 104, 0.1);
       border-color: rgba(95, 99, 104, 0.2);
+    }
+    .icon-protection-active {
+      color: #4f46e5;
+      background-color: rgba(79, 70, 229, 0.1);
+      border-color: rgba(79, 70, 229, 0.2);
     }
     .badge-error {
       background-color: #d93025;
@@ -234,6 +240,14 @@ export class SidebarComponent {
       icon: 'cloud_upload',
       activeColorClass: 'icon-uploader-active',
       activeBorderClass: 'border-uploader-active',
+    },
+    {
+      id: 'protection',
+      label: 'Image Protector',
+      description: 'Account-wide protected assets',
+      icon: 'shield',
+      activeColorClass: 'icon-protection-active',
+      activeBorderClass: 'border-protection-active',
     },
     {
       id: 'background',

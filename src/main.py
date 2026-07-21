@@ -1,8 +1,10 @@
 import logging
-from typing import Any
-from fastapi import FastAPI, Request, status, HTTPException
+
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+from src.campaign.bulk_assign_controller import router as campaign_router
 
 # Configure basic logging
 logging.basicConfig(
@@ -11,13 +13,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("adios.api")
 
+
 # Pydantic v2 Models for Health and Error Structured Responses
 class HealthResponse(BaseModel):
-    status_code: str = Field(default="healthy", description="Current operational status of the service")
+    status_code: str = Field(
+        default="healthy", description="Current operational status of the service"
+    )
     service: str = Field(default="Adios 2.0 Advanced API", description="Service name")
     architecture: str = Field(
         default="Python 3 / FastAPI / Pydantic v2 / Uvicorn",
-        description="Backend technology stack and validation engine"
+        description="Backend technology stack and validation engine",
     )
     api_version: str = Field(default="v1", description="API version")
 
@@ -30,7 +35,9 @@ class ErrorDetail(BaseModel):
 
 class StructuredErrorResponse(BaseModel):
     error_code: int = Field(..., description="HTTP status code")
-    status: str = Field(..., description="Canonical status identifier (e.g., INVALID_ARGUMENT, INTERNAL)")
+    status: str = Field(
+        ..., description="Canonical status identifier (e.g., INVALID_ARGUMENT, INTERNAL)"
+    )
     message: str = Field(..., description="Summary error message")
     details: list[ErrorDetail] = Field(default_factory=list, description="Granular error details")
 
@@ -53,14 +60,16 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-from src.campaign.bulk_assign_controller import router as campaign_router
 app.include_router(campaign_router)
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Global exception handler ensuring all unhandled exceptions return structured JSON errors."""
-    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}", exc_info=True)
+    logger.error(
+        f"Unhandled exception on {request.method} {request.url.path}: {exc}",
+        exc_info=True,
+    )
     error_payload = StructuredErrorResponse(
         error_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         status="INTERNAL_SERVER_ERROR",
@@ -87,7 +96,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     summary="Service Health Check Endpoint",
 )
 async def health_check() -> HealthResponse:
-    """Returns the health status and architectural metadata of the Adios 2.0 Advanced backend service."""
+    """Returns the health status and metadata of the Adios 2.0 Advanced backend service."""
     return HealthResponse(
         status_code="healthy",
         service="Adios 2.0 Advanced API",
@@ -113,16 +122,14 @@ async def verify_google_token(payload: GoogleAuthRequest) -> UserProfileResponse
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="GOOGLE_LOGIN_CLIENT_ID environment variable is not set in config.txt",
             )
-        
+
         from google.auth.transport import requests
         from google.oauth2 import id_token
-        
+
         id_info = id_token.verify_oauth2_token(
-            payload.id_token, 
-            requests.Request(), 
-            audience=client_id
+            payload.id_token, requests.Request(), audience=client_id
         )
-        
+
         # Verify issuer
         if id_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
             raise ValueError("Wrong token issuer.")
@@ -131,22 +138,19 @@ async def verify_google_token(payload: GoogleAuthRequest) -> UserProfileResponse
         name = id_info.get("name", email.split("@")[0] if email else "User")
         picture = id_info.get("picture", "")
 
-        return UserProfileResponse(
-            email=email,
-            name=name,
-            picture=picture
-        )
+        return UserProfileResponse(email=email, name=name, picture=picture)
     except ValueError as val_err:
         logger.warning(f"Google ID Token validation rejected: {val_err}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Google ID Token credentials."
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google ID Token credentials."
         ) from val_err
     except Exception as err:
         logger.error(f"Unexpected error validating Google ID Token: {err}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while validating Google session."
+            detail=(
+                f"An error occurred while validating Google session: {type(err).__name__} - {err}"
+            ),
         ) from err
 
 

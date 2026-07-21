@@ -35,7 +35,7 @@ export class AuthService {
   }
 
   loginWithGoogle(): void {
-    const clientId = '180826927633-8h8n7nu89e81fehg4goo37gck191lmr6.apps.googleusercontent.com';
+    const clientId = '861767703303-n46fjc9lovuo4ar4c6e6qk6i9cmi86du.apps.googleusercontent.com';
     const redirectUri = encodeURIComponent(window.location.origin + '/auth-handler');
     const scope = encodeURIComponent('openid email profile https://www.googleapis.com/auth/adwords');
     const responseType = encodeURIComponent('id_token token');
@@ -58,7 +58,16 @@ export class AuthService {
       });
 
       if (!response.ok) {
-        throw new Error(`Authentication validation failed on backend (${response.status})`);
+        let errorDetail = '';
+        try {
+          const body = await response.json();
+          if (body && body.detail) {
+            errorDetail = `: ${body.detail}`;
+          }
+        } catch {
+          // ignore parsing error
+        }
+        throw new Error(`Authentication validation failed on backend (${response.status})${errorDetail}`);
       }
 
       const userProfile: UserProfile = await response.json();

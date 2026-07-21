@@ -8,6 +8,11 @@ set -e
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_DIR}"
 
+# Add local node binary to PATH if it exists
+if [ -d "${REPO_DIR}/.node/bin" ]; then
+  export PATH="${REPO_DIR}/.node/bin:${PATH}"
+fi
+
 echo "=========================================================================="
 echo "Starting Adios 2.0 Development Orchestrator"
 echo "Repository Root: ${REPO_DIR}"
@@ -17,6 +22,18 @@ echo "==========================================================================
 if [ ! -f "requirements.txt" ]; then
   echo "Error: requirements.txt not found!"
   exit 1
+fi
+
+CONFIG_FILE="${REPO_DIR}/config.txt"
+# Load variables from config.txt if present
+if [ -f "${CONFIG_FILE}" ]; then
+  echo "[INFO] Loading environment configuration from 'config.txt'..."
+  set -o allexport
+  # Filter out comments and blank lines before sourcing
+  eval "$(grep -v '^#' "${CONFIG_FILE}" | grep -v '^[[:space:]]*$' | sed 's/^/export /')"
+  set +o allexport
+else
+  echo "[WARNING] 'config.txt' not found! Environment variables might not be loaded."
 fi
 
 # Trap SIGINT / SIGTERM to clean up background processes
