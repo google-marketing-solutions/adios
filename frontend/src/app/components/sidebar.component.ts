@@ -67,19 +67,9 @@ interface MenuItem {
       </div>
 
       <!-- Account Context Footer -->
-      <div class="footer p-4 border-t bg-light text-xs text-muted flex flex-col gap-2">
-        <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
-          <span>Target Accounts</span>
-          <span class="connected-indicator">● Connected</span>
-        </div>
-        <div class="text-slate-700 font-medium">Global Retailer DE/CH/AT</div>
-        <p class="text-xs text-muted leading-normal m-0 pb-2">
-          Synchronized on item level with Merchant Center & PMax asset libraries.
-        </p>
-
-        <!-- Google User Profile Section -->
-        @if (authService.currentUser(); as user) {
-          <div class="user-profile border-t pt-3 flex items-center justify-between gap-2 mt-1">
+      @if (authService.currentUser(); as user) {
+        <div class="footer p-4 border-t bg-light text-xs text-muted">
+          <div class="user-profile flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
               <img [src]="user.picture" class="user-avatar" alt="User Avatar" />
               <div class="min-w-0">
@@ -91,8 +81,8 @@ interface MenuItem {
               <mat-icon class="icon-size">logout</mat-icon>
             </button>
           </div>
-        }
-      </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -234,6 +224,14 @@ export class SidebarComponent {
       icon: 'cloud_upload',
       activeColorClass: 'icon-uploader-active',
       activeBorderClass: 'border-uploader-active',
+    },
+    {
+      id: 'sovereign-guard',
+      label: 'Sovereign Guard',
+      description: 'Account-wide protected asset lock list',
+      icon: 'security',
+      activeColorClass: 'icon-spell-active',
+      activeBorderClass: 'border-spell-active',
     },
     {
       id: 'background',

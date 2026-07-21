@@ -185,6 +185,50 @@ import { CategoryPreset } from '../models/types';
                 </div>
               </div>
             </div>
+
+            <!-- Global Solution Config: Supported Image Upload Formats -->
+            <div class="border-t pt-6 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="text-brand icon-size">image</mat-icon>
+                  <label class="text-xs font-bold text-slate-800">Supported Solution Image Upload Formats</label>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Solution Config</span>
+              </div>
+              <p class="text-[10px] text-slate-500 m-0">
+                Configure image extensions accepted across the Adios 2.0 automatic asset group uploader.
+              </p>
+              <div class="flex flex-wrap items-center gap-2 pt-1">
+                @for (ext of formatsList(); track ext) {
+                  <span class="px-2.5 py-1 bg-slate-100 border text-slate-700 text-xs font-mono font-bold rounded flex items-center gap-1.5">
+                    <span>{{ ext }}</span>
+                    <button 
+                      type="button" 
+                      (click)="removeFormat(ext)" 
+                      class="hover:text-rose cursor-pointer border-none bg-transparent p-0 text-slate-400 font-bold"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                }
+                <div class="flex items-center gap-1">
+                  <input 
+                    type="text" 
+                    [(ngModel)]="newFormatInput"
+                    placeholder=".tif"
+                    class="w-20 text-xs font-mono border rounded px-2 py-1 bg-slate-50 focus:bg-white focus:outline-none"
+                    (keyup.enter)="addFormat()"
+                  />
+                  <button 
+                    type="button"
+                    (click)="addFormat()"
+                    class="px-2.5 py-1 text-xs font-bold rounded bg-brand text-white border-none cursor-pointer hover:bg-brand-dark"
+                  >
+                    + Add
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         }
       </div>
@@ -230,6 +274,27 @@ export class SettingsPanelComponent {
   readonly localPresets = signal<CategoryPreset[]>([]);
   readonly selectedCategory = signal<string>('Food');
   readonly notification = signal<string | null>(null);
+  newFormatInput = '';
+
+  readonly formatsList = computed(() => this.stateService.supportedFormats());
+
+  addFormat(): void {
+    let fmt = this.newFormatInput.trim().toLowerCase();
+    if (!fmt) return;
+    if (!fmt.startsWith('.')) {
+      fmt = '.' + fmt;
+    }
+    const current = this.stateService.supportedFormats();
+    if (!current.includes(fmt)) {
+      this.stateService.setSupportedFormats([...current, fmt]);
+    }
+    this.newFormatInput = '';
+  }
+
+  removeFormat(fmt: string): void {
+    const current = this.stateService.supportedFormats();
+    this.stateService.setSupportedFormats(current.filter(f => f !== fmt));
+  }
 
   constructor() {
     // Initialise local presets copy from CampaignStateService

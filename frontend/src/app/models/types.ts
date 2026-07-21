@@ -7,6 +7,7 @@ export interface Campaign {
   id: string;
   name: string;
   account: string;
+  status?: 'ENABLED' | 'PAUSED' | 'REMOVED';
 }
 
 export interface AssetGroup {
@@ -18,6 +19,7 @@ export interface AssetGroup {
   imageCount: number;
   maxImages: number;
   currentKpiMetric: 'impressions' | 'ctr' | 'conversions' | 'value';
+  status?: 'ENABLED' | 'PAUSED' | 'REMOVED';
 }
 
 export interface ScheduledTiming {
@@ -35,6 +37,7 @@ export interface CampaignAsset {
   performanceScore: 'Low' | 'Good' | 'Best' | 'Pending';
   kpiValue: number; // e.g., CTR % or Impressions count
   isProtected: boolean;
+  account?: string;
   scheduledTiming?: ScheduledTiming;
   uploadDate: string;
 }
@@ -100,5 +103,5 @@ export interface CategoryPreset {
   safetyMargins: number; // Padding around elements
 }
 
-export type ActiveSection = 'uploader' | 'background' | 'animation' | 'spell' | 'settings';
+export type ActiveSection = 'uploader' | 'sovereign-guard' | 'background' | 'animation' | 'spell' | 'settings';
 

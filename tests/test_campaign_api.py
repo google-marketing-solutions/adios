@@ -60,6 +60,8 @@ def test_upload_invalid_aspect_ratio_fails() -> None:
     assert "Unsupported aspect ratio" in data["detail"]
 
 
+from unittest.mock import MagicMock, patch
+
 def test_assign_asset_to_asset_groups() -> None:
     # 1. Upload valid image first
     img_bytes = create_test_image_bytes(1000, 1000)
@@ -70,15 +72,66 @@ def test_assign_asset_to_asset_groups() -> None:
     assert upload_res.status_code == status.HTTP_201_CREATED
     file_token = upload_res.json()["file_token"]
 
-    # 2. Assign image to asset groups
+    # 2. Assign image to asset groups with mocked Google Ads API
+    mock_client = MagicMock()
+    mock_asset_res = MagicMock()
+    mock_asset_res.results = [MagicMock(resource_name="customers/9941182026/assets/12345")]
+    mock_client.get_service.return_value.mutate_assets.return_value = mock_asset_res
+
+    mock_aga_res = MagicMock()
+    mock_aga_res.results = [
+        MagicMock(resource_name="customers/9941182026/assetGroupAssets/10101~12345"),
+        MagicMock(resource_name="customers/9941182026/assetGroupAssets/10103~12345"),
+    ]
+    mock_client.get_service.return_value.mutate_asset_group_assets.return_value = mock_aga_res
+
+    with patch("src.core.auth_provider.default_auth_provider.get_google_ads_client", return_value=mock_client):
+        payload = {
+            "file_token": file_token,
+            "asset_group_ids": ["10101", "10103"],
+            "customer_id": "9941182026",
+        }
+        assign_res = client.post("/v1/campaign/assign", json=payload)
+        assert assign_res.status_code == status.HTTP_200_OK
+        assign_data = assign_res.json()
+        assert assign_data["total_assigned"] == 2
+        assert len(assign_data["results"]) == 2
+        assert assign_data["results"][0]["status"] == "SUCCESS"
+
+
+def test_assign_future_scheduled_asset() -> None:
+    img_bytes = create_test_image_bytes(1000, 1000)
+    upload_res = client.post(
+        "/v1/campaign/upload",
+        files={"file": ("future_promo.png", img_bytes, "image/png")},
+    )
+    assert upload_res.status_code == status.HTTP_201_CREATED
+    file_token = upload_res.json()["file_token"]
+
     payload = {
         "file_token": file_token,
-        "asset_group_ids": ["10101", "10103"],
-        "customer_id": "9941182026",
+        "asset_group_ids": ["ag_sched_1"],
+        "customer_id": "9044713567",
+        "start_date": "2099-01-01",
+        "end_date": "2099-01-15",
     }
     assign_res = client.post("/v1/campaign/assign", json=payload)
     assert assign_res.status_code == status.HTTP_200_OK
-    assign_data = assign_res.json()
-    assert assign_data["total_assigned"] == 2
-    assert len(assign_data["results"]) == 2
-    assert assign_data["results"][0]["status"] == "SUCCESS"
+    data = assign_res.json()
+    assert data["total_assigned"] == 0
+    assert data["results"][0]["status"] == "SCHEDULED_PENDING"
+
+    # Verify job in /scheduled-jobs endpoint
+    jobs_res = client.get("/v1/campaign/scheduled-jobs")
+    assert jobs_res.status_code == status.HTTP_200_OK
+    jobs = jobs_res.json()["jobs"]
+    assert any(j["asset_name"] == "future_promo.png" for j in jobs)
+
+
+def test_trigger_scheduler_endpoint() -> None:
+    res = client.post("/v1/campaign/run-scheduler?as_of_date=2026-07-21")
+    assert res.status_code == status.HTTP_200_OK
+    data = res.json()
+    assert "started_jobs" in data
+    assert "unlinked_jobs" in data
+

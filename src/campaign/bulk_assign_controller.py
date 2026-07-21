@@ -7,9 +7,11 @@ Provides API endpoints for:
 - POST /v1/campaign/assign (Mutates and links image assets to selected PMax Asset Groups via Google Ads API)
 """
 
+import base64
 import logging
 import uuid
-from typing import List
+from datetime import datetime, timezone
+from typing import Any, List
 from fastapi import APIRouter, File, Header, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
@@ -17,6 +19,8 @@ from src.campaign.aspect_ratio_validator import (
     UnsupportedAspectRatioError,
     inspect_image_aspect_ratio,
 )
+from src.campaign.schedule_store import ScheduledJob, ScheduledJobStatus, schedule_store
+from src.campaign.scheduler import process_scheduled_jobs
 from src.core.auth_provider import default_auth_provider
 
 logger = logging.getLogger("adios.campaign.bulk_assign_controller")
@@ -34,6 +38,50 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
     return None
 
 
+def _clean_asset_group_error_message(err_str: str) -> str:
+    """Formats raw Google Ads API validation errors into human-friendly explanations."""
+    if any(k in err_str for k in ["not enough", "NOT_ENOUGH", "Headline asset", "Description headline"]):
+        return (
+            "The selected Asset Group does not meet Google Ads minimum asset composition requirements. "
+            "Google Ads requires at least 3 Headlines, 1 Long Headline, 1 Description, and 1 Square Image "
+            "in the Asset Group before new image assets can be linked."
+        )
+    return err_str
+
+
+def _extract_partial_failure_details(g_client: Any, status_err: Any) -> list[str]:
+    """Extracts human-readable error messages from google.rpc.Status partial_failure_error."""
+    messages: list[str] = []
+    if not status_err:
+        return messages
+    if getattr(status_err, "message", None):
+        messages.append(status_err.message)
+
+    for detail in getattr(status_err, "details", []):
+        try:
+            failure = g_client.get_type("GoogleAdsFailure")
+            failure_pb = failure._pb if hasattr(failure, "_pb") else failure
+            detail.Unpack(failure_pb)
+            for err in failure_pb.errors:
+                if getattr(err, "message", None):
+                    messages.append(err.message)
+        except Exception:
+            pass
+    return messages
+
+
+def _format_google_ads_error(err: Exception) -> str:
+    """Extracts human-readable error messages from Google Ads API exception structures."""
+    if hasattr(err, "failure") and getattr(err, "failure", None):
+        try:
+            msgs = [e.message for e in err.failure.errors if getattr(e, "message", None)]
+            if msgs:
+                return _clean_asset_group_error_message(" | ".join(msgs))
+        except Exception:
+            pass
+    return _clean_asset_group_error_message(str(err))
+
+
 class AssetGroupItem(BaseModel):
     """Pydantic model representing a Performance Max Asset Group."""
 
@@ -42,11 +90,11 @@ class AssetGroupItem(BaseModel):
     campaign_id: str = Field(..., description="Parent Campaign ID")
     campaign_name: str = Field(..., description="Parent Campaign Display Name")
     status: str = Field(default="ENABLED", description="Asset Group Status")
-    square_count: int = Field(default=18, description="Currently linked square images")
+    square_count: int = Field(default=0, description="Currently linked square images")
     square_capacity: int = Field(default=20, description="Square image slot limit")
-    landscape_count: int = Field(default=15, description="Currently linked landscape images")
+    landscape_count: int = Field(default=0, description="Currently linked landscape images")
     landscape_capacity: int = Field(default=20, description="Landscape image slot limit")
-    portrait_count: int = Field(default=4, description="Currently linked portrait images")
+    portrait_count: int = Field(default=0, description="Currently linked portrait images")
     portrait_capacity: int = Field(default=5, description="Portrait image slot limit")
 
 
@@ -95,6 +143,8 @@ class AssignRequest(BaseModel):
     file_token: str = Field(..., description="Upload session token returned by /upload")
     asset_group_ids: List[str] = Field(..., description="List of target Asset Group IDs")
     customer_id: str = Field(default="9941182026", description="Google Ads Customer ID (without hyphens)")
+    start_date: str | None = Field(default=None, description="Optional ISO start date (YYYY-MM-DD)")
+    end_date: str | None = Field(default=None, description="Optional ISO end date (YYYY-MM-DD)")
 
 
 class AssignmentResult(BaseModel):
@@ -314,7 +364,8 @@ async def get_asset_groups(
               asset_group.name,
               campaign.id,
               campaign.name,
-              asset_group.status
+              asset_group.status,
+              campaign.status
             FROM asset_group
             WHERE campaign.advertising_channel_type = 'PERFORMANCE_MAX'
             ORDER BY campaign.name ASC
@@ -332,28 +383,27 @@ async def get_asset_groups(
                     include_login_customer_id=True,
                 )
                 client_attempts.append(("mcc_header", c1))
-            except Exception:
-                pass
-
-        if clean_customer_id != creds.login_customer_id:
+            except Exception as e:
+                logger.warning(f"Could not build GoogleAdsClient with MCC header: {e}")
+        else:
+            if clean_customer_id:
+                try:
+                    c2 = default_auth_provider.get_google_ads_client(
+                        user_access_token=user_access_token,
+                        include_login_customer_id=True,
+                        login_customer_id_override=clean_customer_id,
+                    )
+                    client_attempts.append(("customer_header", c2))
+                except Exception:
+                    pass
             try:
-                c2 = default_auth_provider.get_google_ads_client(
+                c3 = default_auth_provider.get_google_ads_client(
                     user_access_token=user_access_token,
-                    include_login_customer_id=True,
-                    login_customer_id_override=clean_customer_id,
+                    include_login_customer_id=False,
                 )
-                client_attempts.append(("customer_header", c2))
+                client_attempts.append(("no_header", c3))
             except Exception:
                 pass
-
-        try:
-            c3 = default_auth_provider.get_google_ads_client(
-                user_access_token=user_access_token,
-                include_login_customer_id=False,
-            )
-            client_attempts.append(("no_header", c3))
-        except Exception:
-            pass
 
         last_err: Exception | None = None
         for mode, g_client in client_attempts:
@@ -361,15 +411,57 @@ async def get_asset_groups(
                 ga_service = g_client.get_service("GoogleAdsService")
                 response = ga_service.search(customer_id=clean_customer_id, query=query)
 
+                square_counts: dict[str, int] = {}
+                landscape_counts: dict[str, int] = {}
+                portrait_counts: dict[str, int] = {}
+                image_type_counts: dict[str, int] = {}
+                try:
+                    asset_query = """
+                        SELECT
+                          asset_group.id,
+                          asset_group_asset.field_type,
+                          asset_group_asset.status,
+                          asset.type
+                        FROM asset_group_asset
+                        WHERE campaign.advertising_channel_type = 'PERFORMANCE_MAX'
+                          AND asset_group_asset.status = 'ENABLED'
+                    """
+                    asset_response = ga_service.search(customer_id=clean_customer_id, query=asset_query)
+                    for r in asset_response:
+                        ag_id_str = str(r.asset_group.id)
+                        ft_val = r.asset_group_asset.field_type
+                        ft = ft_val.name if hasattr(ft_val, "name") else str(ft_val)
+                        at_val = getattr(r.asset, "type", None)
+                        at = at_val.name if hasattr(at_val, "name") else str(at_val)
+                        if at == "IMAGE" or ft in ("MARKETING_IMAGE", "SQUARE_MARKETING_IMAGE", "PORTRAIT_MARKETING_IMAGE", "LOGO", "LANDSCAPE_LOGO"):
+                            image_type_counts[ag_id_str] = image_type_counts.get(ag_id_str, 0) + 1
+
+                        if ft == "SQUARE_MARKETING_IMAGE":
+                            square_counts[ag_id_str] = square_counts.get(ag_id_str, 0) + 1
+                        elif ft == "MARKETING_IMAGE":
+                            landscape_counts[ag_id_str] = landscape_counts.get(ag_id_str, 0) + 1
+                        elif ft == "PORTRAIT_MARKETING_IMAGE":
+                            portrait_counts[ag_id_str] = portrait_counts.get(ag_id_str, 0) + 1
+                except Exception as count_err:
+                    logger.warning(f"Could not fetch live asset counts via asset_group_asset GAQL: {count_err}")
+
                 groups: list[AssetGroupItem] = []
                 for row in response:
+                    ag_id_str = str(row.asset_group.id)
+                    sq_c = square_counts.get(ag_id_str, 0)
+                    ls_c = landscape_counts.get(ag_id_str, 0)
+                    pt_c = portrait_counts.get(ag_id_str, 0)
+                    tot_c = image_type_counts.get(ag_id_str, 0)
                     groups.append(
                         AssetGroupItem(
-                            id=str(row.asset_group.id),
+                            id=ag_id_str,
                             name=row.asset_group.name,
                             campaign_id=str(row.campaign.id),
                             campaign_name=row.campaign.name,
                             status=row.asset_group.status.name,
+                            square_count=tot_c,
+                            landscape_count=ls_c,
+                            portrait_count=pt_c,
                         )
                     )
                 logger.info(f"Successfully queried {len(groups)} asset groups for customer {clean_customer_id} using '{mode}' header strategy.")
@@ -471,73 +563,178 @@ async def assign_asset(
     filename = upload_data["filename"]
     image_bytes = upload_data["bytes"]
 
+    clean_customer_id = payload.customer_id.replace("-", "").strip() if payload.customer_id else "9044713567"
     results: list[AssignmentResult] = []
+
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if payload.start_date and payload.start_date > today_str:
+        raw_b64 = base64.b64encode(image_bytes).decode("utf-8")
+        job = ScheduledJob(
+            customer_id=clean_customer_id,
+            asset_group_ids=payload.asset_group_ids,
+            asset_name=filename,
+            image_b64=raw_b64,
+            start_date=payload.start_date,
+            end_date=payload.end_date or "",
+            status=ScheduledJobStatus.PENDING,
+        )
+        schedule_store.add_job(job)
+        return AssignResponse(
+            file_token=payload.file_token,
+            field_type=ratio_info.field_type,
+            total_assigned=0,
+            results=[
+                AssignmentResult(
+                    asset_group_id=ag_id,
+                    status="SCHEDULED_PENDING",
+                    asset_resource_name="",
+                    asset_group_asset_resource_name="",
+                )
+                for ag_id in payload.asset_group_ids
+            ],
+        )
 
     creds = default_auth_provider.get_google_ads_credentials()
     user_access_token = _extract_bearer_token(authorization)
 
-    # Attempt Google Ads API mutation if live token configured
-    if creds.developer_token and creds.developer_token != "mock_developer_token_2026":
+    client_attempts: list[tuple[str, Any]] = []
+    if creds.login_customer_id:
         try:
-            googleads_client = default_auth_provider.get_google_ads_client(user_access_token=user_access_token)
-
-            asset_service = googleads_client.get_service("AssetService")
-            asset_group_asset_service = googleads_client.get_service("AssetGroupAssetService")
-
-            # 1. Create Asset mutation
-            asset_operation = googleads_client.get_type("AssetOperation")
-            asset = asset_operation.create
-            asset.name = f"Adios_{filename}_{uuid.uuid4().hex[:6]}"
-            asset.type_ = googleads_client.enums.AssetTypeEnum.IMAGE
-            asset.image_asset.data = image_bytes
-
-            asset_response = asset_service.mutate_assets(
-                customer_id=payload.customer_id,
-                operations=[asset_operation]
+            c1 = default_auth_provider.get_google_ads_client(
+                user_access_token=user_access_token,
+                include_login_customer_id=True,
             )
-            created_asset_rn = asset_response.results[0].resource_name
-
-            # 2. Link Asset to each Asset Group via AssetGroupAssetOperation
-            aga_operations = []
-            for ag_id in payload.asset_group_ids:
-                aga_op = googleads_client.get_type("AssetGroupAssetOperation")
-                aga = aga_op.create
-                aga.asset_group = f"customers/{payload.customer_id}/assetGroups/{ag_id}"
-                aga.asset = created_asset_rn
-                
-                # Map field type enum
-                field_enum = getattr(googleads_client.enums.AssetFieldTypeEnum, ratio_info.field_type)
-                aga.field_type = field_enum
-                aga_operations.append(aga_op)
-
-            aga_response = asset_group_asset_service.mutate_asset_group_assets(
-                customer_id=payload.customer_id,
-                operations=aga_operations
-            )
-
-            for i, res in enumerate(aga_response.results):
-                results.append(
-                    AssignmentResult(
-                        asset_group_id=payload.asset_group_ids[i],
-                        status="SUCCESS",
-                        asset_resource_name=created_asset_rn,
-                        asset_group_asset_resource_name=res.resource_name,
-                    )
+            client_attempts.append(("mcc_header", c1))
+        except Exception as e:
+            logger.warning(f"Could not build GoogleAdsClient with MCC header: {e}")
+    else:
+        if clean_customer_id:
+            try:
+                c2 = default_auth_provider.get_google_ads_client(
+                    user_access_token=user_access_token,
+                    include_login_customer_id=True,
+                    login_customer_id_override=clean_customer_id,
                 )
-
-            return AssignResponse(
-                file_token=payload.file_token,
-                field_type=ratio_info.field_type,
-                total_assigned=len(results),
-                results=results,
+                client_attempts.append(("customer_header", c2))
+            except Exception:
+                pass
+        try:
+            c3 = default_auth_provider.get_google_ads_client(
+                user_access_token=user_access_token,
+                include_login_customer_id=False,
             )
-        except Exception as err:
-            logger.warning(f"Google Ads API live mutation failed/fallback: {err}")
+            client_attempts.append(("no_header", c3))
+        except Exception:
+            pass
 
-    # Mock success mutation response
-    synthetic_asset_id = f"customers/{payload.customer_id}/assets/{uuid.uuid4().hex[:8]}"
+    last_err: Exception | None = None
+    if creds.developer_token and creds.developer_token != "mock_developer_token_2026":
+        for mode, g_client in client_attempts:
+            try:
+                asset_service = g_client.get_service("AssetService")
+                asset_group_asset_service = g_client.get_service("AssetGroupAssetService")
+
+                # 1. Create Asset mutation
+                asset_operation = g_client.get_type("AssetOperation")
+                asset = asset_operation.create
+                asset.name = f"Adios_{filename}_{uuid.uuid4().hex[:6]}"
+                asset.type_ = g_client.enums.AssetTypeEnum.IMAGE
+                asset.image_asset.data = image_bytes
+
+                asset_response = asset_service.mutate_assets(
+                    customer_id=clean_customer_id,
+                    operations=[asset_operation]
+                )
+                created_asset_rn = asset_response.results[0].resource_name
+
+                # 2. Link Asset to each Asset Group via AssetGroupAssetOperation
+                aga_request = g_client.get_type("MutateAssetGroupAssetsRequest")
+                aga_request.customer_id = clean_customer_id
+                aga_request.partial_failure = True
+                for ag_id in payload.asset_group_ids:
+                    aga_op = g_client.get_type("AssetGroupAssetOperation")
+                    aga = aga_op.create
+                    aga.asset_group = f"customers/{clean_customer_id}/assetGroups/{ag_id}"
+                    aga.asset = created_asset_rn
+
+                    field_enum = getattr(g_client.enums.AssetFieldTypeEnum, ratio_info.field_type)
+                    aga.field_type = field_enum
+                    aga_request.operations.append(aga_op)
+
+                aga_response = asset_group_asset_service.mutate_asset_group_assets(request=aga_request)
+
+                linked_count = 0
+                for i, res in enumerate(aga_response.results):
+                    res_rn = getattr(res, "resource_name", "")
+                    if res_rn:
+                        linked_count += 1
+                        results.append(
+                            AssignmentResult(
+                                asset_group_id=payload.asset_group_ids[i],
+                                status="SUCCESS",
+                                asset_resource_name=created_asset_rn,
+                                asset_group_asset_resource_name=res_rn,
+                            )
+                        )
+                    else:
+                        results.append(
+                            AssignmentResult(
+                                asset_group_id=payload.asset_group_ids[i],
+                                status="FAILED",
+                                asset_resource_name=created_asset_rn,
+                                asset_group_asset_resource_name="",
+                            )
+                        )
+
+                pf_err = getattr(aga_response, "partial_failure_error", None)
+                if linked_count == 0:
+                    err_msgs = _extract_partial_failure_details(g_client, pf_err) if pf_err else []
+                    raw_str = " | ".join(err_msgs) if err_msgs else "Google Ads API partial failure prevented asset group link."
+                    err_str = _clean_asset_group_error_message(raw_str)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Asset created in library ({created_asset_rn}), but linking to asset group failed: {err_str}",
+                    )
+
+                logger.info(f"Successfully uploaded & linked image to {linked_count} asset group(s) for customer {clean_customer_id} using '{mode}' header strategy.")
+                
+                # If an end date is set, register for automated unlinking
+                if payload.end_date:
+                    raw_b64 = base64.b64encode(image_bytes).decode("utf-8")
+                    extracted_asset_id = created_asset_rn.split("/")[-1]
+                    schedule_store.add_job(
+                        ScheduledJob(
+                            customer_id=clean_customer_id,
+                            asset_group_ids=payload.asset_group_ids,
+                            asset_name=filename,
+                            image_b64=raw_b64,
+                            asset_id=extracted_asset_id,
+                            start_date=payload.start_date or today_str,
+                            end_date=payload.end_date,
+                            status=ScheduledJobStatus.LINKED,
+                        )
+                    )
+
+                return AssignResponse(
+                    file_token=payload.file_token,
+                    field_type=ratio_info.field_type,
+                    total_assigned=linked_count,
+                    results=results,
+                )
+            except Exception as err:
+                last_err = err
+                logger.warning(f"Google Ads API mutation using '{mode}' header strategy failed for customer {clean_customer_id}: {err}")
+
+        formatted_err = _format_google_ads_error(last_err) if last_err else "Live Google Ads API mutation failed."
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Google Ads API mutation failed for customer {clean_customer_id}: {formatted_err}",
+        )
+
+    # Fallback for local sandbox/testing without live dev token
+    synthetic_asset_id = f"customers/{clean_customer_id}/assets/{uuid.uuid4().hex[:8]}"
     for ag_id in payload.asset_group_ids:
-        synthetic_aga_id = f"customers/{payload.customer_id}/assetGroupAssets/{ag_id}~{uuid.uuid4().hex[:6]}"
+        synthetic_aga_id = f"customers/{clean_customer_id}/assetGroupAssets/{ag_id}~{uuid.uuid4().hex[:6]}"
         results.append(
             AssignmentResult(
                 asset_group_id=ag_id,
@@ -547,9 +744,46 @@ async def assign_asset(
             )
         )
 
+    if payload.end_date:
+        raw_b64 = base64.b64encode(image_bytes).decode("utf-8")
+        schedule_store.add_job(
+            ScheduledJob(
+                customer_id=clean_customer_id,
+                asset_group_ids=payload.asset_group_ids,
+                asset_name=filename,
+                image_b64=raw_b64,
+                asset_id=synthetic_asset_id.split("/")[-1],
+                start_date=payload.start_date or today_str,
+                end_date=payload.end_date,
+                status=ScheduledJobStatus.LINKED,
+            )
+        )
+
     return AssignResponse(
         file_token=payload.file_token,
         field_type=ratio_info.field_type,
         total_assigned=len(results),
         results=results,
     )
+
+
+@router.get(
+    "/scheduled-jobs",
+    summary="List Scheduled Asset Lifecycle Jobs",
+)
+async def list_scheduled_jobs() -> dict[str, Any]:
+    jobs = schedule_store.load_jobs()
+    return {"total_count": len(jobs), "jobs": [j.model_dump() for j in jobs]}
+
+
+@router.post(
+    "/run-scheduler",
+    summary="Manually Trigger Scheduled Jobs Engine",
+)
+async def trigger_scheduler(
+    as_of_date: str | None = None,
+    authorization: str | None = Header(None),
+) -> dict[str, Any]:
+    user_access_token = _extract_bearer_token(authorization)
+    return process_scheduled_jobs(as_of_date=as_of_date, user_access_token=user_access_token)
+

@@ -3,28 +3,55 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { CampaignStateService } from '../services/campaign-state.service';
 import { ApiService, AccountItem } from '../services/api.service';
 import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../models/types';
 
+export interface QueueItem {
+  id: string;
+  name: string;
+  url: string;
+  rawFile?: File;
+  isProtected: boolean;
+  isScheduled?: boolean;
+  scheduleDetails?: {
+    offerName: string;
+    startDate: string;
+    endDate: string;
+  };
+}
+
 @Component({
   selector: 'app-asset-uploader',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatIconModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    MatInputModule
+  ],
   template: `
     <div class="space-y-6" id="uploader-section">
-      <!-- Title & Header -->
+      <!-- Title & Navigation Tabs -->
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 class="font-bold text-lg text-slate-800 m-0">Automatic Image Upload (Adios 2.0)</h2>
+          <h2 class="font-bold text-lg text-slate-800 m-0">
+            {{ activeTab() === 'sovereign-guard' ? 'Sovereign Guard / Lock List' : 'Automatic Image Upload (Adios 2.0)' }}
+          </h2>
           <p class="text-xs text-muted m-0 mt-1">
-            Eliminate Ads Editor steps: automatically replace sub-par images with AI KPI-targeted uploads.
+            {{ activeTab() === 'sovereign-guard' ? 'Inspect and lock account-wide protected assets across all campaigns and asset groups.' : 'Eliminate Ads Editor steps: automatically replace sub-par images with AI KPI-targeted uploads.' }}
           </p>
         </div>
+        
         <div class="flex items-center gap-2">
           <span class="px-2.5 py-1 bg-emerald-light text-emerald text-xs font-bold rounded-full flex items-center gap-1">
             <span class="w-2 h-2 rounded-full bg-emerald"></span>
@@ -33,485 +60,645 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
         </div>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        
-        <!-- Left Column: Image Drop & Queue Setup -->
-        <div class="xl:col-span-2 flex flex-col gap-6">
+      <!-- MAIN TAB 1: ASSET UPLOADER & DEPLOYMENT -->
+      @if (activeTab() === 'uploader') {
+        <div class="flex flex-col gap-6 w-full">
           
-          <!-- Section 1: Upload Brand-New Visual Assets -->
+          <!-- Section 1: Upload Visual Assets -->
           <div class="panel bg-white border rounded p-6 shadow-sm flex flex-col gap-4">
-            <h3 class="font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
-              <span class="step-num flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">1</span>
-              Upload Brand-New Visual Assets
-            </h3>
-
-            <!-- Drag & Drop Box -->
-            <div 
-              (dragenter)="onDragOver($event)"
-              (dragover)="onDragOver($event)"
-              (dragleave)="onDragLeave($event)"
-              (drop)="onDrop($event)"
-              [class]="'dropzone border-dashed border-2 rounded p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3 relative ' + (dragActive() ? 'drag-active' : 'drag-inactive')"
-            >
-              <input 
-                type="file" 
-                id="file-upload" 
-                multiple 
-                (change)="onFileSelect($event)" 
-                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <div class="drop-icon-container p-3 rounded-full">
-                <mat-icon class="icon-size">cloud_upload</mat-icon>
-              </div>
-              <div>
-                <p class="text-xs font-semibold text-slate-700 m-0">Drag files here, or click to browse local drive</p>
-                <p class="text-xs text-muted mt-1 m-0">Supports PNG, JPG, WebP. High fidelity recommended.</p>
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
+                  <span class="step-num flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">1</span>
+                  Upload Brand-New Visual Assets
+                </h3>
               </div>
 
-              <!-- Quick Preset Mocks for ease of clickability -->
-              <div class="mt-4 border-t border-slate-100 pt-4 w-full" (click)="$event.stopPropagation()">
-                <p class="text-xs font-bold text-muted uppercase tracking-wider mb-2 m-0">Simulate instant local file selection:</p>
-                <div class="flex flex-wrap gap-2 justify-center">
-                  <button 
-                    type="button"
-                    (click)="handleLoadMockImage('dog_pool')"
-                    class="btn-mock px-3 py-1 text-xs font-medium rounded transition-all border"
-                  >
-                    + DogPool_Promo.jpg
-                  </button>
-                  <button 
-                    type="button"
-                    (click)="handleLoadMockImage('cat_bowl')"
-                    class="btn-mock px-3 py-1 text-xs font-medium rounded transition-all border"
-                  >
-                    + CatGourmet_Salmon.png
-                  </button>
-                  <button 
-                    type="button"
-                    (click)="handleLoadMockImage('scratching_tree')"
-                    class="btn-mock px-3 py-1 text-xs font-medium rounded transition-all border"
-                  >
-                    + ScratchTree_Deluxe.jpg
-                  </button>
+              <!-- Format error notice -->
+              @if (uploadError()) {
+                <div class="bg-error-msg p-3 rounded text-xs flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="icon-size">warning</mat-icon>
+                    <span>{{ uploadError() }}</span>
+                  </div>
+                  <button (click)="uploadError.set(null)" class="text-xs bg-transparent border-none cursor-pointer font-bold px-2">✕</button>
+                </div>
+              }
+
+              <!-- Drag & Drop Box -->
+              <div 
+                (dragenter)="onDragOver($event)"
+                (dragover)="onDragOver($event)"
+                (dragleave)="onDragLeave($event)"
+                (drop)="onDrop($event)"
+                [class]="'dropzone border-dashed border-2 rounded p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3 relative ' + (dragActive() ? 'drag-active' : 'drag-inactive')"
+              >
+                <input 
+                  type="file" 
+                  id="file-upload" 
+                  multiple 
+                  [attr.accept]="acceptedFileTypes()"
+                  (change)="onFileSelect($event)" 
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div class="drop-icon-container p-3 rounded-full">
+                  <mat-icon class="icon-size">cloud_upload</mat-icon>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-slate-700 m-0">Drag files here, or click to browse local drive</p>
+                  <p class="text-xs text-muted mt-1 m-0">
+                    Supports {{ stateService.supportedFormats().join(', ') }}. Configured in Solution Settings.
+                  </p>
                 </div>
               </div>
-            </div>
 
-            <!-- Uploaded Queue Setup -->
-            @if (uploadedQueue().length > 0) {
-              <div class="space-y-4 border-t pt-4">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-slate-700">Upload Queue ({{ uploadedQueue().length }} files)</span>
-                  <button 
-                    (click)="clearQueue()"
-                    class="text-rose border-none bg-transparent hover:underline text-xs font-bold cursor-pointer"
-                  >
-                    Clear All
-                  </button>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  @for (item of uploadedQueue(); track item.id) {
-                    <div class="border rounded p-3 flex gap-3 items-start bg-slate-50">
-                      <img [src]="item.url" [alt]="item.name" class="w-12 h-12 object-cover rounded border shrink-0" />
-                      <div class="grow min-w-0">
-                        <p class="text-xs font-bold text-slate-700 truncate m-0">{{ item.name }}</p>
-                        <p class="text-xs text-muted m-0">Ready to assign</p>
-                      </div>
-                      <button 
-                        (click)="removeFromQueue(item.id)"
-                        class="p-1 hover:bg-slate-200 rounded border-none bg-transparent text-slate-400 hover:text-rose cursor-pointer shrink-0"
-                      >
-                        <mat-icon class="icon-size">delete</mat-icon>
-                      </button>
-                    </div>
-                  }
-                </div>
-
-                <!-- Step 5: Special Offer Schedule Setup -->
-                <div class="bg-slate-50 border p-4 rounded space-y-3">
+              <!-- Uploaded Queue Setup -->
+              @if (uploadedQueue().length > 0) {
+                <div class="space-y-4 border-t pt-4">
                   <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <mat-icon class="text-indigo icon-size">schedule</mat-icon>
-                      <span class="text-xs font-bold text-slate-800">Set Scheduled Timing (Promo Campaign)</span>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer select-none">
-                      <input 
-                        type="checkbox" 
-                        [checked]="isScheduled()" 
-                        (change)="isScheduled.set(!isScheduled())" 
-                        class="sr-only peer"
-                      />
-                      <div class="toggle-bg w-8 h-4 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo"></div>
-                    </label>
+                    <span class="text-xs font-bold text-slate-700">Upload Queue ({{ uploadedQueue().length }} files)</span>
                   </div>
 
-                  @if (isScheduled()) {
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                      <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-muted uppercase">Promotion Title</label>
-                        <input 
-                          type="text" 
-                          [(ngModel)]="scheduleDetails().offerName"
-                          class="w-full text-xs bg-white border rounded p-1.5 focus:outline-none"
-                        />
-                      </div>
-                      <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-muted uppercase">Start Date</label>
-                        <input 
-                          type="date" 
-                          [(ngModel)]="scheduleDetails().startDate"
-                          class="w-full text-xs bg-white border rounded p-1.5 focus:outline-none"
-                        />
-                      </div>
-                      <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-muted uppercase">Expiration Date</label>
-                        <input 
-                          type="date" 
-                          [(ngModel)]="scheduleDetails().endDate"
-                          class="w-full text-xs bg-white border rounded p-1.5 focus:outline-none"
-                        />
-                      </div>
-                      <p class="text-[10px] text-muted md:col-span-3 leading-relaxed m-0 mt-1">
-                        💡 When this expires, Adios 2.0 automatically swaps the promotional image back to the previous fallback asset, guaranteeing zero organic traffic loss.
-                      </p>
+                  <!-- Master Schedule Bar for Bulk Apply -->
+                  <div class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span class="text-[11px] font-bold text-indigo-900 flex items-center gap-1 shrink-0">
+                      <mat-icon class="icon-size text-indigo">schedule</mat-icon>
+                      Master Schedule Configurator
+                    </span>
+                    <div class="flex items-center gap-2 text-xs grow max-w-xl">
+                      <span class="text-xs font-medium text-slate-600 shrink-0">Start:</span>
+                      <input 
+                        type="date" 
+                        [(ngModel)]="masterSchedule.startDate"
+                        class="bg-white border rounded px-2.5 py-1 text-xs w-full focus:outline-none focus:border-indigo"
+                      />
+                      <span class="text-xs font-medium text-slate-600 shrink-0 ml-1">End:</span>
+                      <input 
+                        type="date" 
+                        [(ngModel)]="masterSchedule.endDate"
+                        class="bg-white border rounded px-2.5 py-1 text-xs w-full focus:outline-none focus:border-indigo"
+                      />
+                      <button
+                        (click)="applyBulkSchedule()"
+                        class="px-4 py-1 rounded bg-brand hover:bg-brand-hover text-white text-xs font-semibold border-none cursor-pointer transition-all shrink-0 shadow-xs ml-1"
+                      >
+                        Apply to all
+                      </button>
                     </div>
-                  }
+                  </div>
+
+                  <!-- Upload Queue Table -->
+                  <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                    <table class="w-full text-left border-collapse bg-white">
+                      <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                          <th class="p-3 w-12 text-center" title="Schedule">
+                            <input 
+                              type="checkbox" 
+                              [checked]="isAllQueueScheduled()" 
+                              (change)="toggleAllQueueSchedule($event)"
+                              class="rounded cursor-pointer"
+                              title="Toggle Schedule for All"
+                            />
+                          </th>
+                          <th class="p-3 w-20">Image Preview</th>
+                          <th class="p-3">Image Name</th>
+                          <th class="p-3 w-44">Schedule Start</th>
+                          <th class="p-3 w-44">Schedule End</th>
+                          <th class="p-3 w-12 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 text-xs">
+                        @for (item of uploadedQueue(); track item.id) {
+                          <tr [class.bg-indigo-50\/30]="item.isScheduled" class="hover:bg-slate-50\/80 transition-colors">
+                            <!-- Checkbox -->
+                            <td class="p-3 text-center align-middle">
+                              <input 
+                                type="checkbox" 
+                                [checked]="item.isScheduled" 
+                                (change)="toggleItemSchedule(item.id)"
+                                class="rounded cursor-pointer"
+                                title="Schedule Image"
+                              />
+                            </td>
+
+                            <!-- Image Preview -->
+                            <td class="p-3 align-middle">
+                              <img [src]="item.url" [alt]="item.name" class="w-10 h-10 object-cover rounded border shrink-0" />
+                            </td>
+
+                            <!-- Image Name -->
+                            <td class="p-3 align-middle">
+                              <p class="font-bold text-slate-700 m-0">{{ item.name }}</p>
+                            </td>
+
+                            <!-- Schedule Start -->
+                            <td class="p-3 align-middle">
+                              <input 
+                                type="date" 
+                                [ngModel]="getItemStartDate(item)"
+                                (ngModelChange)="setItemStartDate(item, $event)"
+                                [disabled]="!item.isScheduled"
+                                class="w-full text-xs border rounded p-1.5 bg-white disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:border-indigo"
+                              />
+                            </td>
+
+                            <!-- Schedule End -->
+                            <td class="p-3 align-middle">
+                              <input 
+                                type="date" 
+                                [ngModel]="getItemEndDate(item)"
+                                (ngModelChange)="setItemEndDate(item, $event)"
+                                [disabled]="!item.isScheduled"
+                                class="w-full text-xs border rounded p-1.5 bg-white disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:border-indigo"
+                              />
+                            </td>
+
+                            <!-- Action -->
+                            <td class="p-3 text-center align-middle">
+                              <button 
+                                (click)="removeFromQueue(item.id)"
+                                class="p-1 hover:bg-slate-200 rounded border-none bg-transparent text-slate-400 hover:text-rose cursor-pointer"
+                                title="Remove from queue"
+                              >
+                                <mat-icon class="icon-size">delete</mat-icon>
+                              </button>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Section 2: Deploy to Target PMax Asset Groups -->
+            <div class="panel bg-white border rounded p-6 shadow-sm space-y-4">
+              <div class="flex flex-col gap-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <h3 class="font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
+                    <span class="step-num flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">2</span>
+                    Deploy to Target PMax Asset Groups
+                  </h3>
+
+                  <button
+                    (click)="reloadAssetGroups()"
+                    [disabled]="isLoadingAssetGroups()"
+                    class="flex items-center gap-1.5 px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-300 transition-all cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+                    title="Reload Asset Groups from Google Ads API"
+                  >
+                    <mat-icon [class.animate-spin]="isLoadingAssetGroups()" class="icon-size text-slate-600">refresh</mat-icon>
+                    <span>{{ isLoadingAssetGroups() ? 'Reloading...' : 'Reload' }}</span>
+                  </button>
+                </div>
+
+                <!-- Account & Asset Group Search & Filter Toolbar -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200 items-end">
+                  
+                  <!-- Target Account Dropdown with Integrated Search -->
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-600 uppercase">Target Account</label>
+                    <mat-form-field appearance="outline" class="w-full text-xs account-mat-form-field">
+                      <mat-select
+                        [ngModel]="selectedAccountId()"
+                        (selectionChange)="onAccountChange($event.value)"
+                        placeholder="Select Target Account"
+                        panelClass="account-select-panel"
+                      >
+                        <!-- Integrated Search Box inside Dropdown Panel Header -->
+                        <div class="p-2 border-b bg-slate-50 sticky top-0 z-10" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                          <div class="relative flex items-center">
+                            <mat-icon class="absolute left-2.5 text-slate-400 icon-size">search</mat-icon>
+                            <input 
+                              type="text" 
+                              placeholder="Search account name / ID..." 
+                              [ngModel]="accountSearchQuery()"
+                              (ngModelChange)="accountSearchQuery.set($event)"
+                              (keydown)="$event.stopPropagation()"
+                              class="w-full text-xs pl-8 pr-7 py-1.5 border rounded bg-white focus:outline-none"
+                            />
+                            @if (accountSearchQuery()) {
+                              <button 
+                                type="button"
+                                (click)="accountSearchQuery.set(''); $event.stopPropagation()"
+                                class="absolute right-2 text-slate-400 hover:text-slate-700 border-none bg-transparent cursor-pointer text-xs font-bold"
+                              >
+                                ✕
+                              </button>
+                            }
+                          </div>
+                        </div>
+
+                        @for (acc of filteredAccounts(); track acc.id) {
+                          <mat-option [value]="acc.id">
+                            {{ acc.name }}
+                          </mat-option>
+                        }
+                        @if (filteredAccounts().length === 0) {
+                          <mat-option disabled class="text-slate-400">
+                            {{ isLoadingAccounts() ? 'Loading accounts...' : 'No matching accounts found' }}
+                          </mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+
+                  <!-- Asset Group Filter Input -->
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-600 uppercase">Search Asset Groups / Campaigns</label>
+                    <div class="relative">
+                      <mat-icon class="absolute left-2.5 top-2.5 text-slate-400 icon-size">filter_list</mat-icon>
+                      <input 
+                        type="text" 
+                        placeholder="Filter group / campaign..." 
+                        [ngModel]="searchQuery()"
+                        (ngModelChange)="searchQuery.set($event)"
+                        class="w-full text-xs pl-8 pr-2.5 py-2 border rounded-md bg-white focus:outline-none focus:border-brand"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Status Filter Checkboxes -->
+                  <div class="md:col-span-2 flex flex-wrap items-center gap-6 pt-2 border-t border-slate-200">
+                    <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        [checked]="onlyActiveCampaigns()"
+                        (change)="onlyActiveCampaigns.set(!onlyActiveCampaigns())"
+                        class="rounded text-brand focus:ring-brand"
+                      />
+                      <span>Show only active campaigns</span>
+                    </label>
+
+                    <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        [checked]="onlyActiveAssetGroups()"
+                        (change)="onlyActiveAssetGroups.set(!onlyActiveAssetGroups())"
+                        class="rounded text-brand focus:ring-brand"
+                      />
+                      <span>Show only active asset groups</span>
+                    </label>
+                  </div>
                 </div>
               </div>
-            }
-          </div>
 
-          <!-- Section 2: Deploy to Target PMax Asset Groups -->
-          <div class="panel bg-white border rounded p-6 shadow-sm space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div class="flex flex-wrap items-center gap-3">
-                <h3 class="font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
-                  <span class="step-num flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">2</span>
-                  Deploy to Target PMax Asset Groups
-                </h3>
-                
-                <!-- Account Selector Dropdown -->
-                <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-xs">
-                  <mat-icon class="icon-size text-slate-500">account_circle</mat-icon>
-                  <select
-                    [ngModel]="selectedAccountId()"
-                    (ngModelChange)="onAccountChange($event)"
-                    class="bg-transparent border-none text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              @if (reloadNotice(); as notice) {
+                <div [class]="notice.type === 'success' ? 'bg-success-msg p-3 rounded text-xs flex items-center justify-between' : (notice.type === 'warning' ? 'bg-error-msg p-3 rounded text-xs flex items-center justify-between' : 'bg-info-msg p-3 rounded text-xs flex items-center justify-between')">
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="icon-size">{{ notice.type === 'success' ? 'check_circle' : (notice.type === 'warning' ? 'warning' : 'info') }}</mat-icon>
+                    <span>{{ notice.message }}</span>
+                  </div>
+                  <button (click)="reloadNotice.set(null)" class="text-xs bg-transparent border-none cursor-pointer font-bold px-2">✕</button>
+                </div>
+              }
+
+              <!-- Filterable & Scrollable Asset Groups Table (Max 10 visible rows) -->
+              <div class="table-container max-h-80 overflow-y-auto border rounded font-sans">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead class="sticky top-0 bg-slate-100 z-10">
+                    <tr class="text-slate-600 border-b font-semibold">
+                      <th class="p-3 text-center w-12 bg-slate-100">
+                        <input 
+                          type="checkbox" 
+                          [checked]="isAllFilteredSelected()"
+                          (change)="toggleSelectAll()"
+                          class="rounded cursor-pointer"
+                        />
+                      </th>
+                      <th class="p-3 bg-slate-100">Asset Group Name</th>
+                      <th class="p-3 bg-slate-100">Campaign</th>
+                      <th class="p-3 bg-slate-100">Status</th>
+                      <th class="p-3 text-right bg-slate-100">Current Slots</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    @for (ag of filteredAssetGroups(); track ag.id) {
+                      @let isSelected = selectedAssetGroups().includes(ag.id);
+                      <tr [class.selected-row]="isSelected" class="hover:bg-slate-50/50 transition-colors">
+                        <td class="p-3 text-center">
+                          <input 
+                            type="checkbox" 
+                            [checked]="isSelected"
+                            (change)="toggleGroupSelection(ag.id)"
+                            class="rounded cursor-pointer"
+                          />
+                        </td>
+                        <td class="p-3 font-bold text-slate-700">{{ ag.name }}</td>
+                        <td class="p-3 text-muted font-mono text-[11px]">{{ ag.campaignName }}</td>
+                        <td class="p-3">
+                          <span [class]="'px-2 py-0.5 rounded-full text-[10px] font-bold ' + (ag.status === 'ENABLED' || !ag.status ? 'bg-emerald-light text-emerald' : 'bg-slate-100 text-slate-500')">
+                            {{ ag.status || 'ENABLED' }}
+                          </span>
+                        </td>
+                        <td class="p-3 text-right font-mono font-medium text-slate-700">
+                          {{ getAssetGroupImageCount(ag) }} / {{ ag.maxImages || 20 }}
+                        </td>
+                      </tr>
+                    }
+                    @if (filteredAssetGroups().length === 0) {
+                      <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-400 font-medium">
+                          {{ isLoadingAssetGroups() ? 'Loading asset groups...' : 'No asset groups match your search and active filters.' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Setup Options below table stay visible -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 border border-slate-200 p-5 rounded-xl">
+                <div class="space-y-1.5 flex flex-col">
+                  <label class="text-xs font-bold text-slate-700">Swap Rule: KPI Optimization Preference</label>
+                  <p class="text-[10px] text-slate-500 leading-normal m-0 mb-1">
+                    If the group is full ({{ maxCapacity() }} images), the algorithm automatically ejects the lowest performer.
+                  </p>
+                  <select 
+                    [(ngModel)]="selectedKpi"
+                    class="text-xs bg-white border rounded p-2 focus:outline-none"
                   >
-                    @for (acc of accessibleAccounts(); track acc.id) {
-                      <option [value]="acc.id">{{ acc.name }}</option>
-                    }
-                    @if (accessibleAccounts().length === 0) {
-                      <option value="">{{ isLoadingAccounts() ? 'Loading accounts...' : 'No accounts available' }}</option>
-                    }
+                    <option value="ctr">Lowest Click-Through Rate (CTR)</option>
+                    <option value="impressions">Lowest Absolute Impressions</option>
+                    <option value="conversions">Lowest Conversion Volume</option>
+                    <option value="value">Lowest ROAS / Conversion Value</option>
                   </select>
                 </div>
 
+                <div class="space-y-1.5 flex flex-col">
+                  <label class="text-xs font-bold text-slate-700">Protected Names Exclusion Pattern</label>
+                  <p class="text-[10px] text-slate-500 leading-normal m-0 mb-1">
+                    Images with names containing this pattern will never be replaced across the account.
+                  </p>
+                  <div class="relative">
+                    <mat-icon class="absolute left-3 top-2.5 text-slate-400 icon-size">shield</mat-icon>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="protectionPattern"
+                      class="w-full text-xs pl-8 pr-3 py-2 border rounded bg-white focus:outline-none font-mono"
+                      placeholder="e.g. _Protected"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sync Save button -->
+              <div class="flex items-center justify-between pt-2">
+                <div class="text-[11px] text-muted flex items-center gap-1.5">
+                  <mat-icon class="text-emerald icon-size">check_circle_outline</mat-icon>
+                  <span>Protected images locked account-wide. Underperforming ones replaced.</span>
+                </div>
                 <button
-                  (click)="reloadAssetGroups()"
-                  [disabled]="isLoadingAssetGroups()"
-                  class="flex items-center gap-1.5 px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-300 transition-all cursor-pointer disabled:opacity-50"
-                  title="Reload Asset Groups from Google Ads API"
+                  (click)="handleSaveAndSync()"
+                  [disabled]="syncStatus().message.includes('Synchronizing')"
+                  class="flex items-center gap-2 px-6 py-2.5 rounded bg-brand text-white text-xs font-semibold border-none transition-all cursor-pointer shadow-sm disabled:opacity-50"
                 >
-                  <mat-icon [class.animate-spin]="isLoadingAssetGroups()" class="icon-size text-slate-600">refresh</mat-icon>
-                  <span>{{ isLoadingAssetGroups() ? 'Reloading...' : 'Reload' }}</span>
+                  <span>Save & Deploy Assets</span>
+                  <mat-icon class="icon-size">arrow_forward</mat-icon>
                 </button>
               </div>
-              
-              <!-- Search Box -->
-              <div class="relative w-full sm:w-64 shrink-0">
-                <mat-icon class="absolute left-3 top-2 text-slate-400 icon-size">search</mat-icon>
+
+              <!-- Sync message -->
+              @if (syncStatus().message) {
+                <div [class]="'p-3 rounded flex items-center gap-2 text-xs font-medium ' + getSyncMessageClass()">
+                  @if (syncStatus().type === 'success') {
+                    <mat-icon class="text-emerald icon-size">check_circle</mat-icon>
+                  } @else if (syncStatus().type === 'error') {
+                    <mat-icon class="text-rose icon-size">warning</mat-icon>
+                  } @else {
+                    <div class="loading-spinner shrink-0"></div>
+                  }
+                  <span>{{ syncStatus().message }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+      <!-- MAIN TAB 2: DEDICATED SOVEREIGN GUARD VIEW -->
+      @if (activeTab() === 'sovereign-guard') {
+        <div class="panel bg-white border rounded p-6 shadow-sm space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+            <div>
+              <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
+                <mat-icon class="text-indigo icon-size">shield</mat-icon>
+                Account-Wide Sovereign Guard & Protection List
+              </h3>
+              <p class="text-xs text-muted m-0 mt-1">
+                Protected assets are account-wide protected. Locking an asset here guarantees it remains untouched across all asset groups.
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-lg flex items-center gap-1.5">
+                <mat-icon class="icon-size text-indigo">lock</mat-icon>
+                {{ countAccountProtectedAssets() }} Assets Protected Account-Wide
+              </span>
+            </div>
+          </div>
+
+          <!-- Sovereign Guard Search & Filter Controls -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-slate-600 uppercase">Search Asset Name / ID</label>
+              <div class="relative">
+                <mat-icon class="absolute left-2.5 top-2 text-slate-400 icon-size">search</mat-icon>
                 <input 
                   type="text" 
-                  placeholder="Filter groups, campaigns..." 
-                  [ngModel]="searchQuery()"
-                  (ngModelChange)="searchQuery.set($event)"
-                  class="w-full text-xs pl-8 pr-3 py-2 border rounded bg-slate-50 focus:bg-white focus:outline-none transition-all"
+                  placeholder="Search by asset name or ID..."
+                  [ngModel]="guardAssetSearch()"
+                  (ngModelChange)="guardAssetSearch.set($event)"
+                  class="w-full text-xs pl-8 pr-2.5 py-1.5 border rounded bg-white focus:outline-none"
                 />
               </div>
             </div>
 
-            @if (reloadNotice(); as notice) {
-              <div [class]="notice.type === 'success' ? 'bg-success-msg p-3 rounded text-xs flex items-center justify-between' : (notice.type === 'warning' ? 'bg-error-msg p-3 rounded text-xs flex items-center justify-between' : 'bg-info-msg p-3 rounded text-xs flex items-center justify-between')">
-                <div class="flex items-center gap-2">
-                  <mat-icon class="icon-size">{{ notice.type === 'success' ? 'check_circle' : (notice.type === 'warning' ? 'warning' : 'info') }}</mat-icon>
-                  <span>{{ notice.message }}</span>
-                </div>
-                <button (click)="reloadNotice.set(null)" class="text-xs bg-transparent border-none cursor-pointer font-bold px-2">✕</button>
-              </div>
-            }
-
-            <!-- Filterable List Table -->
-            <div class="table-container border rounded overflow-hidden">
-              <table class="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr class="bg-slate-50 text-slate-500 border-b font-medium">
-                    <th class="p-3 text-center w-12">
-                      <input 
-                        type="checkbox" 
-                        [checked]="isAllFilteredSelected()"
-                        (change)="toggleSelectAll()"
-                        class="rounded cursor-pointer"
-                      />
-                    </th>
-                    <th class="p-3">Asset Group Name</th>
-                    <th class="p-3">Campaign</th>
-                    <th class="p-3">Account</th>
-                    <th class="p-3 text-right">Current Slots</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                  @for (ag of filteredAssetGroups(); track ag.id) {
-                    @let isSelected = selectedAssetGroups().includes(ag.id);
-                    <tr [class.selected-row]="isSelected" class="hover:bg-slate-50/50 transition-colors">
-                      <td class="p-3 text-center">
-                        <input 
-                          type="checkbox" 
-                          [checked]="isSelected"
-                          (change)="toggleGroupSelection(ag.id)"
-                          class="rounded cursor-pointer"
-                        />
-                      </td>
-                      <td class="p-3 font-bold text-slate-700">{{ ag.name }}</td>
-                      <td class="p-3 text-muted font-mono text-[11px]">{{ ag.campaignName }}</td>
-                      <td class="p-3 text-slate-500">{{ ag.account }}</td>
-                      <td class="p-3 text-right font-mono font-medium text-slate-700">
-                        {{ ag.imageCount }} / {{ maxCapacity() }}
-                      </td>
-                    </tr>
-                  }
-                  @if (filteredAssetGroups().length === 0) {
-                    <tr>
-                      <td colspan="5" class="p-8 text-center text-slate-400 font-medium">
-                        {{ isLoadingAssetGroups() ? 'Loading asset groups...' : (searchQuery() ? 'No asset groups match your filters.' : 'No asset groups found for this account.') }}
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Replacement Configuration Controls (Step 3 & 4) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 border border-slate-200 p-5 rounded-xl">
-              <div class="space-y-1.5 flex flex-col">
-                <label class="text-xs font-bold text-slate-700">Swap Rule: KPI Optimization Preference</label>
-                <p class="text-[10px] text-slate-500 leading-normal m-0 mb-1">
-                  If the group is full ({{ maxCapacity() }} images), the algorithm automatically ejects the lowest performer.
-                </p>
-                <select 
-                  [(ngModel)]="selectedKpi"
-                  class="text-xs bg-white border rounded p-2 focus:outline-none"
-                >
-                  <option value="ctr">Lowest Click-Through Rate (CTR)</option>
-                  <option value="impressions">Lowest Absolute Impressions</option>
-                  <option value="conversions">Lowest Conversion Volume</option>
-                  <option value="value">Lowest ROAS / Conversion Value</option>
-                </select>
-              </div>
-
-              <div class="space-y-1.5 flex flex-col">
-                <label class="text-xs font-bold text-slate-700">Protected Names Exclusion Pattern</label>
-                <p class="text-[10px] text-slate-500 leading-normal m-0 mb-1">
-                  Images with names containing this pattern will never be replaced.
-                </p>
-                <div class="relative">
-                  <mat-icon class="absolute left-3 top-2.5 text-slate-400 icon-size">shield</mat-icon>
-                  <input 
-                    type="text" 
-                    [(ngModel)]="protectionPattern"
-                    class="w-full text-xs pl-8 pr-3 py-2 border rounded bg-white focus:outline-none font-mono"
-                    placeholder="e.g. _Protected"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Sync Save button -->
-            <div class="flex items-center justify-between pt-2">
-              <div class="text-[11px] text-muted flex items-center gap-1.5">
-                <mat-icon class="text-emerald icon-size">check_circle_outline</mat-icon>
-                <span>Protected images will be locked. Underperforming ones replaced.</span>
-              </div>
-              <button
-                (click)="handleSaveAndSync()"
-                [disabled]="syncStatus().message.includes('Synchronizing')"
-                class="flex items-center gap-2 px-6 py-2.5 rounded bg-brand text-white text-xs font-semibold border-none transition-all cursor-pointer shadow-sm disabled:opacity-50"
-              >
-                <span>Save & Deploy Assets</span>
-                <mat-icon class="icon-size">arrow_forward</mat-icon>
-              </button>
-            </div>
-
-            <!-- Sync message -->
-            @if (syncStatus().message) {
-              <div [class]="'p-3 rounded flex items-center gap-2 text-xs font-medium ' + getSyncMessageClass()">
-                @if (syncStatus().type === 'success') {
-                  <mat-icon class="text-emerald icon-size">check_circle</mat-icon>
-                } @else if (syncStatus().type === 'error') {
-                  <mat-icon class="text-rose icon-size">warning</mat-icon>
-                } @else {
-                  <div class="loading-spinner shrink-0"></div>
-                }
-                <span>{{ syncStatus().message }}</span>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Right Column: Protected Assets Viewer / Composition -->
-        <div class="xl:col-span-1 space-y-6">
-          <div class="panel bg-white border rounded p-6 shadow-sm flex flex-col gap-4">
-            <div>
-              <h3 class="font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
-                <mat-icon class="text-indigo icon-size">shield</mat-icon>
-                Sovereign Guard / Lock list
-              </h3>
-              <p class="text-xs text-muted mt-1 m-0">
-                Select an asset group below to inspect existing images and protect them from automatic eviction.
-              </p>
-            </div>
-
-            <div class="space-y-1 flex flex-col">
-              <label class="text-[10px] font-bold text-muted uppercase tracking-wider">Inspect Asset Group</label>
+            <div class="space-y-1">
+              <label class="text-[10px] font-bold text-slate-600 uppercase">Filter Asset Group</label>
               <select 
-                [ngModel]="activeViewerGroup()"
-                (ngModelChange)="activeViewerGroup.set($event)"
-                class="text-xs bg-slate-50 border rounded p-2 focus:outline-none"
+                [ngModel]="guardGroupFilter()"
+                (ngModelChange)="guardGroupFilter.set($event)"
+                class="w-full bg-white border rounded px-2 py-1.5 text-xs font-medium focus:outline-none"
               >
+                <option value="">All Asset Groups</option>
                 @for (ag of stateService.assetGroups(); track ag.id) {
                   <option [value]="ag.id">{{ ag.name }}</option>
                 }
               </select>
             </div>
 
-            <!-- List of current images -->
-            <div class="current-images-list flex flex-col gap-3 pr-1">
-              @for (asset of currentViewerAssets(); track asset.id) {
-                @let isPatternProtected = asset.name.includes(protectionPattern());
-                @let isLocked = asset.isProtected || isPatternProtected;
-                <div 
-                  [class.locked-card]="isLocked"
-                  class="border rounded-xl p-3 flex gap-3 items-center justify-between transition-all bg-white shadow-xs"
-                >
-                  <div class="flex items-center gap-2.5 min-w-0">
-                    <img [src]="asset.url" [alt]="asset.name" class="w-10 h-10 object-cover rounded-lg border shrink-0" />
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        <p class="text-xs font-bold text-slate-800 truncate m-0">{{ asset.name }}</p>
-                        @if (isLocked) {
-                          <mat-icon class="text-indigo icon-xs">shield</mat-icon>
-                        }
-                      </div>
-                      <p class="text-[10px] text-slate-500 flex items-center gap-1 font-mono m-0 mt-0.5">
-                        <span>CTR: {{ asset.kpiValue }}%</span>
-                        <span>•</span>
-                        <span [class]="'performance-badge px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ' + (asset.performanceScore === 'Best' ? 'bg-emerald-light text-emerald' : 'bg-slate-100 text-slate-600')">
-                          {{ asset.performanceScore }}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="flex flex-col items-end gap-1 shrink-0">
-                    <button
-                      (click)="toggleProtectedAsset(asset.id)"
-                      [class]="'btn-lock px-3 py-1 rounded-md text-[11px] font-bold border cursor-pointer transition-all ' + (isLocked ? 'bg-indigo border-indigo text-white shadow-xs' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50')"
-                    >
-                      {{ isLocked ? 'Locked' : 'Lock' }}
-                    </button>
-
-                    @if (asset.scheduledTiming) {
-                      <button
-                        (click)="simulateScheduleTimeout(asset.id)"
-                        class="btn-timeout text-[9px] text-indigo border-none bg-transparent hover:underline flex items-center gap-0.5 cursor-pointer"
-                        title="Simulate timer end to swap back to backup"
-                      >
-                        <mat-icon class="icon-xs">schedule</mat-icon>
-                        End Promo
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-              @if (currentViewerAssets().length === 0) {
-                <div class="text-center py-8 text-xs text-slate-400">
-                  No images currently assigned.
-                </div>
-              }
+            <div class="flex items-center gap-4 pt-4">
+              <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  [checked]="onlyActiveAssetGroups()"
+                  (change)="onlyActiveAssetGroups.set(!onlyActiveAssetGroups())"
+                  class="rounded text-brand"
+                />
+                <span>Active Groups Only</span>
+              </label>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Step 6: Replacement History logs -->
-      <div class="panel bg-white border rounded p-6 shadow-sm space-y-4">
-        <div class="flex items-center justify-between">
+          <!-- Sovereign Guard Table -->
+          <div class="table-container max-h-[500px] overflow-y-auto border rounded font-sans">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="sticky top-0 bg-slate-100 z-10">
+                <tr class="text-slate-600 border-b font-semibold">
+                  <th class="p-3 bg-slate-100">Asset Visual</th>
+                  <th class="p-3 bg-slate-100">Asset Name & ID</th>
+                  <th class="p-3 bg-slate-100">Assigned Asset Groups</th>
+                  <th class="p-3 bg-slate-100">Account Protection Status</th>
+                  <th class="p-3 text-right bg-slate-100">Lock Control</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (item of sovereignGuardItems(); track item.asset.id) {
+                  <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="p-3 w-16">
+                      <img [src]="item.asset.url" [alt]="item.asset.name" class="w-10 h-10 object-cover rounded-lg border" />
+                    </td>
+                    <td class="p-3">
+                      <p class="font-bold text-slate-800 m-0">{{ item.asset.name }}</p>
+                      <p class="text-[10px] text-slate-400 font-mono m-0 mt-0.5">ID: {{ item.asset.id }}</p>
+                    </td>
+                    <td class="p-3 text-slate-600">
+                      <div class="flex flex-wrap gap-1">
+                        @for (gName of item.groups; track gName) {
+                          <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-mono border">
+                            {{ gName }}
+                          </span>
+                        }
+                      </div>
+                    </td>
+                    <td class="p-3">
+                      @if (item.isProtected) {
+                        <span class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo text-[10px] font-bold rounded-full inline-flex items-center gap-1">
+                          <mat-icon class="icon-xs">shield</mat-icon>
+                          Account-Wide Protected
+                        </span>
+                      } @else {
+                        <span class="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-medium rounded-full">
+                          Unlocked
+                        </span>
+                      }
+                    </td>
+                    <td class="p-3 text-right">
+                      <button
+                        (click)="toggleAccountWideProtection(item.asset)"
+                        [class]="'px-4 py-1.5 rounded-md text-xs font-bold border cursor-pointer transition-all ' + (item.isProtected ? 'bg-indigo border-indigo text-white shadow-xs' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50')"
+                      >
+                        {{ item.isProtected ? 'Locked' : 'Lock Asset' }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+                @if (sovereignGuardItems().length === 0) {
+                  <tr>
+                    <td colspan="5" class="p-12 text-center text-slate-400 font-medium">
+                      No assets found matching Sovereign Guard filters.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Step 6: Replacement & Sync Logs -->
+      <div class="panel bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide m-0">Replacement & Sync Logs</h3>
             <p class="text-xs text-muted mt-1 m-0">
               Comprehensive report of automated asset rotations based on KPI triggers and promotional lifecycles.
             </p>
           </div>
-          <button class="btn-csv flex items-center gap-1.5 px-3 py-1.5 rounded border bg-white text-slate-600 hover:bg-slate-50 text-xs font-bold cursor-pointer transition-colors">
+          <button (click)="exportLogsCsv()" class="btn-csv flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-semibold shadow-2xs cursor-pointer transition-all shrink-0">
             <mat-icon class="icon-size">file_download</mat-icon>
-            Export CSV
+            <span>Export CSV</span>
           </button>
         </div>
 
-        <div class="table-container border rounded overflow-hidden">
+        <div class="table-container border border-slate-200 rounded-xl overflow-x-auto bg-white shadow-2xs">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
-              <tr class="bg-slate-50 text-slate-500 border-b font-medium">
-                <th class="p-3">Date</th>
-                <th class="p-3">Campaign / Asset Group</th>
-                <th class="p-3">Evicted Asset</th>
-                <th class="p-3">New Assigned Asset</th>
-                <th class="p-3">Swap Trigger</th>
-                <th class="p-3">Resulting Performance / Details</th>
-                <th class="p-3 text-right">Status</th>
+              <tr class="bg-slate-50 text-slate-500 border-b border-slate-200 font-semibold">
+                <th class="py-3.5 px-4">Date/time</th>
+                <th class="py-3.5 px-4">Campaign & Asset group</th>
+                <th class="py-3.5 px-4">New assigned asset</th>
+                <th class="py-3.5 px-4">Evicted asset</th>
+                <th class="py-3.5 px-4">Details</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 font-sans">
               @for (log of stateService.replacementLogs(); track log.id) {
-                <tr class="hover:bg-slate-50/30 transition-colors">
-                  <td class="p-3 text-slate-500 font-mono text-[11px]">{{ log.date }}</td>
-                  <td class="p-3">
-                    <p class="font-bold text-slate-700 m-0">{{ log.assetGroupName }}</p>
-                    <p class="text-[10px] text-muted font-mono m-0 mt-0.5">{{ log.campaignName }}</p>
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                  <td class="py-3.5 px-4 text-slate-500 font-mono text-[11px] whitespace-nowrap align-middle">
+                    {{ formatLocalTimestamp(log.date) }}
                   </td>
-                  <td class="p-3">
-                    @if (log.replacedAsset) {
-                      <div class="flex items-center gap-2">
-                        <img [src]="log.replacedAsset.url" class="w-6 h-6 object-cover rounded border shrink-0" />
-                        <span class="text-slate-600 truncate max-w-[120px]" [title]="log.replacedAsset.name">{{ log.replacedAsset.name }}</span>
-                      </div>
-                    } @else {
-                      <span class="text-slate-400 italic">None (Capacity open)</span>
-                    }
-                  </td>
-                  <td class="p-3">
-                    <div class="flex items-center gap-2">
-                      <img [src]="log.newAsset.url" class="w-6 h-6 object-cover rounded border shrink-0" />
-                      <span class="text-slate-700 font-bold truncate max-w-[120px]" [title]="log.newAsset.name">{{ log.newAsset.name }}</span>
+                  <td class="py-3.5 px-4 align-middle">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="font-mono text-xs text-slate-600 font-medium">{{ log.campaignName }}</span>
+                      <span class="text-slate-400 font-bold text-xs">&gt;</span>
+                      <span class="font-bold text-xs text-slate-900">{{ log.assetGroupName }}</span>
                     </div>
                   </td>
-                  <td class="p-3">
-                    <span [class]="'badge-reason px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ' + getReasonClass(log.reason)">
-                      {{ log.reason }}
-                    </span>
+                  <td class="py-3.5 px-4 align-middle">
+                    <div class="flex items-center gap-3 min-w-[180px]">
+                      <img 
+                        [src]="log.newAsset.url" 
+                        class="w-10 h-10 object-cover rounded-lg border border-slate-200 shrink-0 shadow-2xs" 
+                        [alt]="log.newAsset.name" 
+                      />
+                      <span class="text-xs font-semibold text-slate-800 truncate" [title]="log.newAsset.name">
+                        {{ log.newAsset.name }}
+                      </span>
+                    </div>
                   </td>
-                  <td class="p-3 text-slate-500 leading-normal">
-                    {{ log.kpiMetric || 'Manual deployment triggered.' }}
-                    @if (log.errorMsg) {
-                      <p class="text-rose text-[10px] font-bold m-0 mt-0.5">{{ log.errorMsg }}</p>
+                  <td class="py-3.5 px-4 align-middle">
+                    @if (log.replacedAsset) {
+                      <div class="flex items-center gap-3 min-w-[180px]">
+                        <img 
+                          [src]="log.replacedAsset.url" 
+                          class="w-10 h-10 object-cover rounded-lg border border-slate-200 shrink-0 shadow-2xs" 
+                          [alt]="log.replacedAsset.name" 
+                        />
+                        <span class="text-xs font-medium text-slate-600 truncate" [title]="log.replacedAsset.name">
+                          {{ log.replacedAsset.name }}
+                        </span>
+                      </div>
+                    } @else {
+                      <span class="text-xs text-slate-400 italic">None (Capacity open)</span>
                     }
                   </td>
-                  <td class="p-3 text-right">
-                    <span [class]="'inline-flex items-center gap-1 text-[11px] font-bold ' + (log.status === 'Success' ? 'text-emerald' : 'text-rose')">
-                      <span [class]="'status-indicator-dot w-1.5 h-1.5 rounded-full ' + (log.status === 'Success' ? 'bg-emerald' : 'bg-rose')"></span>
-                      {{ log.status }}
-                    </span>
+                  <td class="py-3.5 px-4 align-middle">
+                    <div class="flex flex-col gap-1 min-w-[160px]">
+                      <div class="flex items-center gap-2">
+                        <span [class]="'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ' + getReasonClass(log.reason)">
+                          {{ log.reason }}
+                        </span>
+                        <span [class]="'inline-flex items-center gap-1 text-[11px] font-bold ' + (log.status === 'Success' ? 'text-emerald' : 'text-rose')">
+                          <span [class]="'w-1.5 h-1.5 rounded-full ' + (log.status === 'Success' ? 'bg-emerald' : 'bg-rose')"></span>
+                          {{ log.status }}
+                        </span>
+                      </div>
+                      @if (log.kpiMetric) {
+                        <span class="text-xs text-slate-600 font-medium leading-tight">{{ log.kpiMetric }}</span>
+                      }
+                      @if (log.errorMsg) {
+                        <span class="text-[11px] text-rose font-medium leading-tight">{{ log.errorMsg }}</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+              @if (stateService.replacementLogs().length === 0) {
+                <tr>
+                  <td colspan="5" class="py-10 px-4 text-center text-slate-400 font-medium text-xs">
+                    <mat-icon class="icon-size text-slate-300 block mx-auto mb-1">history</mat-icon>
+                    No asset rotation logs recorded yet. Upload assets above and click "Save & Deploy Assets" to populate live sync history.
                   </td>
                 </tr>
               }
@@ -527,7 +714,7 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
       height: 20px;
     }
     .dropzone {
-      min-height: 180px;
+      min-height: 160px;
       transition: all 0.2s ease;
     }
     .drag-active {
@@ -575,99 +762,25 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
     .panel {
       border-color: #dadce0;
     }
-    .toggle-bg {
-      position: relative;
-      transition: background-color 0.2s ease;
-    }
-    .toggle-bg::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background-color: white;
-      transition: transform 0.2s ease;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    }
-    .peer:checked + .toggle-bg::after {
-      transform: translateX(16px);
-    }
-    .peer:checked + .toggle-bg {
-      background-color: #1a73e8;
-    }
     .table-container {
       border-color: #dadce0;
-      background-color: #ffffff;
-    }
-    table th {
-      border-bottom: 1px solid #dadce0;
     }
     .selected-row {
       background-color: rgba(26, 115, 232, 0.04);
     }
-    .btn-lock {
-      transition: all 0.15s ease;
-    }
     .locked-card {
-      border-color: rgba(26, 115, 232, 0.3) !important;
-      background-color: rgba(26, 115, 232, 0.02) !important;
-    }
-    .badge-reason {
-      font-size: 9px;
-    }
-    .badge-reason-kpi {
-      background-color: #fef7e0;
-      color: #b06000;
-    }
-    .badge-reason-special {
-      background-color: #f3e5f5;
-      color: #7b1fa2;
-    }
-    .badge-reason-manual {
-      background-color: #f1f3f4;
-      color: #3c4043;
-    }
-    .status-indicator-dot {
-      display: inline-block;
-    }
-    .bg-emerald {
-      background-color: #1e8e3e;
-    }
-    .bg-rose {
-      background-color: #d93025;
-    }
-    .icon-size {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+      border-color: #1a73e8;
+      background-color: rgba(26, 115, 232, 0.02);
     }
     .icon-xs {
       font-size: 12px;
       width: 12px;
       height: 12px;
     }
-    .btn-timeout mat-icon {
-      font-size: 10px;
-      width: 10px;
-      height: 10px;
-    }
-    .current-images-list {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    /* Loading spinner for sync */
-    .loading-spinner {
-      width: 12px;
-      height: 12px;
-      border: 2px solid #1a73e8;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .icon-size {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
     .bg-success-msg {
       background-color: #e6f4ea;
@@ -684,21 +797,96 @@ import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../m
       border: 1px solid #d2e3fc;
       color: #174ea6;
     }
+    .current-images-list {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    .badge-reason-kpi {
+      background-color: rgba(26, 115, 232, 0.1);
+      color: #1a73e8;
+    }
+    .badge-reason-special {
+      background-color: rgba(249, 171, 0, 0.15);
+      color: #b06000;
+    }
+    .badge-reason-manual {
+      background-color: rgba(95, 99, 104, 0.1);
+      color: #5f6368;
+    }
   `]
 })
 export class AssetUploaderComponent implements OnInit {
   readonly stateService = inject(CampaignStateService);
   readonly apiService = inject(ApiService);
+  
+  @Input() mode: 'uploader' | 'sovereign-guard' = 'uploader';
+
+  readonly activeTab = signal<'uploader' | 'sovereign-guard'>('uploader');
   readonly accessibleAccounts = signal<AccountItem[]>([]);
   readonly selectedAccountId = signal<string>('');
+  readonly accountSearchQuery = signal<string>('');
   readonly isLoadingAccounts = signal<boolean>(false);
   readonly isLoadingAssetGroups = signal<boolean>(false);
   readonly reloadNotice = signal<{ message: string; type: 'success' | 'warning' | 'info' } | null>(null);
+  readonly uploadError = signal<string | null>(null);
+
+  readonly acceptedFileTypes = computed(() => {
+    const formats = this.stateService.supportedFormats();
+    const mimeTypes = formats.map(ext => {
+      const clean = ext.replace('.', '').toLowerCase();
+      return clean === 'jpg' || clean === 'jpeg' ? 'image/jpeg' : `image/${clean}`;
+    });
+    return [...formats, ...mimeTypes].join(',');
+  });
+
+  // Active filter signals
+  readonly onlyActiveCampaigns = signal<boolean>(false);
+  readonly onlyActiveAssetGroups = signal<boolean>(false);
+
+  // Master schedule controls for bulk application
+  masterSchedule = {
+    offerName: '',
+    startDate: '',
+    endDate: ''
+  };
+
+  // Upload and queue states
+  readonly dragActive = signal<boolean>(false);
+  readonly uploadedQueue = signal<QueueItem[]>([]);
+
+  // Filter / Selection states
+  readonly searchQuery = signal<string>('');
+  readonly selectedAssetGroups = signal<string[]>([]);
+  readonly selectedKpi = signal<'impressions' | 'ctr' | 'conversions' | 'value'>('ctr');
+  readonly maxCapacity = signal<number>(20);
+  readonly activeViewerGroup = signal<string>('ag1');
+  
+  // Custom naming protection pattern
+  readonly protectionPattern = signal<string>('_Protected');
+
+  // Sovereign guard view filter signals
+  readonly guardAssetSearch = signal<string>('');
+  readonly guardGroupFilter = signal<string>('');
+
+  // Triggering simulation message
+  readonly syncStatus = signal<{ message: string; type: 'success' | 'error' | 'info' | 'idle' }>({ message: '', type: 'idle' });
 
   async ngOnInit(): Promise<void> {
+    if (this.mode === 'sovereign-guard' || this.stateService.activeSection() === 'sovereign-guard') {
+      this.activeTab.set('sovereign-guard');
+    }
     await this.loadAccessibleAccounts();
     const targetAccount = this.selectedAccountId() || '9044713567';
     await this.reloadAssetGroups(targetAccount);
+  }
+
+  setActiveTab(tab: 'uploader' | 'sovereign-guard'): void {
+    this.activeTab.set(tab);
+    if (tab === 'sovereign-guard') {
+      this.stateService.setActiveSection('sovereign-guard');
+    } else {
+      this.stateService.setActiveSection('uploader');
+    }
   }
 
   async loadAccessibleAccounts(): Promise<void> {
@@ -717,6 +905,13 @@ export class AssetUploaderComponent implements OnInit {
       this.isLoadingAccounts.set(false);
     }
   }
+
+  readonly filteredAccounts = computed<AccountItem[]>(() => {
+    const accs = this.accessibleAccounts();
+    const q = this.accountSearchQuery().toLowerCase().trim();
+    if (!q) return accs;
+    return accs.filter(a => a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q));
+  });
 
   async onAccountChange(accountId: string): Promise<void> {
     this.selectedAccountId.set(accountId);
@@ -738,7 +933,8 @@ export class AssetUploaderComponent implements OnInit {
         account: `Google Ads Account (${targetCustomer.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')})`,
         imageCount: ag.square_count || 0,
         maxImages: ag.square_capacity || 20,
-        currentKpiMetric: 'ctr'
+        currentKpiMetric: 'ctr',
+        status: (ag.status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED'
       }));
       this.stateService.setAssetGroups(formattedGroups);
       
@@ -765,48 +961,87 @@ export class AssetUploaderComponent implements OnInit {
     }
   }
 
-  // Upload and queue states
-  readonly dragActive = signal<boolean>(false);
-  readonly uploadedQueue = signal<(Omit<CampaignAsset, 'performanceScore' | 'kpiValue' | 'uploadDate'> & { rawFile?: File })[]>([]);
-  
-  // Schedule state for the active item being uploaded
-  readonly isScheduled = signal<boolean>(false);
-  readonly scheduleDetails = signal<Omit<ScheduledTiming, 'id' | 'fallbackAssetId'>>({
-    startDate: '2026-07-15',
-    endDate: '2026-07-22',
-    offerName: 'Summer Pet Pools Weekend Special'
-  });
-
-  // Filter / Selection states
-  readonly searchQuery = signal<string>('');
-  readonly selectedAssetGroups = signal<string[]>([]);
-  readonly selectedKpi = signal<'impressions' | 'ctr' | 'conversions' | 'value'>('ctr');
-  readonly maxCapacity = signal<number>(20);
-  readonly activeViewerGroup = signal<string>('ag1');
-  
-  // Custom naming protection pattern
-  readonly protectionPattern = signal<string>('_Protected');
-
-  // Triggering simulation message
-  readonly syncStatus = signal<{ message: string; type: 'success' | 'error' | 'info' | 'idle' }>({ message: '', type: 'idle' });
-
-  // Computed selector values
+  // Computed selector values for asset groups
   readonly filteredAssetGroups = computed<AssetGroup[]>(() => {
-    const groups = this.stateService.assetGroups();
+    let groups = this.stateService.assetGroups();
     const query = this.searchQuery().toLowerCase().trim();
-    if (!query) return groups;
+    const activeCampOnly = this.onlyActiveCampaigns();
+    const activeGroupOnly = this.onlyActiveAssetGroups();
 
-    return groups.filter(ag => 
-      ag.name.toLowerCase().includes(query) ||
-      ag.campaignName.toLowerCase().includes(query) ||
-      ag.account.toLowerCase().includes(query) ||
-      ag.id.toLowerCase().includes(query)
-    );
+    if (activeGroupOnly) {
+      groups = groups.filter(ag => !ag.status || ag.status === 'ENABLED');
+    }
+
+    if (query) {
+      groups = groups.filter(ag => 
+        ag.name.toLowerCase().includes(query) ||
+        ag.campaignName.toLowerCase().includes(query) ||
+        ag.account.toLowerCase().includes(query) ||
+        ag.id.toLowerCase().includes(query)
+      );
+    }
+
+    return groups;
   });
 
   readonly currentViewerAssets = computed<CampaignAsset[]>(() => {
     const activeGroup = this.activeViewerGroup();
     return this.stateService.campaignAssets()[activeGroup] || [];
+  });
+
+  readonly sovereignGuardItems = computed(() => {
+    const allGroupsAssets = this.stateService.campaignAssets();
+    const groups = this.stateService.assetGroups();
+    const searchQuery = this.guardAssetSearch().toLowerCase().trim();
+    const groupFilter = this.guardGroupFilter();
+    const activeGroupOnly = this.onlyActiveAssetGroups();
+
+    const assetGroupMap = new Map<string, string>();
+    for (const g of groups) {
+      assetGroupMap.set(g.id, g.name);
+    }
+
+    const assetMap = new Map<string, { asset: CampaignAsset; groupIds: Set<string>; groupNames: Set<string> }>();
+
+    for (const groupKey of Object.keys(allGroupsAssets)) {
+      if (groupFilter && groupKey !== groupFilter) continue;
+      
+      const grp = groups.find(g => g.id === groupKey);
+      if (activeGroupOnly && grp && grp.status && grp.status !== 'ENABLED') continue;
+
+      for (const asset of allGroupsAssets[groupKey]) {
+        if (searchQuery && !asset.name.toLowerCase().includes(searchQuery) && !asset.id.toLowerCase().includes(searchQuery)) {
+          continue;
+        }
+
+        if (!assetMap.has(asset.id)) {
+          assetMap.set(asset.id, {
+            asset,
+            groupIds: new Set([groupKey]),
+            groupNames: new Set([assetGroupMap.get(groupKey) || groupKey])
+          });
+        } else {
+          const entry = assetMap.get(asset.id)!;
+          entry.groupIds.add(groupKey);
+          entry.groupNames.add(assetGroupMap.get(groupKey) || groupKey);
+        }
+      }
+    }
+
+    const protectedAccountMap = this.stateService.accountProtectedAssets();
+
+    return Array.from(assetMap.values()).map(entry => {
+      const isAccountLocked = protectedAccountMap.has(entry.asset.id) || protectedAccountMap.has(entry.asset.url) || entry.asset.isProtected;
+      return {
+        asset: entry.asset,
+        groups: Array.from(entry.groupNames),
+        isProtected: isAccountLocked
+      };
+    });
+  });
+
+  readonly countAccountProtectedAssets = computed(() => {
+    return this.sovereignGuardItems().filter(i => i.isProtected).length;
   });
 
   readonly isAllFilteredSelected = computed<boolean>(() => {
@@ -816,7 +1051,11 @@ export class AssetUploaderComponent implements OnInit {
     return filtered.every(ag => selected.includes(ag.id));
   });
 
-  // Actions
+  getAssetGroupImageCount(ag: AssetGroup): number {
+    return ag.imageCount ?? 0;
+  }
+
+  // Drag & Drop & Queue Actions
   onDragOver(e: DragEvent): void {
     e.preventDefault();
     e.stopPropagation();
@@ -849,14 +1088,107 @@ export class AssetUploaderComponent implements OnInit {
   }
 
   addFilesToQueue(files: File[]): void {
-    const newItems = files.map((file, idx) => ({
-      id: `up-${Date.now()}-${idx}`,
-      name: file.name.split('.')[0] || 'uploaded_image',
-      url: URL.createObjectURL(file), // temporary local URL
-      rawFile: file,
-      isProtected: false
+    this.uploadError.set(null);
+    const supportedExts = this.stateService.supportedFormats();
+    const validItems: QueueItem[] = [];
+    const invalidNames: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (supportedExts.includes(ext) || supportedExts.some(s => s.toLowerCase() === ext)) {
+        validItems.push({
+          id: `up-${Date.now()}-${i}`,
+          name: file.name.split('.')[0] || 'uploaded_image',
+          url: URL.createObjectURL(file),
+          rawFile: file,
+          isProtected: false,
+          isScheduled: false
+        });
+      } else {
+        invalidNames.push(file.name);
+      }
+    }
+
+    if (invalidNames.length > 0) {
+      this.uploadError.set(`Skipped file(s) [${invalidNames.join(', ')}]. Unsupported format. Configured allowed formats: ${supportedExts.join(', ')}`);
+    }
+
+    if (validItems.length > 0) {
+      this.uploadedQueue.update(prev => [...prev, ...validItems]);
+    }
+  }
+
+  toggleItemSchedule(itemId: string): void {
+    this.uploadedQueue.update(queue => queue.map(item => {
+      if (item.id === itemId) {
+        const nextState = !item.isScheduled;
+        return {
+          ...item,
+          isScheduled: nextState,
+          scheduleDetails: nextState ? (item.scheduleDetails || { ...this.masterSchedule }) : item.scheduleDetails
+        };
+      }
+      return item;
     }));
-    this.uploadedQueue.update(prev => [...prev, ...newItems]);
+  }
+
+  applyBulkSchedule(): void {
+    this.uploadedQueue.update(queue => queue.map(item => ({
+      ...item,
+      isScheduled: true,
+      scheduleDetails: { ...this.masterSchedule }
+    })));
+  }
+
+  getItemStartDate(item: QueueItem): string {
+    return item.scheduleDetails?.startDate ?? '';
+  }
+
+  setItemStartDate(item: QueueItem, value: string): void {
+    this.uploadedQueue.update(queue => queue.map(i => {
+      if (i.id === item.id) {
+        const details = i.scheduleDetails || { offerName: '', startDate: '', endDate: '' };
+        return {
+          ...i,
+          isScheduled: true,
+          scheduleDetails: { ...details, startDate: value }
+        };
+      }
+      return i;
+    }));
+  }
+
+  getItemEndDate(item: QueueItem): string {
+    return item.scheduleDetails?.endDate ?? '';
+  }
+
+  setItemEndDate(item: QueueItem, value: string): void {
+    this.uploadedQueue.update(queue => queue.map(i => {
+      if (i.id === item.id) {
+        const details = i.scheduleDetails || { offerName: '', startDate: '', endDate: '' };
+        return {
+          ...i,
+          isScheduled: true,
+          scheduleDetails: { ...details, endDate: value }
+        };
+      }
+      return i;
+    }));
+  }
+
+  isAllQueueScheduled(): boolean {
+    const q = this.uploadedQueue();
+    return q.length > 0 && q.every(i => i.isScheduled);
+  }
+
+  toggleAllQueueSchedule(e: Event): void {
+    const checked = (e.target as HTMLInputElement).checked;
+    this.uploadedQueue.update(queue => queue.map(item => ({
+      ...item,
+      isScheduled: checked,
+      scheduleDetails: checked ? (item.scheduleDetails || { ...this.masterSchedule }) : item.scheduleDetails
+    })));
   }
 
   createCanvasMockFile(filename: string, width: number, height: number): File {
@@ -910,27 +1242,21 @@ export class AssetUploaderComponent implements OnInit {
   toggleSelectAll(): void {
     const filtered = this.filteredAssetGroups();
     if (this.isAllFilteredSelected()) {
-      // Unselect all filtered
       const filteredIds = filtered.map(ag => ag.id);
       this.selectedAssetGroups.update(prev => prev.filter(id => !filteredIds.includes(id)));
     } else {
-      // Select all filtered
       const currentSelected = this.selectedAssetGroups();
       const nextSelected = Array.from(new Set([...currentSelected, ...filtered.map(ag => ag.id)]));
       this.selectedAssetGroups.set(nextSelected);
     }
   }
 
-  toggleProtectedAsset(assetId: string): void {
-    const group = this.activeViewerGroup();
-    const assets = this.stateService.campaignAssets()[group] || [];
-    const updated = assets.map(asset => {
-      if (asset.id === assetId) {
-        return { ...asset, isProtected: !asset.isProtected };
-      }
-      return asset;
-    });
-    this.stateService.updateAssets(group, updated);
+  toggleAccountWideProtection(asset: CampaignAsset): void {
+    const nextState = !asset.isProtected;
+    this.stateService.toggleAssetProtection(asset.id, nextState);
+    if (asset.url) {
+      this.stateService.toggleAssetProtection(asset.url, nextState);
+    }
   }
 
   simulateScheduleTimeout(assetId: string): void {
@@ -941,7 +1267,6 @@ export class AssetUploaderComponent implements OnInit {
 
     const fallbackAssetId = assetToTimeout.scheduledTiming.fallbackAssetId;
     
-    // Create mock previous asset details
     const fallbackMockAsset: CampaignAsset = {
       id: fallbackAssetId,
       name: 'DogFood_OldFallback_Restored',
@@ -952,7 +1277,6 @@ export class AssetUploaderComponent implements OnInit {
       uploadDate: new Date().toISOString().split('T')[0]
     };
 
-    // Replace timed out promo asset with fallback one
     const updated = groupAssets.map(asset => {
       if (asset.id === assetId) return fallbackMockAsset;
       return asset;
@@ -961,10 +1285,9 @@ export class AssetUploaderComponent implements OnInit {
     this.stateService.updateAssets(group, updated);
     this.stateService.updateAssetGroupImageCount(group, updated.length);
 
-    // Log the automatic fallback sync
     this.stateService.addLog({
       id: `log-fallback-${Date.now()}`,
-      date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      date: new Date().toISOString(),
       campaignName: this.stateService.assetGroups().find(g => g.id === group)?.campaignName || 'Retailer_Campaign',
       assetGroupName: this.stateService.assetGroups().find(g => g.id === group)?.name || 'Asset Group',
       replacedAsset: { name: assetToTimeout.name, url: assetToTimeout.url },
@@ -993,50 +1316,67 @@ export class AssetUploaderComponent implements OnInit {
       for (const item of queue) {
         let fileToken = item.id;
         
-        // If rawFile is attached, upload file to backend for dimension validation
         if (item.rawFile) {
           const uploadRes = await this.apiService.uploadImage(item.rawFile);
           fileToken = uploadRes.file_token;
         }
 
-        // Call backend assign API to mutate Google Ads Asset & AssetGroupAsset
-        const assignRes = await this.apiService.assignAsset(fileToken, selectedGroups);
+        const startDate = item.isScheduled && item.scheduleDetails?.startDate ? item.scheduleDetails.startDate : undefined;
+        const endDate = item.isScheduled && item.scheduleDetails?.endDate ? item.scheduleDetails.endDate : undefined;
+
+        const assignRes = await this.apiService.assignAsset(
+          fileToken,
+          selectedGroups,
+          this.selectedAccountId(),
+          startDate,
+          endDate
+        );
 
         selectedGroups.forEach(groupId => {
           const currentGroup = this.stateService.assetGroups().find(g => g.id === groupId);
           const groupAssets = [...(this.stateService.campaignAssets()[groupId] || [])];
           if (!currentGroup) return;
 
+          // Fresh newly uploaded image has NO performance metrics (Pending score, 0 KPI)
           const freshAsset: CampaignAsset = {
             id: `asset-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             name: item.name,
             url: item.url,
-            performanceScore: 'Best',
-            kpiValue: 4.8,
-            isProtected: false,
-            uploadDate: new Date().toISOString().split('T')[0]
+            performanceScore: 'Pending',
+            kpiValue: 0,
+            isProtected: item.isProtected,
+            uploadDate: new Date().toISOString().split('T')[0],
+            scheduledTiming: item.isScheduled && item.scheduleDetails ? {
+              id: `sched-${Date.now()}`,
+              startDate: item.scheduleDetails.startDate,
+              endDate: item.scheduleDetails.endDate,
+              offerName: item.scheduleDetails.offerName,
+              fallbackAssetId: `fallback-${Date.now()}`
+            } : undefined
           };
           groupAssets.push(freshAsset);
 
           this.stateService.updateAssets(groupId, groupAssets);
-          this.stateService.updateAssetGroupImageCount(groupId, groupAssets.length);
 
           const resultAg = assignRes.results?.find(r => r.asset_group_id === groupId);
           const arnInfo = resultAg ? ` (Resource: ${resultAg.asset_resource_name})` : '';
 
           this.stateService.addLog({
             id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            date: new Date().toISOString(),
             campaignName: currentGroup.campaignName,
             assetGroupName: currentGroup.name,
             replacedAsset: null,
             newAsset: { name: freshAsset.name, url: freshAsset.url },
-            reason: 'Manual',
-            kpiMetric: `Google Ads API Mutation Executed successfully${arnInfo}.`,
+            reason: item.isScheduled ? 'Special Offer' : 'Manual',
+            kpiMetric: `Pending API metrics. Google Ads API Mutation executed successfully${arnInfo}.`,
             status: 'Success'
           });
         });
       }
+
+      // Re-fetch live asset groups from Google Ads API to update Current Slots from live account
+      await this.reloadAssetGroups(this.selectedAccountId());
 
       this.uploadedQueue.set([]);
       this.syncStatus.set({
@@ -1051,6 +1391,44 @@ export class AssetUploaderComponent implements OnInit {
         type: 'error'
       });
     }
+  }
+
+  formatLocalTimestamp(isoOrDateStr: string): string {
+    if (!isoOrDateStr) return '-';
+    try {
+      const d = new Date(isoOrDateStr);
+      if (isNaN(d.getTime())) return isoOrDateStr;
+      return d.toLocaleString();
+    } catch {
+      return isoOrDateStr;
+    }
+  }
+
+  exportLogsCsv(): void {
+    const logs = this.stateService.replacementLogs();
+    if (!logs || logs.length === 0) return;
+
+    let csvContent = 'data:text/csv;charset=utf-8,Date,Campaign,Asset Group,Evicted Asset,New Asset,Trigger,Status\n';
+    logs.forEach(l => {
+      const row = [
+        `"${this.formatLocalTimestamp(l.date)}"`,
+        `"${l.campaignName}"`,
+        `"${l.assetGroupName}"`,
+        `"${l.replacedAsset?.name || 'None'}"`,
+        `"${l.newAsset.name}"`,
+        `"${l.reason}"`,
+        `"${l.status}"`
+      ].join(',');
+      csvContent += row + '\n';
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `adios_sync_logs_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   getSyncMessageClass(): string {

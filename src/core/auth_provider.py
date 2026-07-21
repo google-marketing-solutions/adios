@@ -7,10 +7,34 @@ Google Ads API, Content API for Shopping, and Google Cloud APIs.
 
 import os
 import logging
+from pathlib import Path
 from typing import Any, Dict
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger("adios.core.auth_provider")
+
+
+def _load_config_txt_env() -> None:
+    """Auto-loads environment variables from config.txt in workspace root if not already set."""
+    root_dir = Path(__file__).resolve().parent.parent.parent
+    config_file = root_dir / "config.txt"
+    if config_file.is_file():
+        try:
+            with open(config_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, val = line.split("=", 1)
+                    key = key.strip()
+                    val = val.strip().strip('"').strip("'")
+                    if key and key not in os.environ:
+                        os.environ[key] = val
+        except Exception as e:
+            logger.warning(f"Could not load {config_file}: {e}")
+
+
+_load_config_txt_env()
 
 
 class GoogleAdsCredentials(BaseModel):

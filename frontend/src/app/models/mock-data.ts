@@ -13,11 +13,11 @@ export const mockCampaigns: Campaign[] = [
 ];
 
 export const mockAssetGroups: AssetGroup[] = [
-  { id: 'ag1', name: 'Premium Dog Food - Wet & Dry', campaignId: 'c1', campaignName: 'Store_DE_PMax_Brand_2026', account: 'Retailer DE', imageCount: 18, maxImages: 20, currentKpiMetric: 'ctr' },
-  { id: 'ag2', name: 'Puppy Starter Bundles', campaignId: 'c2', campaignName: 'Store_AT_PMax_Generic_Dogs', account: 'Retailer AT', imageCount: 20, maxImages: 20, currentKpiMetric: 'ctr' },
-  { id: 'ag3', name: 'Nano Aquariums & Aquascaping', campaignId: 'c3', campaignName: 'Store_CH_PMax_Generic_Aquatics', account: 'Retailer CH', imageCount: 15, maxImages: 20, currentKpiMetric: 'conversions' },
-  { id: 'ag4', name: 'Cat Tree & Scratching Posts', campaignId: 'c1', campaignName: 'Store_DE_PMax_Brand_2026', account: 'Retailer DE', imageCount: 20, maxImages: 20, currentKpiMetric: 'impressions' },
-  { id: 'ag5', name: 'Summer Special - Dog Pools', campaignId: 'c4', campaignName: 'Store_DE_Seasonal_SummerSale', account: 'Retailer DE', imageCount: 12, maxImages: 20, currentKpiMetric: 'value' }
+  { id: 'ag1', name: 'Premium Dog Food - Wet & Dry', campaignId: 'c1', campaignName: 'Store_DE_PMax_Brand_2026', account: 'Retailer DE', imageCount: 3, maxImages: 20, currentKpiMetric: 'ctr' },
+  { id: 'ag2', name: 'Puppy Starter Bundles', campaignId: 'c2', campaignName: 'Store_AT_PMax_Generic_Dogs', account: 'Retailer AT', imageCount: 2, maxImages: 20, currentKpiMetric: 'ctr' },
+  { id: 'ag3', name: 'Nano Aquariums & Aquascaping', campaignId: 'c3', campaignName: 'Store_CH_PMax_Generic_Aquatics', account: 'Retailer CH', imageCount: 2, maxImages: 20, currentKpiMetric: 'conversions' },
+  { id: 'ag4', name: 'Cat Tree & Scratching Posts', campaignId: 'c1', campaignName: 'Store_DE_PMax_Brand_2026', account: 'Retailer DE', imageCount: 2, maxImages: 20, currentKpiMetric: 'impressions' },
+  { id: 'ag5', name: 'Summer Special - Dog Pools', campaignId: 'c4', campaignName: 'Store_DE_Seasonal_SummerSale', account: 'Retailer DE', imageCount: 1, maxImages: 20, currentKpiMetric: 'value' }
 ];
 
 // Existing assets inside each asset group to mock the replace functionality

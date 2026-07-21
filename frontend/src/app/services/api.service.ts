@@ -174,14 +174,22 @@ export class ApiService {
     return response.json();
   }
 
-  async assignAsset(fileToken: string, assetGroupIds: string[], customerId?: string): Promise<AssignResponse> {
+  async assignAsset(
+    fileToken: string,
+    assetGroupIds: string[],
+    customerId?: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<AssignResponse> {
     const response = await fetch('/v1/campaign/assign', {
       method: 'POST',
       headers: this.getHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         file_token: fileToken,
         asset_group_ids: assetGroupIds,
-        customer_id: customerId || '9044713567'
+        customer_id: customerId || '9044713567',
+        start_date: startDate || null,
+        end_date: endDate || null
       })
     });
 

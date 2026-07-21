@@ -476,3 +476,30 @@ button:disabled {
 .gap-1\.5 { gap: 6px; }
 .gap-2\.5 { gap: 10px; }
 .gap-3 { gap: 12px; }
+
+/* Angular Material Custom Target Account Select Styles */
+.account-mat-form-field {
+  display: block;
+  margin-bottom: -1.25em;
+}
+.account-mat-form-field .mat-mdc-text-field-wrapper {
+  background-color: #ffffff !important;
+  border-radius: 6px !important;
+  height: 38px !important;
+  padding: 0 10px !important;
+}
+.account-mat-form-field .mat-mdc-form-field-infix {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  min-height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+.account-mat-form-field .mat-mdc-select-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3c4043;
+}
+.account-select-panel {
+  max-height: 320px !important;
+}

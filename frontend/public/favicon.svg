@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="adFaviconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A73E8"/>
+      <stop offset="50%" stop-color="#128C7E"/>
+      <stop offset="100%" stop-color="#1E8E3E"/>
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="116" ry="116" fill="url(#adFaviconGradient)"/>
+  <text x="256" y="324" font-family="-apple-system, BlinkMacSystemFont, 'Google Sans', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="240" font-weight="800" fill="#FFFFFF" text-anchor="middle">Ad</text>
+</svg>

@@ -19,7 +19,6 @@ import {
   mockAssetGroups, 
   mockCampaignAssets, 
   mockMerchantProducts, 
-  mockReplacementLogs, 
   mockSpellingErrors, 
   defaultCategoryPresets 
 } from '../models/mock-data';
@@ -36,9 +35,15 @@ export class CampaignStateService {
   readonly assetGroups = signal<AssetGroup[]>([]);
   readonly campaignAssets = signal<Record<string, CampaignAsset[]>>(mockCampaignAssets);
   readonly merchantProducts = signal<MerchantProduct[]>(mockMerchantProducts);
-  readonly replacementLogs = signal<ReplacementLog[]>(mockReplacementLogs);
+  readonly replacementLogs = signal<ReplacementLog[]>([]);
   readonly spellingErrors = signal<SpellingError[]>(mockSpellingErrors);
   readonly presets = signal<CategoryPreset[]>(defaultCategoryPresets);
+
+  // Configuration & Active Filters State
+  readonly supportedFormats = signal<string[]>(['.jpg', '.jpeg', '.png']);
+  readonly onlyActiveCampaigns = signal<boolean>(false);
+  readonly onlyActiveAssetGroups = signal<boolean>(false);
+  readonly accountSearchQuery = signal<string>('');
 
   // Selection state
   readonly selectedCampaign = signal<Campaign>(mockCampaigns[0]);
@@ -53,6 +58,44 @@ export class CampaignStateService {
     const group = this.selectedAssetGroup();
     return group ? (this.campaignAssets()[group.id] || []) : [];
   });
+
+  // Account-wide Protected Assets Set (computed across all asset groups)
+  readonly accountProtectedAssets = computed(() => {
+    const protectedMap = new Map<string, CampaignAsset>();
+    const allGroupsAssets = this.campaignAssets();
+    for (const groupKey of Object.keys(allGroupsAssets)) {
+      for (const asset of allGroupsAssets[groupKey]) {
+        if (asset.isProtected) {
+          protectedMap.set(asset.id, asset);
+          if (asset.url) {
+            protectedMap.set(asset.url, asset);
+          }
+        }
+      }
+    }
+    return protectedMap;
+  });
+
+  // Actions / Reducers
+  setSupportedFormats(formats: string[]): void {
+    this.supportedFormats.set(formats);
+  }
+
+  toggleAssetProtection(assetIdentifier: string, isProtected: boolean): void {
+    // Account-wide protection toggle: updates asset across ALL asset groups
+    this.campaignAssets.update(prevMap => {
+      const updatedMap: Record<string, CampaignAsset[]> = {};
+      for (const groupKey of Object.keys(prevMap)) {
+        updatedMap[groupKey] = prevMap[groupKey].map(asset => {
+          if (asset.id === assetIdentifier || asset.url === assetIdentifier) {
+            return { ...asset, isProtected };
+          }
+          return asset;
+        });
+      }
+      return updatedMap;
+    });
+  }
 
   // Actions / Reducers
   setAssetGroups(groups: AssetGroup[]): void {

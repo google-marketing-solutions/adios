@@ -199,3 +199,18 @@ def test_health_check_endpoint(client: TestClient) -> None:
 - [Inference Aware Context](_agents/rules/inference-aware-context.md)
 - [Verification Loop](_agents/rules/verification-loop.md)
 - [Subagent Orchestration](_agents/rules/subagent-orchestration.md)
+
+# Google Ads API Integration Standards
+
+When implementing calls or mutations against the Google Ads API, strictly follow these requirements:
+
+## Authentication & Header Requirements
+* **Manager (MCC) Customer ID Header (`login-customer-id`)**:
+  * Always set the Manager (MCC) Account ID (`GOOGLE_ADS_MCC_CUSTOMER_ID` in `config.txt`, e.g., `1234567890`) as the `login_customer_id` header when accessing or mutating resources in client customer accounts.
+  * **Never** set a client customer account ID as the `login_customer_id` header in MCC hierarchy environments; doing so triggers `USER_PERMISSION_DENIED` authorization errors.
+  * Always instantiate `GoogleAdsClient` via `default_auth_provider.get_google_ads_client(user_access_token=..., include_login_customer_id=True)`.
+
+## Error Handling & Batch Operations
+* **Error Formatting**: Always extract human-readable error messages from `GoogleAdsException` or gRPC errors using `_format_google_ads_error()` before returning HTTP errors to ensure full visibility into API validation issues.
+* **Partial Failure Support**: Always set `partial_failure=True` on request objects (e.g. `MutateAssetGroupAssetsRequest(customer_id=..., partial_failure=True)`) when executing batch mutations via `mutate_asset_group_assets(request=...)` so valid sub-operations succeed even if individual target items fail validation.
+* **Minimum Asset Group Requirements**: Remember that Google Ads API enforces minimum asset composition rules (3 headlines, 1 long headline, 1 description, 1 square image) on Performance Max asset groups before allowing asset linking.
