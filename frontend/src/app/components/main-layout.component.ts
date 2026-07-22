@@ -43,13 +43,10 @@ import { ProtectedAssetsComponent } from '../campaign/protected-assets.component
         <main class="workspace-content h-full w-full">
           @switch (stateService.activeSection()) {
             @case ('uploader') {
-              <app-asset-uploader [mode]="'uploader'"></app-asset-uploader>
+              <app-asset-uploader></app-asset-uploader>
             }
             @case ('protection') {
               <app-protected-assets></app-protected-assets>
-            }
-            @case ('sovereign-guard') {
-              <app-asset-uploader [mode]="'sovereign-guard'"></app-asset-uploader>
             }
             @case ('background') {
               <app-background-studio></app-background-studio>

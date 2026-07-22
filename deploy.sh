@@ -72,6 +72,8 @@ echo "GCP Region : ${bold}${GCP_REGION}${normal}"
 echo "Registry   : ${bold}${REPO_NAME}${normal}"
 echo "Backend    : ${bold}${BACKEND_SERVICE}${normal}"
 echo "Frontend   : ${bold}${FRONTEND_SERVICE}${normal}"
+echo "Firestore  : ${bold}${FIRESTORE_DATABASE_ID:-"(default)"}${normal}"
+echo "GCS Bucket : ${bold}${GCS_BUCKET:-}${normal}"
 echo "=========================================================================="
 echo "Proceeding in 5 seconds... Press Ctrl+C to cancel."
 sleep 5
@@ -99,6 +101,32 @@ else
   log "Repository '${REPO_NAME}' already exists."
 fi
 
+if [ -n "${GCS_BUCKET:-}" ]; then
+  log "Checking GCS Bucket gs://${GCS_BUCKET}..."
+  if ! gcloud storage buckets describe "gs://${GCS_BUCKET}" --project="${GCP_PROJECT}" &>/dev/null; then
+    log "Creating GCS Bucket '${GCS_BUCKET}' in region '${GCP_REGION}'..."
+    gcloud storage buckets create "gs://${GCS_BUCKET}" \
+      --project="${GCP_PROJECT}" \
+      --location="${GCP_REGION}" \
+      --uniform-bucket-level-access
+  else
+    log "GCS Bucket '${GCS_BUCKET}' already exists."
+  fi
+fi
+
+if [ -n "${FIRESTORE_DATABASE_ID:-}" ]; then
+  log "Checking Firestore Database '${FIRESTORE_DATABASE_ID}'..."
+  if ! gcloud firestore databases describe --database="${FIRESTORE_DATABASE_ID}" --project="${GCP_PROJECT}" &>/dev/null; then
+    log "Creating Firestore Native Database '${FIRESTORE_DATABASE_ID}' in region '${GCP_REGION}'..."
+    gcloud firestore databases create --database="${FIRESTORE_DATABASE_ID}" \
+      --project="${GCP_PROJECT}" \
+      --location="${GCP_REGION}" \
+      --edition=standard
+  else
+    log "Firestore Database '${FIRESTORE_DATABASE_ID}' already exists."
+  fi
+fi
+
 # Define full image paths
 BACKEND_IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_NAME}/${BACKEND_SERVICE}:latest"
 FRONTEND_IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO_NAME}/${FRONTEND_SERVICE}:latest"
@@ -114,7 +142,7 @@ gcloud run deploy "${BACKEND_SERVICE}" \
   --region "${GCP_REGION}" \
   --allow-unauthenticated \
   --port 8080 \
-  --set-env-vars "GCP_PROJECT_ID=${GCP_PROJECT},GOOGLE_LOGIN_CLIENT_ID=${GOOGLE_LOGIN_CLIENT_ID:-},GOOGLE_LOGIN_CLIENT_SECRET=${GOOGLE_LOGIN_CLIENT_SECRET:-},GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN:-},GOOGLE_ADS_MCC_CUSTOMER_ID=${GOOGLE_ADS_MCC_CUSTOMER_ID:-${GOOGLE_ADS_CUSTOMER_ID:-}}" \
+  --set-env-vars "GCP_PROJECT_ID=${GCP_PROJECT},GOOGLE_LOGIN_CLIENT_ID=${GOOGLE_LOGIN_CLIENT_ID:-},GOOGLE_LOGIN_CLIENT_SECRET=${GOOGLE_LOGIN_CLIENT_SECRET:-},GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN:-},GOOGLE_ADS_MCC_CUSTOMER_ID=${GOOGLE_ADS_MCC_CUSTOMER_ID:-${GOOGLE_ADS_CUSTOMER_ID:-}},FIRESTORE_DATABASE_ID=${FIRESTORE_DATABASE_ID:-},GCS_BUCKET=${GCS_BUCKET:-}" \
   --project="${GCP_PROJECT}"
 
 # Retrieve Backend Service URL

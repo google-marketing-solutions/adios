@@ -252,15 +252,6 @@ export class SidebarComponent {
       activeBorderClass: 'border-protection-active',
     },
     {
-      id: 'sovereign-guard',
-      route: '/sovereign-guard',
-      label: 'Sovereign Guard',
-      description: 'Account-wide protected asset lock list',
-      icon: 'security',
-      activeColorClass: 'icon-spell-active',
-      activeBorderClass: 'border-spell-active',
-    },
-    {
       id: 'background',
       route: '/background-studio',
       label: 'AI Background Studio',

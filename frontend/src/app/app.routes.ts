@@ -30,13 +30,6 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
   {
-    path: 'sovereign-guard',
-    component: MainLayoutComponent,
-    canActivate: [authGuard],
-    data: { section: 'sovereign-guard' },
-    title: 'Sovereign Guard | Adios 2.0'
-  },
-  {
     path: 'background-studio',
     component: MainLayoutComponent,
     canActivate: [authGuard],

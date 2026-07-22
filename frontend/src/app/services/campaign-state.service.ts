@@ -59,23 +59,6 @@ export class CampaignStateService {
     return group ? (this.campaignAssets()[group.id] || []) : [];
   });
 
-  // Account-wide Protected Assets Set (computed across all asset groups)
-  readonly accountProtectedAssets = computed(() => {
-    const protectedMap = new Map<string, CampaignAsset>();
-    const allGroupsAssets = this.campaignAssets();
-    for (const groupKey of Object.keys(allGroupsAssets)) {
-      for (const asset of allGroupsAssets[groupKey]) {
-        if (asset.isProtected) {
-          protectedMap.set(asset.id, asset);
-          if (asset.url) {
-            protectedMap.set(asset.url, asset);
-          }
-        }
-      }
-    }
-    return protectedMap;
-  });
-
   // Actions / Reducers
   setSupportedFormats(formats: string[]): void {
     this.supportedFormats.set(formats);

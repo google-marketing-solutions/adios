@@ -30,9 +30,11 @@ class GCPConfig:
         project_id: str | None = None,
         location: str | None = None,
         gcs_bucket: str | None = None,
+        firestore_database_id: str | None = None,
     ) -> None:
         self.project_id = project_id or os.getenv("GCP_PROJECT_ID", "adios-2026-prod")
-        self.gcs_bucket = gcs_bucket or os.getenv("GCS_ASSET_BUCKET", "adios-assets-eu")
+        self.gcs_bucket = gcs_bucket or os.getenv("GCS_BUCKET", "adios-assets-eu")
+        self.firestore_database_id = firestore_database_id or os.getenv("FIRESTORE_DATABASE_ID", "(default)")
 
         raw_location = location or os.getenv("GCP_LOCATION", DEFAULT_EU_REGION)
         self.location = self.validate_region(raw_location)

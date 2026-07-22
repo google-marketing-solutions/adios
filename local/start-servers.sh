@@ -13,6 +13,13 @@ echo "Starting Adios 2.0 Development Orchestrator"
 echo "Repository Root: ${REPO_DIR}"
 echo "=========================================================================="
 
+if [ -f "config.txt" ]; then
+  echo "Loading environment variables from config.txt..."
+  set -a
+  source "config.txt"
+  set +a
+fi
+
 # Check if python dependencies are installed
 if [ ! -f "requirements.txt" ]; then
   echo "Error: requirements.txt not found!"
@@ -34,7 +41,7 @@ cleanup() {
   exit 0
 }
 
-trap cleanup SIGINT SIGTERM EXIT
+trap cleanup SIGINT SIGTERM
 
 # Start backend FastAPI server
 echo "Starting FastAPI Backend on http://localhost:8000..."

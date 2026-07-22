@@ -26,8 +26,8 @@ export interface AssetGroupItem {
   campaign_id: string;
   campaign_name: string;
   status: string;
-  square_count: number;
-  square_capacity: number;
+  total_image_count: number;
+  total_image_capacity: number;
   landscape_count: number;
   landscape_capacity: number;
   portrait_count: number;
@@ -65,11 +65,29 @@ export interface ImageUploadResponse {
   aspect_ratio: number;
 }
 
+export interface SwapRules {
+  lookback_window: string;
+  custom_lookback_days?: number | null;
+  min_impressions?: number | null;
+  min_clicks?: number | null;
+  eviction_kpi: string;
+}
+
+export interface EvictedAssetInfo {
+  asset_id: string;
+  name: string;
+  url: string;
+  kpi_metric: string;
+  kpi_value: number;
+}
+
 export interface AssignmentResult {
   asset_group_id: string;
   status: string;
   asset_resource_name: string;
   asset_group_asset_resource_name: string;
+  evicted_asset?: EvictedAssetInfo | null;
+  error_message?: string | null;
 }
 
 export interface AssignResponse {
@@ -229,7 +247,8 @@ export class ApiService {
     assetGroupIds: string[],
     customerId?: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    swapRules?: SwapRules
   ): Promise<AssignResponse> {
     const response = await fetch('/v1/campaign/assign', {
       method: 'POST',
@@ -239,7 +258,8 @@ export class ApiService {
         asset_group_ids: assetGroupIds,
         customer_id: customerId || '9044713567',
         start_date: startDate || null,
-        end_date: endDate || null
+        end_date: endDate || null,
+        swap_rules: swapRules || null
       })
     });
 

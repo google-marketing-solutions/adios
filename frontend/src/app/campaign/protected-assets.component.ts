@@ -449,8 +449,8 @@ export class ProtectedAssetsComponent implements OnInit {
         campaignId: ag.campaign_id,
         campaignName: ag.campaign_name,
         account: `Google Ads Account (${customerId})`,
-        imageCount: ag.square_count || 0,
-        maxImages: ag.square_capacity || 20,
+        imageCount: ag.total_image_count || 0,
+        maxImages: ag.total_image_capacity || 20,
         currentKpiMetric: 'ctr'
       }));
       this.stateService.setAssetGroups(formattedGroups);

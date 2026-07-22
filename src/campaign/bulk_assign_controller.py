@@ -21,16 +21,23 @@ from src.campaign.aspect_ratio_validator import (
     UnsupportedAspectRatioError,
     inspect_image_aspect_ratio,
 )
-from src.campaign.schedule_store import ScheduledJob, ScheduledJobStatus, schedule_store
 from src.campaign.scheduler import process_scheduled_jobs
+from src.campaign.kpi_eviction_service import KPIEvictionService, SwapRules, EvictedAssetInfo
 from src.core.auth_provider import default_auth_provider
+from src.core.gcs_service import default_gcs_service
+from src.core.firestore_service import (
+    default_firestore_service,
+    AssetDocument,
+    LinkOperationDocument,
+    OperationType,
+    OperationStatus,
+    ScheduledJobDocument,
+    ScheduledJobStatus as FirestoreJobStatus,
+)
 
 logger = logging.getLogger("adios.campaign.bulk_assign_controller")
 
 router = APIRouter(prefix="/v1/campaign", tags=["Campaign & Asset Groups"])
-
-# In-memory storage for uploaded file session tokens in this vertical slice
-_UPLOAD_CACHE: dict[str, dict] = {}
 
 
 def _extract_bearer_token(authorization: str | None) -> str | None:
@@ -53,13 +60,11 @@ def _clean_asset_group_error_message(err_str: str) -> str:
     return err_str
 
 
-def _extract_partial_failure_details(g_client: Any, status_err: Any) -> list[str]:
-    """Extracts human-readable error messages from google.rpc.Status partial_failure_error."""
-    messages: list[str] = []
+def _extract_partial_failure_details(g_client: Any, status_err: Any) -> dict[int, str]:
+    """Extracts human-readable error messages mapped by operation index from google.rpc.Status."""
+    op_errors: dict[int, str] = {}
     if not status_err:
-        return messages
-    if getattr(status_err, "message", None):
-        messages.append(status_err.message)
+        return op_errors
 
     for detail in getattr(status_err, "details", []):
         try:
@@ -67,20 +72,58 @@ def _extract_partial_failure_details(g_client: Any, status_err: Any) -> list[str
             failure_pb = failure._pb if hasattr(failure, "_pb") else failure
             detail.Unpack(failure_pb)
             for err in failure_pb.errors:
-                if getattr(err, "message", None):
-                    messages.append(err.message)
+                op_idx = None
+                if hasattr(err, "location") and err.location.field_path_elements:
+                    first_element = err.location.field_path_elements[0]
+                    if getattr(first_element, "field_name", "") == "operations" and hasattr(first_element, "index"):
+                        op_idx = first_element.index
+                
+                if op_idx is not None and err.message:
+                    error_code_str = ""
+                    if hasattr(err, "error_code"):
+                        from unittest.mock import MagicMock
+                        if not isinstance(err.error_code, MagicMock):
+                            err_code_pb = err.error_code._pb if hasattr(err.error_code, "_pb") else err.error_code
+                            if hasattr(err_code_pb, "WhichOneof"):
+                                oneof_type = err_code_pb.WhichOneof("error_code")
+                                if isinstance(oneof_type, str):
+                                    enum_val = getattr(err.error_code, oneof_type)
+                                    if hasattr(enum_val, "name"):
+                                        error_code_str = f" [{enum_val.name}]"
+                                    else:
+                                        error_code_str = f" [{enum_val}]"
+                    
+                    op_errors[op_idx] = _clean_asset_group_error_message(err.message) + error_code_str
         except Exception:
             pass
-    return messages
+    return op_errors
 
 
 def _format_google_ads_error(err: Exception) -> str:
     """Extracts human-readable error messages from Google Ads API exception structures."""
     if hasattr(err, "failure") and getattr(err, "failure", None):
         try:
-            msgs = [e.message for e in err.failure.errors if getattr(e, "message", None)]
-            if msgs:
-                return _clean_asset_group_error_message(" | ".join(msgs))
+            msg_parts = []
+            for e in err.failure.errors:
+                msg = getattr(e, "message", None)
+                if msg:
+                    err_code_str = ""
+                    if hasattr(e, "error_code"):
+                        from unittest.mock import MagicMock
+                        if not isinstance(e.error_code, MagicMock):
+                            e_code_pb = e.error_code._pb if hasattr(e.error_code, "_pb") else e.error_code
+                            if hasattr(e_code_pb, "WhichOneof"):
+                                oneof_type = e_code_pb.WhichOneof("error_code")
+                                if isinstance(oneof_type, str):
+                                    enum_val = getattr(e.error_code, oneof_type)
+                                    if hasattr(enum_val, "name"):
+                                        err_code_str = f" [{enum_val.name}]"
+                                    else:
+                                        err_code_str = f" [{enum_val}]"
+                    msg_parts.append(f"{msg}{err_code_str}")
+            
+            if msg_parts:
+                return _clean_asset_group_error_message(" | ".join(msg_parts))
         except Exception:
             pass
     return _clean_asset_group_error_message(str(err))
@@ -94,12 +137,12 @@ class AssetGroupItem(BaseModel):
     campaign_id: str = Field(..., description="Parent Campaign ID")
     campaign_name: str = Field(..., description="Parent Campaign Display Name")
     status: str = Field(default="ENABLED", description="Asset Group Status")
-    square_count: int = Field(default=0, description="Currently linked square images")
-    square_capacity: int = Field(default=20, description="Square image slot limit")
+    total_image_count: int = Field(default=0, description="Currently linked images across all types")
+    total_image_capacity: int = Field(default=20, description="Total combined image slot limit")
     landscape_count: int = Field(default=0, description="Currently linked landscape images")
     landscape_capacity: int = Field(default=20, description="Landscape image slot limit")
     portrait_count: int = Field(default=0, description="Currently linked portrait images")
-    portrait_capacity: int = Field(default=5, description="Portrait image slot limit")
+    portrait_capacity: int = Field(default=20, description="Portrait image slot limit")
 
 
 class AssetGroupListResponse(BaseModel):
@@ -149,6 +192,7 @@ class AssignRequest(BaseModel):
     customer_id: str = Field(default="9941182026", description="Google Ads Customer ID (without hyphens)")
     start_date: str | None = Field(default=None, description="Optional ISO start date (YYYY-MM-DD)")
     end_date: str | None = Field(default=None, description="Optional ISO end date (YYYY-MM-DD)")
+    swap_rules: SwapRules | None = Field(default=None, description="Optional KPI-based eviction and rotation rules")
 
 
 class AssignmentResult(BaseModel):
@@ -158,38 +202,14 @@ class AssignmentResult(BaseModel):
     status: str
     asset_resource_name: str
     asset_group_asset_resource_name: str
-
-
-PROTECTED_ASSETS_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "protected_assets.json",
-)
-
-
-def load_protection_registry() -> dict[str, bool]:
-    try:
-        if os.path.exists(PROTECTED_ASSETS_FILE):
-            with open(PROTECTED_ASSETS_FILE) as f:
-                data = json.load(f)
-                if isinstance(data, dict):
-                    return {str(k): bool(v) for k, v in data.items()}
-    except Exception as err:
-        logger.warning(f"Failed to load protection registry from {PROTECTED_ASSETS_FILE}: {err}")
-    return {}
-
-
-def save_protection_registry(registry: dict[str, bool]) -> None:
-    try:
-        os.makedirs(os.path.dirname(PROTECTED_ASSETS_FILE), exist_ok=True)
-        with open(PROTECTED_ASSETS_FILE, "w") as f:
-            json.dump(registry, f, indent=2)
-    except Exception as err:
-        logger.warning(f"Failed to save protection registry to {PROTECTED_ASSETS_FILE}: {err}")
+    evicted_asset: EvictedAssetInfo | None = None
+    error_message: str | None = None
 
 
 class ToggleProtectionRequest(BaseModel):
     asset_id: str
     is_protected: bool
+    customer_id: str | None = None
 
 
 class ToggleProtectionResponse(BaseModel):
@@ -219,15 +239,23 @@ class CampaignAssetListResponse(BaseModel):
     "/assets/toggle-protection",
     response_model=ToggleProtectionResponse,
     status_code=status.HTTP_200_OK,
-    summary="Toggle and persist asset protection state in local JSON registry",
+    summary="Toggle and persist asset protection state in Firestore",
 )
 async def toggle_asset_protection_endpoint(
     payload: ToggleProtectionRequest,
 ) -> ToggleProtectionResponse:
-    """Toggles and persists asset protection state in the local JSON registry."""
-    registry = load_protection_registry()
-    registry[payload.asset_id] = payload.is_protected
-    save_protection_registry(registry)
+    """Toggles and persists asset protection state in Firestore."""
+    creds = default_auth_provider.get_google_ads_credentials()
+    if payload.customer_id and payload.customer_id != "9941182026":
+        clean_customer_id = payload.customer_id.replace("-", "").strip()
+    else:
+        clean_customer_id = (creds.login_customer_id or "9044713567").replace("-", "").strip()
+
+    default_firestore_service.toggle_protection(
+        customer_id=clean_customer_id,
+        asset_id=payload.asset_id,
+        is_protected=payload.is_protected,
+    )
     return ToggleProtectionResponse(
         asset_id=payload.asset_id,
         is_protected=payload.is_protected,
@@ -266,7 +294,8 @@ async def get_campaign_assets(
             "asset_group_asset.status, asset.id, asset.name, "
             "asset.image_asset.full_size.url FROM asset_group_asset "
             "WHERE asset_group_asset.field_type IN "
-            "('MARKETING_IMAGE', 'SQUARE_MARKETING_IMAGE', 'PORTRAIT_MARKETING_IMAGE')"
+            "('MARKETING_IMAGE', 'SQUARE_MARKETING_IMAGE', 'PORTRAIT_MARKETING_IMAGE', 'TALL_PORTRAIT_MARKETING_IMAGE') "
+            "AND asset_group_asset.status = 'ENABLED'"
         )
 
         client_attempts: list[tuple[str, Any]] = []
@@ -300,7 +329,7 @@ async def get_campaign_assets(
         except Exception:
             pass
 
-        protection_registry = load_protection_registry()
+        protected_ids = set(default_firestore_service.get_protected_assets(clean_customer_id))
         last_err: Exception | None = None
         for mode, g_client in client_attempts:
             try:
@@ -331,10 +360,7 @@ async def get_campaign_assets(
                     url = row.asset.image_asset.full_size.url or ""
                     name = row.asset.name or f"Asset_{asset_id}"
                     
-                    if asset_id in protection_registry:
-                        is_protected = protection_registry[asset_id]
-                    else:
-                        is_protected = "_Protected" in name or name.endswith("_Protected")
+                    is_protected = asset_id in protected_ids
 
                     assets.append(
                         CampaignAssetItem(
@@ -596,25 +622,26 @@ async def get_asset_groups(
                 client_attempts.append(("mcc_header", c1))
             except Exception as e:
                 logger.warning(f"Could not build GoogleAdsClient with MCC header: {e}")
-        else:
-            if clean_customer_id:
-                try:
-                    c2 = default_auth_provider.get_google_ads_client(
-                        user_access_token=user_access_token,
-                        include_login_customer_id=True,
-                        login_customer_id_override=clean_customer_id,
-                    )
-                    client_attempts.append(("customer_header", c2))
-                except Exception:
-                    pass
+
+        if clean_customer_id and clean_customer_id != creds.login_customer_id:
             try:
-                c3 = default_auth_provider.get_google_ads_client(
+                c2 = default_auth_provider.get_google_ads_client(
                     user_access_token=user_access_token,
-                    include_login_customer_id=False,
+                    include_login_customer_id=True,
+                    login_customer_id_override=clean_customer_id,
                 )
-                client_attempts.append(("no_header", c3))
+                client_attempts.append(("customer_header", c2))
             except Exception:
                 pass
+
+        try:
+            c3 = default_auth_provider.get_google_ads_client(
+                user_access_token=user_access_token,
+                include_login_customer_id=False,
+            )
+            client_attempts.append(("no_header", c3))
+        except Exception:
+            pass
 
         last_err: Exception | None = None
         for mode, g_client in client_attempts:
@@ -644,7 +671,7 @@ async def get_asset_groups(
                         ft = ft_val.name if hasattr(ft_val, "name") else str(ft_val)
                         at_val = getattr(r.asset, "type", None)
                         at = at_val.name if hasattr(at_val, "name") else str(at_val)
-                        if at == "IMAGE" or ft in ("MARKETING_IMAGE", "SQUARE_MARKETING_IMAGE", "PORTRAIT_MARKETING_IMAGE", "LOGO", "LANDSCAPE_LOGO"):
+                        if ft in ("MARKETING_IMAGE", "SQUARE_MARKETING_IMAGE", "PORTRAIT_MARKETING_IMAGE", "TALL_PORTRAIT_MARKETING_IMAGE"):
                             image_type_counts[ag_id_str] = image_type_counts.get(ag_id_str, 0) + 1
 
                         if ft == "SQUARE_MARKETING_IMAGE":
@@ -670,11 +697,17 @@ async def get_asset_groups(
                             campaign_id=str(row.campaign.id),
                             campaign_name=row.campaign.name,
                             status=row.asset_group.status.name,
-                            square_count=tot_c,
+                            total_image_count=tot_c,
                             landscape_count=ls_c,
                             portrait_count=pt_c,
                         )
                     )
+                
+                if len(groups) == 0:
+                    logger.warning(f"No asset groups found for customer {clean_customer_id} using '{mode}' header strategy. Trying next fallback...")
+                    last_err = Exception("No Asset Groups found in this Google Ads account.")
+                    continue
+
                 logger.info(f"Successfully queried {len(groups)} asset groups for customer {clean_customer_id} using '{mode}' header strategy.")
                 return AssetGroupListResponse(
                     total_count=len(groups),
@@ -735,15 +768,22 @@ async def upload_image(file: UploadFile = File(...)) -> ImageUploadResponse:
         ) from val_err
 
     file_token = str(uuid.uuid4())
-    _UPLOAD_CACHE[file_token] = {
-        "filename": file.filename or "uploaded_image.png",
-        "bytes": contents,
-        "ratio_info": ratio_info,
-    }
+    filename = file.filename or "uploaded_image.png"
+    content_type = file.content_type or "image/png"
+    
+    try:
+        gcs_uri = default_gcs_service.upload_image(file_token, filename, content_type, contents)
+        logger.info(f"Uploaded {filename} to {gcs_uri}")
+    except Exception as err:
+        logger.error(f"Failed to upload image to GCS: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload image to GCS: {err}",
+        )
 
     return ImageUploadResponse(
         file_token=file_token,
-        filename=file.filename or "uploaded_image.png",
+        filename=filename,
         width=ratio_info.width,
         height=ratio_info.height,
         ratio_type=ratio_info.ratio_type,
@@ -763,33 +803,49 @@ async def assign_asset(
     authorization: str | None = Header(None),
 ) -> AssignResponse:
     """Creates Google Ads Image Asset and links it to target Asset Groups via Google Ads API."""
-    if payload.file_token not in _UPLOAD_CACHE:
+    try:
+        image_bytes, filename = default_gcs_service.download_image_by_token(payload.file_token)
+    except ValueError as val_err:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Upload session expired or token not found. Please upload the image again.",
+            detail=f"Image not found for token. Please upload again. Error: {val_err}",
+        ) from val_err
+    except Exception as err:
+        logger.error(f"Failed to download image from GCS: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download image from storage: {err}",
         )
 
-    upload_data = _UPLOAD_CACHE[payload.file_token]
-    ratio_info = upload_data["ratio_info"]
-    filename = upload_data["filename"]
-    image_bytes = upload_data["bytes"]
+    # Re-inspect to get ratio_info statelessly
+    try:
+        ratio_info = inspect_image_aspect_ratio(image_bytes)
+    except UnsupportedAspectRatioError as val_err:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(val_err),
+        ) from val_err
+
+    gcs_uri = f"gs://{default_gcs_service.config.gcs_bucket}/assets/{payload.file_token}_{filename}"
 
     clean_customer_id = payload.customer_id.replace("-", "").strip() if payload.customer_id else "9044713567"
     results: list[AssignmentResult] = []
 
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if payload.start_date and payload.start_date > today_str:
-        raw_b64 = base64.b64encode(image_bytes).decode("utf-8")
-        job = ScheduledJob(
+        job = ScheduledJobDocument(
+            job_id=str(uuid.uuid4()),
             customer_id=clean_customer_id,
             asset_group_ids=payload.asset_group_ids,
             asset_name=filename,
-            image_b64=raw_b64,
+            image_gcs_uri=gcs_uri,
             start_date=payload.start_date,
             end_date=payload.end_date or "",
-            status=ScheduledJobStatus.PENDING,
+            field_type=ratio_info.field_type,
+            status=FirestoreJobStatus.PENDING,
+            swap_rules=payload.swap_rules.model_dump() if payload.swap_rules else None,
         )
-        schedule_store.add_job(job)
+        default_firestore_service.create_scheduled_job(job)
         return AssignResponse(
             file_token=payload.file_token,
             field_type=ratio_info.field_type,
@@ -818,25 +874,26 @@ async def assign_asset(
             client_attempts.append(("mcc_header", c1))
         except Exception as e:
             logger.warning(f"Could not build GoogleAdsClient with MCC header: {e}")
-    else:
-        if clean_customer_id:
-            try:
-                c2 = default_auth_provider.get_google_ads_client(
-                    user_access_token=user_access_token,
-                    include_login_customer_id=True,
-                    login_customer_id_override=clean_customer_id,
-                )
-                client_attempts.append(("customer_header", c2))
-            except Exception:
-                pass
+
+    if clean_customer_id and clean_customer_id != creds.login_customer_id:
         try:
-            c3 = default_auth_provider.get_google_ads_client(
+            c2 = default_auth_provider.get_google_ads_client(
                 user_access_token=user_access_token,
-                include_login_customer_id=False,
+                include_login_customer_id=True,
+                login_customer_id_override=clean_customer_id,
             )
-            client_attempts.append(("no_header", c3))
+            client_attempts.append(("customer_header", c2))
         except Exception:
             pass
+
+    try:
+        c3 = default_auth_provider.get_google_ads_client(
+            user_access_token=user_access_token,
+            include_login_customer_id=False,
+        )
+        client_attempts.append(("no_header", c3))
+    except Exception:
+        pass
 
     last_err: Exception | None = None
     if creds.developer_token and creds.developer_token != "mock_developer_token_2026":
@@ -859,72 +916,252 @@ async def assign_asset(
                 created_asset_rn = asset_response.results[0].resource_name
 
                 # 2. Link Asset to each Asset Group via AssetGroupAssetOperation
-                aga_request = g_client.get_type("MutateAssetGroupAssetsRequest")
-                aga_request.customer_id = clean_customer_id
-                aga_request.partial_failure = True
+                atomic_requests = []
+                batch_add_request = g_client.get_type("MutateAssetGroupAssetsRequest")
+                batch_add_request.customer_id = clean_customer_id
+                batch_add_request.partial_failure = True
+                batch_add_metadata = []
+
                 for ag_id in payload.asset_group_ids:
-                    aga_op = g_client.get_type("AssetGroupAssetOperation")
-                    aga = aga_op.create
-                    aga.asset_group = f"customers/{clean_customer_id}/assetGroups/{ag_id}"
-                    aga.asset = created_asset_rn
-
-                    field_enum = getattr(g_client.enums.AssetFieldTypeEnum, ratio_info.field_type)
-                    aga.field_type = field_enum
-                    aga_request.operations.append(aga_op)
-
-                aga_response = asset_group_asset_service.mutate_asset_group_assets(request=aga_request)
-
-                linked_count = 0
-                for i, res in enumerate(aga_response.results):
-                    res_rn = getattr(res, "resource_name", "")
-                    if res_rn:
-                        linked_count += 1
+                    eviction_res = KPIEvictionService.get_operations_for_group(
+                        g_client=g_client,
+                        clean_customer_id=clean_customer_id,
+                        asset_group_id=ag_id,
+                        field_type=ratio_info.field_type,
+                        new_asset_resource_name=created_asset_rn,
+                        rules=payload.swap_rules
+                    )
+                    
+                    if eviction_res["status"] == "FAILED":
                         results.append(
                             AssignmentResult(
-                                asset_group_id=payload.asset_group_ids[i],
-                                status="SUCCESS",
-                                asset_resource_name=created_asset_rn,
-                                asset_group_asset_resource_name=res_rn,
-                            )
-                        )
-                    else:
-                        results.append(
-                            AssignmentResult(
-                                asset_group_id=payload.asset_group_ids[i],
+                                asset_group_id=ag_id,
                                 status="FAILED",
                                 asset_resource_name=created_asset_rn,
                                 asset_group_asset_resource_name="",
+                                error_message=eviction_res["error_message"]
+                            )
+                        )
+                        continue
+
+                    ops = eviction_res["operations"]
+                    if not ops:
+                        results.append(
+                            AssignmentResult(
+                                asset_group_id=ag_id,
+                                status="FAILED",
+                                asset_resource_name=created_asset_rn,
+                                asset_group_asset_resource_name="",
+                                error_message=eviction_res["error_message"] or "Asset is already linked to this Asset Group."
+                            )
+                        )
+                        continue
+
+                    evicted = eviction_res["evicted_asset"]
+                    
+                    op_types = [op_item["type"] for op_item in ops]
+                    if "remove" in op_types and "add" in op_types:
+                        # Atomic eviction: REMOVE and ADD for the same entity. 
+                        # Must use a separate request with partial_failure=False to ensure atomicity
+                        # and avoid Request-Wide limit check exceptions in Google Ads API.
+                        req = g_client.get_type("MutateAssetGroupAssetsRequest")
+                        req.customer_id = clean_customer_id
+                        req.partial_failure = False
+                        for op_item in ops:
+                            req.operations.append(op_item["proto"])
+                        atomic_requests.append((ag_id, req, evicted, op_types))
+                    else:
+                        # Pure ADD operation(s). Add to the shared batch partial_failure request.
+                        for op_item in ops:
+                            batch_add_request.operations.append(op_item["proto"])
+                        batch_add_metadata.append({
+                            "ag_id": ag_id,
+                            "op_types": op_types,
+                            "evicted_asset": evicted
+                        })
+
+                linked_count = 0
+
+                # Execute Atomic requests sequentially
+                for ag_id, req, evicted, op_types in atomic_requests:
+                    try:
+                        res = asset_group_asset_service.mutate_asset_group_assets(request=req)
+                        add_rn = ""
+                        for op_type, r in zip(op_types, res.results):
+                            if op_type == "add" and getattr(r, "resource_name", ""):
+                                add_rn = r.resource_name
+                        if add_rn:
+                            linked_count += 1
+                            results.append(
+                                AssignmentResult(
+                                    asset_group_id=ag_id,
+                                    status="SUCCESS",
+                                    asset_resource_name=created_asset_rn,
+                                    asset_group_asset_resource_name=add_rn,
+                                    evicted_asset=evicted
+                                )
+                            )
+                        else:
+                            results.append(
+                                AssignmentResult(
+                                    asset_group_id=ag_id,
+                                    status="FAILED",
+                                    asset_resource_name=created_asset_rn,
+                                    asset_group_asset_resource_name="",
+                                    error_message="Atomic mutation failed: Resource name not returned for ADD operation.",
+                                    evicted_asset=evicted
+                                )
+                            )
+                    except Exception as exc:
+                        formatted_err = _format_google_ads_error(exc)
+                        results.append(
+                            AssignmentResult(
+                                asset_group_id=ag_id,
+                                status="FAILED",
+                                asset_resource_name=created_asset_rn,
+                                asset_group_asset_resource_name="",
+                                error_message=formatted_err,
+                                evicted_asset=evicted
                             )
                         )
 
-                pf_err = getattr(aga_response, "partial_failure_error", None)
-                if linked_count == 0:
-                    err_msgs = _extract_partial_failure_details(g_client, pf_err) if pf_err else []
-                    raw_str = " | ".join(err_msgs) if err_msgs else "Google Ads API partial failure prevented asset group link."
-                    err_str = _clean_asset_group_error_message(raw_str)
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Asset created in library ({created_asset_rn}), but linking to asset group failed: {err_str}",
-                    )
+                # Execute Batch Add request
+                if batch_add_request.operations:
+                    try:
+                        aga_response = asset_group_asset_service.mutate_asset_group_assets(request=batch_add_request)
+                        pf_err = getattr(aga_response, "partial_failure_error", None)
+                        op_errors = _extract_partial_failure_details(g_client, pf_err)
+                        
+                        res_idx = 0
+                        for meta in batch_add_metadata:
+                            ag_id = meta["ag_id"]
+                            evicted = meta["evicted_asset"]
+                            
+                            group_success = True
+                            add_rn = ""
+                            group_errors = []
+                            
+                            for op_type in meta["op_types"]:
+                                if res_idx in op_errors:
+                                    group_errors.append(op_errors[res_idx])
+                                    group_success = False
 
-                logger.info(f"Successfully uploaded & linked image to {linked_count} asset group(s) for customer {clean_customer_id} using '{mode}' header strategy.")
+                                if res_idx < len(aga_response.results):
+                                    r = aga_response.results[res_idx]
+                                    res_idx += 1
+                                    res_rn = getattr(r, "resource_name", "")
+                                    if op_type == "add":
+                                        if res_rn:
+                                            add_rn = res_rn
+                                        else:
+                                            group_success = False
+                            
+                            if group_success and add_rn:
+                                linked_count += 1
+                                results.append(
+                                    AssignmentResult(
+                                        asset_group_id=ag_id,
+                                        status="SUCCESS",
+                                        asset_resource_name=created_asset_rn,
+                                        asset_group_asset_resource_name=add_rn,
+                                        evicted_asset=evicted
+                                    )
+                                )
+                            else:
+                                err_str = " | ".join(group_errors) if group_errors else "Google Ads mutation failed"
+                                results.append(
+                                    AssignmentResult(
+                                        asset_group_id=ag_id,
+                                        status="FAILED",
+                                        asset_resource_name=created_asset_rn,
+                                        asset_group_asset_resource_name="",
+                                        evicted_asset=evicted,
+                                        error_message=err_str
+                                    )
+                                )
+                    except Exception as exc:
+                        formatted_err = _format_google_ads_error(exc)
+                        for meta in batch_add_metadata:
+                            results.append(
+                                AssignmentResult(
+                                    asset_group_id=meta["ag_id"],
+                                    status="FAILED",
+                                    asset_resource_name=created_asset_rn,
+                                    asset_group_asset_resource_name="",
+                                    error_message=formatted_err,
+                                    evicted_asset=meta["evicted_asset"]
+                                )
+                            )
+
+                logger.info(f"Successfully processed batch for customer {clean_customer_id} using '{mode}' header strategy. Linked count: {linked_count}.")
                 
-                # If an end date is set, register for automated unlinking
-                if payload.end_date:
-                    raw_b64 = base64.b64encode(image_bytes).decode("utf-8")
-                    extracted_asset_id = created_asset_rn.split("/")[-1]
-                    schedule_store.add_job(
-                        ScheduledJob(
+                extracted_asset_id = created_asset_rn.split("/")[-1]
+                
+                # Save Asset Document
+                asset_doc = AssetDocument(
+                    google_ads_asset_id=extracted_asset_id,
+                    customer_id=clean_customer_id,
+                    gcs_uri=gcs_uri,
+                    asset_name=filename,
+                    asset_group_ids=payload.asset_group_ids,
+                )
+                default_firestore_service.save_asset(asset_doc)
+
+                # Save Link Operation Documents
+                for res_item in results:
+                    if res_item.status == "SUCCESS":
+                        op = LinkOperationDocument(
+                            operation_id=str(uuid.uuid4()),
+                            operation_type=OperationType.LINK,
                             customer_id=clean_customer_id,
-                            asset_group_ids=payload.asset_group_ids,
+                            asset_group_id=res_item.asset_group_id,
+                            google_ads_asset_id=extracted_asset_id,
+                            google_ads_asset_group_asset_id=res_item.asset_group_asset_resource_name.split("/")[-1],
+                            status=OperationStatus.SUCCESS,
+                        )
+                        default_firestore_service.save_link_operation(op)
+                        
+                        if res_item.evicted_asset:
+                            op_un = LinkOperationDocument(
+                                operation_id=str(uuid.uuid4()),
+                                operation_type=OperationType.UNLINK,
+                                customer_id=clean_customer_id,
+                                asset_group_id=res_item.asset_group_id,
+                                google_ads_asset_id=res_item.evicted_asset.asset_id,
+                                status=OperationStatus.SUCCESS,
+                            )
+                            default_firestore_service.save_link_operation(op_un)
+                    else:
+                        err_msg = res_item.error_message or "Google Ads linking failed"
+                        op = LinkOperationDocument(
+                            operation_id=str(uuid.uuid4()),
+                            operation_type=OperationType.LINK,
+                            customer_id=clean_customer_id,
+                            asset_group_id=res_item.asset_group_id,
+                            google_ads_asset_id=extracted_asset_id,
+                            status=OperationStatus.FAILED,
+                            error_message=err_msg,
+                        )
+                        default_firestore_service.save_link_operation(op)
+
+                # If an end date is set, register for automated unlinking ONLY for successfully linked groups
+                if payload.end_date:
+                    success_groups = [r.asset_group_id for r in results if r.status == "SUCCESS"]
+                    if success_groups:
+                        job = ScheduledJobDocument(
+                            job_id=str(uuid.uuid4()),
+                            customer_id=clean_customer_id,
+                            asset_group_ids=success_groups,
                             asset_name=filename,
-                            image_b64=raw_b64,
+                            image_gcs_uri=gcs_uri,
                             asset_id=extracted_asset_id,
                             start_date=payload.start_date or today_str,
                             end_date=payload.end_date,
-                            status=ScheduledJobStatus.LINKED,
+                            field_type=ratio_info.field_type,
+                            status=FirestoreJobStatus.LINKED,
+                            swap_rules=payload.swap_rules.model_dump() if payload.swap_rules else None,
                         )
-                    )
+                        default_firestore_service.create_scheduled_job(job)
 
                 return AssignResponse(
                     file_token=payload.file_token,
@@ -944,8 +1181,33 @@ async def assign_asset(
 
     # Fallback for local sandbox/testing without live dev token
     synthetic_asset_id = f"customers/{clean_customer_id}/assets/{uuid.uuid4().hex[:8]}"
+    extracted_asset_id = synthetic_asset_id.split("/")[-1]
+    
+    # Save Asset Document
+    asset_doc = AssetDocument(
+        google_ads_asset_id=extracted_asset_id,
+        customer_id=clean_customer_id,
+        gcs_uri=gcs_uri,
+        asset_name=filename,
+        asset_group_ids=payload.asset_group_ids,
+    )
+    default_firestore_service.save_asset(asset_doc)
+
+    # Save Link Operation Documents
     for ag_id in payload.asset_group_ids:
         synthetic_aga_id = f"customers/{clean_customer_id}/assetGroupAssets/{ag_id}~{uuid.uuid4().hex[:6]}"
+        op_id = str(uuid.uuid4())
+        op = LinkOperationDocument(
+            operation_id=op_id,
+            operation_type=OperationType.LINK,
+            customer_id=clean_customer_id,
+            asset_group_id=ag_id,
+            google_ads_asset_id=extracted_asset_id,
+            google_ads_asset_group_asset_id=synthetic_aga_id.split("/")[-1],
+            status=OperationStatus.SUCCESS,
+        )
+        default_firestore_service.save_link_operation(op)
+        
         results.append(
             AssignmentResult(
                 asset_group_id=ag_id,
@@ -956,19 +1218,19 @@ async def assign_asset(
         )
 
     if payload.end_date:
-        raw_b64 = base64.b64encode(image_bytes).decode("utf-8")
-        schedule_store.add_job(
-            ScheduledJob(
-                customer_id=clean_customer_id,
-                asset_group_ids=payload.asset_group_ids,
-                asset_name=filename,
-                image_b64=raw_b64,
-                asset_id=synthetic_asset_id.split("/")[-1],
-                start_date=payload.start_date or today_str,
-                end_date=payload.end_date,
-                status=ScheduledJobStatus.LINKED,
-            )
+        job = ScheduledJobDocument(
+            job_id=str(uuid.uuid4()),
+            customer_id=clean_customer_id,
+            asset_group_ids=payload.asset_group_ids,
+            asset_name=filename,
+            image_gcs_uri=gcs_uri,
+            asset_id=extracted_asset_id,
+            start_date=payload.start_date or today_str,
+            end_date=payload.end_date,
+            field_type=ratio_info.field_type,
+            status=FirestoreJobStatus.LINKED,
         )
+        default_firestore_service.create_scheduled_job(job)
 
     return AssignResponse(
         file_token=payload.file_token,
@@ -982,8 +1244,17 @@ async def assign_asset(
     "/scheduled-jobs",
     summary="List Scheduled Asset Lifecycle Jobs",
 )
-async def list_scheduled_jobs() -> dict[str, Any]:
-    jobs = schedule_store.load_jobs()
+async def list_scheduled_jobs(
+    customer_id: str | None = None,
+    authorization: str | None = Header(None),
+) -> dict[str, Any]:
+    creds = default_auth_provider.get_google_ads_credentials()
+    if customer_id and customer_id != "9941182026":
+        clean_customer_id = customer_id.replace("-", "").strip()
+    else:
+        clean_customer_id = (creds.login_customer_id or "9044713567").replace("-", "").strip()
+
+    jobs = default_firestore_service.list_scheduled_jobs(clean_customer_id)
     return {"total_count": len(jobs), "jobs": [j.model_dump() for j in jobs]}
 
 

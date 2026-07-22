@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { CampaignStateService } from '../services/campaign-state.service';
-import { ApiService, AccountItem, AssignResponse } from '../services/api.service';
+import { ApiService, AccountItem, AssignResponse, SwapRules } from '../services/api.service';
 import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../models/types';
 
 export interface QueueItem {
@@ -45,10 +45,10 @@ export interface QueueItem {
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 class="font-bold text-lg text-slate-800 m-0">
-            {{ activeTab() === 'sovereign-guard' ? 'Sovereign Guard / Lock List' : 'Automatic Image Upload (Adios 2.0)' }}
+            Automatic Image Upload (Adios 2.0)
           </h2>
           <p class="text-xs text-muted m-0 mt-1">
-            {{ activeTab() === 'sovereign-guard' ? 'Inspect and lock account-wide protected assets across all campaigns and asset groups.' : 'Eliminate Ads Editor steps: automatically replace sub-par images with AI KPI-targeted uploads.' }}
+            Eliminate Ads Editor steps: automatically replace sub-par images with AI KPI-targeted uploads.
           </p>
         </div>
         
@@ -60,8 +60,6 @@ export interface QueueItem {
         </div>
       </div>
 
-      <!-- MAIN TAB 1: ASSET UPLOADER & DEPLOYMENT -->
-      @if (activeTab() === 'uploader') {
         <div class="flex flex-col gap-6 w-full">
           
           <!-- Section 1: Upload Visual Assets -->
@@ -574,139 +572,6 @@ export interface QueueItem {
               }
             </div>
           </div>
-        }
-
-      <!-- MAIN TAB 2: DEDICATED SOVEREIGN GUARD VIEW -->
-      @if (activeTab() === 'sovereign-guard') {
-        <div class="panel bg-white border rounded p-6 shadow-sm space-y-6">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
-            <div>
-              <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide m-0">
-                <mat-icon class="text-indigo icon-size">shield</mat-icon>
-                Account-Wide Sovereign Guard & Protection List
-              </h3>
-              <p class="text-xs text-muted m-0 mt-1">
-                Protected assets are account-wide protected. Locking an asset here guarantees it remains untouched across all asset groups.
-              </p>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <span class="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-lg flex items-center gap-1.5">
-                <mat-icon class="icon-size text-indigo">lock</mat-icon>
-                {{ countAccountProtectedAssets() }} Assets Protected Account-Wide
-              </span>
-            </div>
-          </div>
-
-          <!-- Sovereign Guard Search & Filter Controls -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div class="space-y-1">
-              <label class="text-[10px] font-bold text-slate-600 uppercase">Search Asset Name / ID</label>
-              <div class="relative">
-                <mat-icon class="absolute left-2.5 top-2 text-slate-400 icon-size">search</mat-icon>
-                <input 
-                  type="text" 
-                  placeholder="Search by asset name or ID..."
-                  [ngModel]="guardAssetSearch()"
-                  (ngModelChange)="guardAssetSearch.set($event)"
-                  class="w-full text-xs pl-8 pr-2.5 py-1.5 border rounded bg-white focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div class="space-y-1">
-              <label class="text-[10px] font-bold text-slate-600 uppercase">Filter Asset Group</label>
-              <select 
-                [ngModel]="guardGroupFilter()"
-                (ngModelChange)="guardGroupFilter.set($event)"
-                class="w-full bg-white border rounded px-2 py-1.5 text-xs font-medium focus:outline-none"
-              >
-                <option value="">All Asset Groups</option>
-                @for (ag of stateService.assetGroups(); track ag.id) {
-                  <option [value]="ag.id">{{ ag.name }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="flex items-center gap-4 pt-4">
-              <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  [checked]="onlyActiveAssetGroups()"
-                  (change)="onlyActiveAssetGroups.set(!onlyActiveAssetGroups())"
-                  class="rounded text-brand"
-                />
-                <span>Active Groups Only</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Sovereign Guard Table -->
-          <div class="table-container max-h-[500px] overflow-y-auto border rounded font-sans">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead class="sticky top-0 bg-slate-100 z-10">
-                <tr class="text-slate-600 border-b font-semibold">
-                  <th class="p-3 bg-slate-100">Asset Visual</th>
-                  <th class="p-3 bg-slate-100">Asset Name & ID</th>
-                  <th class="p-3 bg-slate-100">Assigned Asset Groups</th>
-                  <th class="p-3 bg-slate-100">Account Protection Status</th>
-                  <th class="p-3 text-right bg-slate-100">Lock Control</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                @for (item of sovereignGuardItems(); track item.asset.id) {
-                  <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="p-3 w-16">
-                      <img [src]="item.asset.url" [alt]="item.asset.name" class="w-10 h-10 object-cover rounded-lg border" />
-                    </td>
-                    <td class="p-3">
-                      <p class="font-bold text-slate-800 m-0">{{ item.asset.name }}</p>
-                      <p class="text-[10px] text-slate-400 font-mono m-0 mt-0.5">ID: {{ item.asset.id }}</p>
-                    </td>
-                    <td class="p-3 text-slate-600">
-                      <div class="flex flex-wrap gap-1">
-                        @for (gName of item.groups; track gName) {
-                          <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-mono border">
-                            {{ gName }}
-                          </span>
-                        }
-                      </div>
-                    </td>
-                    <td class="p-3">
-                      @if (item.isProtected) {
-                        <span class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo text-[10px] font-bold rounded-full inline-flex items-center gap-1">
-                          <mat-icon class="icon-xs">shield</mat-icon>
-                          Account-Wide Protected
-                        </span>
-                      } @else {
-                        <span class="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-medium rounded-full">
-                          Unlocked
-                        </span>
-                      }
-                    </td>
-                    <td class="p-3 text-right">
-                      <button
-                        (click)="toggleAccountWideProtection(item.asset)"
-                        [class]="'px-4 py-1.5 rounded-md text-xs font-bold border cursor-pointer transition-all ' + (item.isProtected ? 'bg-indigo border-indigo text-white shadow-xs' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50')"
-                      >
-                        {{ item.isProtected ? 'Locked' : 'Lock Asset' }}
-                      </button>
-                    </td>
-                  </tr>
-                }
-                @if (sovereignGuardItems().length === 0) {
-                  <tr>
-                    <td colspan="5" class="p-12 text-center text-slate-400 font-medium">
-                      No assets found matching Sovereign Guard filters.
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      }
-
       <!-- Step 6: Replacement & Sync Logs -->
       <div class="panel bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -926,9 +791,6 @@ export class AssetUploaderComponent implements OnInit {
   readonly stateService = inject(CampaignStateService);
   readonly apiService = inject(ApiService);
   
-  @Input() mode: 'uploader' | 'sovereign-guard' = 'uploader';
-
-  readonly activeTab = signal<'uploader' | 'sovereign-guard'>('uploader');
   readonly accessibleAccounts = signal<AccountItem[]>([]);
   readonly selectedAccountId = signal<string>('');
   readonly accountSearchQuery = signal<string>('');
@@ -980,10 +842,6 @@ export class AssetUploaderComponent implements OnInit {
   // Custom naming protection pattern
   readonly protectionPattern = signal<string>('_Protected');
 
-  // Sovereign guard view filter signals
-  readonly guardAssetSearch = signal<string>('');
-  readonly guardGroupFilter = signal<string>('');
-
   // Triggering simulation message
   readonly syncStatus = signal<{ message: string; type: 'success' | 'error' | 'info' | 'idle' }>({ message: '', type: 'idle' });
 
@@ -1023,21 +881,9 @@ export class AssetUploaderComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    if (this.mode === 'sovereign-guard' || this.stateService.activeSection() === 'sovereign-guard') {
-      this.activeTab.set('sovereign-guard');
-    }
     await this.loadAccessibleAccounts();
     const targetAccount = this.selectedAccountId() || '9044713567';
     await this.reloadAssetGroups(targetAccount);
-  }
-
-  setActiveTab(tab: 'uploader' | 'sovereign-guard'): void {
-    this.activeTab.set(tab);
-    if (tab === 'sovereign-guard') {
-      this.stateService.setActiveSection('sovereign-guard');
-    } else {
-      this.stateService.setActiveSection('uploader');
-    }
   }
 
   async loadAccessibleAccounts(): Promise<void> {
@@ -1082,8 +928,8 @@ export class AssetUploaderComponent implements OnInit {
         campaignId: ag.campaign_id,
         campaignName: ag.campaign_name,
         account: `Google Ads Account (${targetCustomer.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')})`,
-        imageCount: ag.square_count || 0,
-        maxImages: ag.square_capacity || 20,
+        imageCount: ag.total_image_count || 0,
+        maxImages: ag.total_image_capacity || 20,
         currentKpiMetric: 'ctr',
         status: (ag.status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED'
       }));
@@ -1138,61 +984,6 @@ export class AssetUploaderComponent implements OnInit {
   readonly currentViewerAssets = computed<CampaignAsset[]>(() => {
     const activeGroup = this.activeViewerGroup();
     return this.stateService.campaignAssets()[activeGroup] || [];
-  });
-
-  readonly sovereignGuardItems = computed(() => {
-    const allGroupsAssets = this.stateService.campaignAssets();
-    const groups = this.stateService.assetGroups();
-    const searchQuery = this.guardAssetSearch().toLowerCase().trim();
-    const groupFilter = this.guardGroupFilter();
-    const activeGroupOnly = this.onlyActiveAssetGroups();
-
-    const assetGroupMap = new Map<string, string>();
-    for (const g of groups) {
-      assetGroupMap.set(g.id, g.name);
-    }
-
-    const assetMap = new Map<string, { asset: CampaignAsset; groupIds: Set<string>; groupNames: Set<string> }>();
-
-    for (const groupKey of Object.keys(allGroupsAssets)) {
-      if (groupFilter && groupKey !== groupFilter) continue;
-      
-      const grp = groups.find(g => g.id === groupKey);
-      if (activeGroupOnly && grp && grp.status && grp.status !== 'ENABLED') continue;
-
-      for (const asset of allGroupsAssets[groupKey]) {
-        if (searchQuery && !asset.name.toLowerCase().includes(searchQuery) && !asset.id.toLowerCase().includes(searchQuery)) {
-          continue;
-        }
-
-        if (!assetMap.has(asset.id)) {
-          assetMap.set(asset.id, {
-            asset,
-            groupIds: new Set([groupKey]),
-            groupNames: new Set([assetGroupMap.get(groupKey) || groupKey])
-          });
-        } else {
-          const entry = assetMap.get(asset.id)!;
-          entry.groupIds.add(groupKey);
-          entry.groupNames.add(assetGroupMap.get(groupKey) || groupKey);
-        }
-      }
-    }
-
-    const protectedAccountMap = this.stateService.accountProtectedAssets();
-
-    return Array.from(assetMap.values()).map(entry => {
-      const isAccountLocked = protectedAccountMap.has(entry.asset.id) || protectedAccountMap.has(entry.asset.url) || entry.asset.isProtected;
-      return {
-        asset: entry.asset,
-        groups: Array.from(entry.groupNames),
-        isProtected: isAccountLocked
-      };
-    });
-  });
-
-  readonly countAccountProtectedAssets = computed(() => {
-    return this.sovereignGuardItems().filter(i => i.isProtected).length;
   });
 
   readonly isAllFilteredSelected = computed<boolean>(() => {
@@ -1419,14 +1210,6 @@ export class AssetUploaderComponent implements OnInit {
     }
   }
 
-  toggleAccountWideProtection(asset: CampaignAsset): void {
-    const nextState = !asset.isProtected;
-    this.stateService.toggleAssetProtection(asset.id, nextState);
-    if (asset.url) {
-      this.stateService.toggleAssetProtection(asset.url, nextState);
-    }
-  }
-
   simulateScheduleTimeout(assetId: string): void {
     const group = this.activeViewerGroup();
     const groupAssets = [...(this.stateService.campaignAssets()[group] || [])];
@@ -1477,10 +1260,13 @@ export class AssetUploaderComponent implements OnInit {
       this.syncStatus.set({ message: 'Please select at least one PMax Asset Group.', type: 'error' });
       return;
     }
-    if (this.filterError()) {
-      this.syncStatus.set({ message: 'Error: nothing to be swapped: Filters should be changed to match eligible assets.', type: 'error' });
-      return;
-    }
+    const swapRules: SwapRules = {
+      lookback_window: this.lookbackWindow(),
+      custom_lookback_days: this.lookbackWindow() === 'custom' ? this.customLookbackDays() : null,
+      min_impressions: this.enableMinImpressions() ? this.minImpressions() : null,
+      min_clicks: this.enableMinClicks() ? this.minClicks() : null,
+      eviction_kpi: this.swapMetric()
+    };
 
     this.syncStatus.set({ message: 'Validating & synchronizing images via Google Ads API...', type: 'info' });
 
@@ -1508,7 +1294,8 @@ export class AssetUploaderComponent implements OnInit {
             selectedGroups,
             this.selectedAccountId(),
             startDate,
-            endDate
+            endDate,
+            swapRules
           );
         } catch (err: any) {
           apiErrorMsg = err?.message || 'Google Ads API mutation failed';
@@ -1521,19 +1308,18 @@ export class AssetUploaderComponent implements OnInit {
 
           const groupResult = assignRes?.results?.find(r => r.asset_group_id === groupId);
           const isGroupFailedInBackend = groupResult ? groupResult.status === 'FAILED' : false;
-          const isFull = groupAssets.length >= (currentGroup.maxImages || 20);
 
           // If API assignment threw an error or backend returned FAILED for this group
           if (apiErrorMsg || isGroupFailedInBackend) {
             hasFailure = true;
-            const rawErr = apiErrorMsg || 'Google Ads API mutation failed to link asset to Asset Group.';
+            const rawErr = groupResult?.error_message || apiErrorMsg || 'Google Ads API mutation failed to link asset to Asset Group.';
             const lowerErr = rawErr.toLowerCase();
 
-            const isLimitErr = isFull || lowerErr.includes('limit') || lowerErr.includes('20') || lowerErr.includes('capacity') || lowerErr.includes('resource_exhausted') || lowerErr.includes('max_assets');
+            const isLimitErr = lowerErr.includes('limit') || lowerErr.includes('20') || lowerErr.includes('capacity') || lowerErr.includes('resource_exhausted') || lowerErr.includes('max_assets');
             const isMinCompErr = lowerErr.includes('headline') || lowerErr.includes('description') || lowerErr.includes('not_enough') || lowerErr.includes('minimum') || lowerErr.includes('composition') || lowerErr.includes('not met');
 
             let displayError = rawErr;
-            if (isLimitErr) {
+            if (isLimitErr && !rawErr.includes('swap')) {
               displayError = 'Reached limit of 20 images';
             } else if (isMinCompErr) {
               displayError = 'Requires minimum composition (headlines/descriptions)';
@@ -1554,39 +1340,33 @@ export class AssetUploaderComponent implements OnInit {
             continue;
           }
 
-          // If group is full, check if we can evict an underperforming asset
           let evictedAsset: CampaignAsset | null = null;
-          if (isFull) {
-            const evictable = groupAssets.filter(a => !a.isProtected);
-            if (evictable.length === 0) {
-              hasFailure = true;
-              this.stateService.addLog({
-                id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                date: new Date().toISOString(),
-                campaignName: currentGroup.campaignName,
-                assetGroupName: currentGroup.name,
-                replacedAsset: null,
-                newAsset: { name: item.name, url: item.url },
-                reason: item.isScheduled ? 'Special Offer' : 'Manual',
-                status: 'Error',
-                errorMsg: 'Reached limit of 20 images (all existing images are protected)',
-                fullApiError: 'Asset Group capacity limit reached (20 images). All existing 20 images in this group are marked as Protected from automatic eviction.'
-              });
-              continue;
-            }
-
-            evictable.sort((a, b) => a.kpiValue - b.kpiValue);
-            evictedAsset = evictable[0];
-
-            const evictIdx = groupAssets.findIndex(a => a.id === evictedAsset!.id);
+          if (groupResult?.evicted_asset) {
+            const backendEvicted = groupResult.evicted_asset;
+            const evictIdx = groupAssets.findIndex(a => a.id === backendEvicted.asset_id);
             if (evictIdx !== -1) {
+              evictedAsset = groupAssets[evictIdx];
               groupAssets.splice(evictIdx, 1);
+            } else {
+              evictedAsset = {
+                id: backendEvicted.asset_id,
+                name: backendEvicted.name,
+                url: backendEvicted.url,
+                performanceScore: 'Pending',
+                kpiValue: backendEvicted.kpi_value,
+                isProtected: false,
+                uploadDate: new Date().toISOString().split('T')[0]
+              };
             }
           }
 
+          const realAssetId = groupResult?.asset_group_asset_resource_name 
+            ? groupResult.asset_group_asset_resource_name.split('~')[1] || groupResult.asset_group_asset_resource_name.split('/').pop() || `asset-${Date.now()}`
+            : `asset-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
           // Fresh newly uploaded image
           const freshAsset: CampaignAsset = {
-            id: `asset-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            id: realAssetId,
             name: item.name,
             url: item.url,
             performanceScore: 'Pending',

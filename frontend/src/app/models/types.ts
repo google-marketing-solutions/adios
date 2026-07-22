@@ -106,5 +106,5 @@ export interface CategoryPreset {
   safetyMargins: number; // Padding around elements
 }
 
-export type ActiveSection = 'uploader' | 'sovereign-guard' | 'background' | 'animation' | 'spell' | 'settings' | 'protection';
+export type ActiveSection = 'uploader' | 'background' | 'animation' | 'spell' | 'settings' | 'protection';
 
