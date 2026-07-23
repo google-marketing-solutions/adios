@@ -26,6 +26,7 @@ export interface AssetGroupItem {
   campaign_id: string;
   campaign_name: string;
   status: string;
+  campaign_status: string;
   total_image_count: number;
   total_image_capacity: number;
   landscape_count: number;

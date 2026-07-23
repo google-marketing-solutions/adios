@@ -20,6 +20,7 @@ export interface AssetGroup {
   maxImages: number;
   currentKpiMetric: 'impressions' | 'ctr' | 'conversions' | 'value';
   status?: 'ENABLED' | 'PAUSED' | 'REMOVED';
+  campaignStatus?: 'ENABLED' | 'PAUSED' | 'REMOVED';
 }
 
 export interface ScheduledTiming {

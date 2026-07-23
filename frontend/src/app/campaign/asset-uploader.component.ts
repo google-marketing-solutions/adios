@@ -953,7 +953,8 @@ export class AssetUploaderComponent implements OnInit {
         imageCount: ag.total_image_count || 0,
         maxImages: ag.total_image_capacity || 20,
         currentKpiMetric: 'ctr',
-        status: (ag.status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED'
+        status: (ag.status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED',
+        campaignStatus: (ag.campaign_status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED'
       }));
       this.stateService.setAssetGroups(formattedGroups);
       
@@ -986,6 +987,10 @@ export class AssetUploaderComponent implements OnInit {
     const query = this.searchQuery().toLowerCase().trim();
     const activeCampOnly = this.onlyActiveCampaigns();
     const activeGroupOnly = this.onlyActiveAssetGroups();
+
+    if (activeCampOnly) {
+      groups = groups.filter(ag => !ag.campaignStatus || ag.campaignStatus === 'ENABLED');
+    }
 
     if (activeGroupOnly) {
       groups = groups.filter(ag => !ag.status || ag.status === 'ENABLED');

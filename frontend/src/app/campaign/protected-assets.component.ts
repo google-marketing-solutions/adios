@@ -451,7 +451,9 @@ export class ProtectedAssetsComponent implements OnInit {
         account: `Google Ads Account (${customerId})`,
         imageCount: ag.total_image_count || 0,
         maxImages: ag.total_image_capacity || 20,
-        currentKpiMetric: 'ctr'
+        currentKpiMetric: 'ctr',
+        status: (ag.status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED',
+        campaignStatus: (ag.campaign_status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED'
       }));
       this.stateService.setAssetGroups(formattedGroups);
     } catch (err) {

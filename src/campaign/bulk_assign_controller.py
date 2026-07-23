@@ -137,6 +137,7 @@ class AssetGroupItem(BaseModel):
     campaign_id: str = Field(..., description="Parent Campaign ID")
     campaign_name: str = Field(..., description="Parent Campaign Display Name")
     status: str = Field(default="ENABLED", description="Asset Group Status")
+    campaign_status: str = Field(default="ENABLED", description="Parent Campaign Status")
     total_image_count: int = Field(default=0, description="Currently linked images across all types")
     total_image_capacity: int = Field(default=20, description="Total combined image slot limit")
     landscape_count: int = Field(default=0, description="Currently linked landscape images")
@@ -703,6 +704,7 @@ async def get_asset_groups(
                             campaign_id=str(row.campaign.id),
                             campaign_name=row.campaign.name,
                             status=row.asset_group.status.name,
+                            campaign_status=row.campaign.status.name,
                             total_image_count=tot_c,
                             landscape_count=ls_c,
                             portrait_count=pt_c,

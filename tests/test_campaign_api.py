@@ -68,6 +68,7 @@ def test_get_asset_groups_live_api_fallback() -> None:
     mock_row.campaign.id = 67890
     mock_row.campaign.name = "Test Campaign"
     mock_row.asset_group.status.name = "ENABLED"
+    mock_row.campaign.status.name = "ENABLED"
     
     # We mock search so that the first call (for links) returns an empty list, and the second call (for asset groups) also returns an empty list,
     # OR we can just check that it calls search for both strategies sequentially!
@@ -92,6 +93,7 @@ def test_get_asset_groups_live_api_fallback() -> None:
         data = response.json()
         assert data["total_count"] == 1
         assert data["asset_groups"][0]["name"] == "Test AG"
+        assert data["asset_groups"][0]["campaign_status"] == "ENABLED"
         assert data["source"] == "live_google_ads_api"
 
 def test_get_asset_groups_live_api_all_empty() -> None:
@@ -131,6 +133,7 @@ def test_get_asset_groups_live_api_capacity_logic() -> None:
     ag_row.campaign.id = 67890
     ag_row.campaign.name = "Test Campaign"
     ag_row.asset_group.status.name = "ENABLED"
+    ag_row.campaign.status.name = "ENABLED"
     
     # Asset rows: 1 Landscape, 1 Square, 1 Portrait, 1 Tall Portrait, 1 Logo, 1 Landscape Logo
     def create_asset_row(field_type: str):
@@ -159,6 +162,7 @@ def test_get_asset_groups_live_api_capacity_logic() -> None:
         data = response.json()
         assert data["total_count"] == 1
         ag = data["asset_groups"][0]
+        assert ag["campaign_status"] == "ENABLED"
         
         # Logos must be EXCLUDED, Tall Portrait INCLUDED. So strictly 4 images!
         assert ag["total_image_count"] == 4
