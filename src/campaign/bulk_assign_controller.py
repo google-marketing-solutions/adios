@@ -212,7 +212,7 @@ class AssignmentResult(BaseModel):
 class ToggleProtectionRequest(BaseModel):
     asset_id: str
     is_protected: bool
-    customer_id: str | None = None
+    customer_id: str
 
 
 class ToggleProtectionResponse(BaseModel):
@@ -248,11 +248,7 @@ async def toggle_asset_protection_endpoint(
     payload: ToggleProtectionRequest,
 ) -> ToggleProtectionResponse:
     """Toggles and persists asset protection state in Firestore."""
-    creds = default_auth_provider.get_google_ads_credentials()
-    if payload.customer_id and payload.customer_id != "9941182026":
-        clean_customer_id = payload.customer_id.replace("-", "").strip()
-    else:
-        clean_customer_id = (creds.login_customer_id or "9044713567").replace("-", "").strip()
+    clean_customer_id = payload.customer_id.replace("-", "").strip()
 
     default_firestore_service.toggle_protection(
         customer_id=clean_customer_id,
@@ -278,7 +274,7 @@ async def get_campaign_assets(
 ) -> CampaignAssetListResponse:
     """Queries live linked image assets via GAQL for the selected customer account."""
     creds = default_auth_provider.get_google_ads_credentials()
-    if customer_id and customer_id != "9941182026":
+    if customer_id:
         clean_customer_id = customer_id.replace("-", "").strip()
     else:
         clean_customer_id = (creds.login_customer_id or "9044713567").replace("-", "").strip()
@@ -289,6 +285,7 @@ async def get_campaign_assets(
     is_live_dev_token = (
         creds.developer_token
         and creds.developer_token != "mock_developer_token_2026"
+        and customer_id != "9941182026"
     )
     if is_live_dev_token:
         query = (
@@ -386,6 +383,61 @@ async def get_campaign_assets(
                 last_err = err
 
         query_error = str(last_err or "Failed to fetch assets via GAQL")
+
+    if not is_live_dev_token:
+        protected_ids = set(default_firestore_service.get_protected_assets(clean_customer_id))
+        mock_assets = [
+            CampaignAssetItem(
+                id="a101",
+                name="DogFood_MainHero_Protected",
+                url="https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400&q=80",
+                performance_score="Best",
+                kpi_value=4.8,
+                is_protected="a101" in protected_ids,
+                upload_date="2026-05-10",
+            ),
+            CampaignAssetItem(
+                id="a102",
+                name="DogFood_BowlCloseUp",
+                url="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&q=80",
+                performance_score="Good",
+                kpi_value=3.2,
+                is_protected="a102" in protected_ids,
+                upload_date="2026-05-12",
+            ),
+            CampaignAssetItem(
+                id="a103",
+                name="DogFood_BadPerformance",
+                url="https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?w=400&q=80",
+                performance_score="Low",
+                kpi_value=1.1,
+                is_protected="a103" in protected_ids,
+                upload_date="2026-05-15",
+            ),
+            CampaignAssetItem(
+                id="a201",
+                name="Puppy_Starter_LogoText_Protected",
+                url="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&q=80",
+                performance_score="Best",
+                kpi_value=5.2,
+                is_protected="a201" in protected_ids,
+                upload_date="2026-06-01",
+            ),
+            CampaignAssetItem(
+                id="a202",
+                name="Puppy_Starter_Basket_BadKPI",
+                url="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&q=80",
+                performance_score="Low",
+                kpi_value=0.9,
+                is_protected="a202" in protected_ids,
+                upload_date="2026-06-03",
+            ),
+        ]
+        return CampaignAssetListResponse(
+            total_count=len(mock_assets),
+            assets=mock_assets,
+            source="mock",
+        )
 
     source_val = "live_google_ads_api" if is_live_dev_token else "mock"
     return CampaignAssetListResponse(
@@ -772,7 +824,7 @@ async def upload_image(file: UploadFile = File(...)) -> ImageUploadResponse:
         ratio_info = inspect_image_aspect_ratio(contents)
     except UnsupportedAspectRatioError as val_err:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(val_err),
         ) from val_err
 
@@ -831,7 +883,7 @@ async def assign_asset(
         ratio_info = inspect_image_aspect_ratio(image_bytes)
     except UnsupportedAspectRatioError as val_err:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(val_err),
         ) from val_err
 

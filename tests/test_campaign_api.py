@@ -231,7 +231,7 @@ def test_upload_invalid_aspect_ratio_fails() -> None:
     files = {"file": ("banner.png", img_bytes, "image/png")}
 
     response = client.post("/v1/campaign/upload", files=files)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     data = response.json()
     assert "detail" in data
     assert "Unsupported aspect ratio" in data["detail"]
@@ -323,14 +323,31 @@ def test_get_campaign_assets_endpoint() -> None:
     assert "assets" in data
 
 
-def test_toggle_asset_protection_endpoint() -> None:
-    payload = {"asset_id": "test_asset_999", "is_protected": True}
+def test_toggle_asset_protection_endpoint(mock_dependencies) -> None:
+    mock_fs, _ = mock_dependencies
+    payload = {
+        "asset_id": "test_asset_999", 
+        "is_protected": True, 
+        "customer_id": "123-456-7890"
+    }
     res = client.post("/v1/campaign/assets/toggle-protection", json=payload)
     assert res.status_code == status.HTTP_200_OK
     data = res.json()
     assert data["asset_id"] == "test_asset_999"
     assert data["is_protected"] is True
     assert data["success"] is True
+    
+    mock_fs.toggle_protection.assert_called_once_with(
+        customer_id="1234567890",
+        asset_id="test_asset_999",
+        is_protected=True
+    )
+
+
+def test_toggle_asset_protection_missing_customer_id() -> None:
+    payload = {"asset_id": "test_asset_999", "is_protected": True}
+    res = client.post("/v1/campaign/assets/toggle-protection", json=payload)
+    assert res.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_assign_partial_failure_mapping() -> None:
@@ -619,3 +636,108 @@ def test_assign_eviction_triggers_atomic_mutation_and_surfaces_error_code() -> N
         assert assign_data["results"][0]["status"] == "FAILED"
         assert "RESOURCE_LIMIT" in assign_data["results"][0]["error_message"]
         assert "Resource limit exceeded" in assign_data["results"][0]["error_message"]
+
+
+def test_assign_consecutive_swaps_grace_period() -> None:
+    # 1. Upload valid image first
+    img_bytes = create_test_image_bytes(1000, 1000)
+    upload_res = client.post(
+        "/v1/campaign/upload",
+        files={"file": ("cat_food.png", img_bytes, "image/png")},
+    )
+    assert upload_res.status_code == status.HTTP_201_CREATED
+    file_token = upload_res.json()["file_token"]
+
+    mock_client = MagicMock()
+    mock_client.get_service.return_value.mutate_assets.side_effect = [
+        MagicMock(results=[MagicMock(resource_name="customers/9941182026/assets/new123")]),
+        MagicMock(results=[MagicMock(resource_name="customers/9941182026/assets/new456")]),
+    ]
+
+    def create_mock_row(idx: str):
+        row = MagicMock()
+        row.asset_group_asset.asset = f"customers/9941182026/assets/{idx}"
+        row.asset.image_asset.full_size.url = f"https://example.com/{idx}.png"
+        row.asset.name = f"Image {idx}"
+        row.asset_group_asset.field_type.name = "SQUARE_MARKETING_IMAGE"
+        row.metrics.impressions = 1000
+        row.metrics.clicks = 10
+        row.metrics.cost_micros = 0
+        return row
+
+    first_search_links = [create_mock_row(str(i)) for i in range(20)]
+    second_search_links = [create_mock_row(str(i)) for i in range(1, 20)] + [create_mock_row("new123")]
+
+    mock_client.get_service.return_value.search.side_effect = [
+        first_search_links, 
+        first_search_links, 
+        second_search_links, 
+        second_search_links, 
+    ]
+
+    from google.ads.googleads.client import _DEFAULT_VERSION
+    import importlib
+    services_module = importlib.import_module(f"google.ads.googleads.{_DEFAULT_VERSION}.services.types.asset_group_asset_service")
+
+    def mock_get_type(name: str):
+        if hasattr(services_module, name):
+            return getattr(services_module, name)()
+        return MagicMock()
+    mock_client.get_type.side_effect = mock_get_type
+
+    mock_client.get_service.return_value.mutate_asset_group_assets.side_effect = [
+        MagicMock(results=[
+            MagicMock(resource_name=""), 
+            MagicMock(resource_name="customers/9941182026/assetGroupAssets/10101~new123") 
+        ]),
+        MagicMock(results=[
+            MagicMock(resource_name=""), 
+            MagicMock(resource_name="customers/9941182026/assetGroupAssets/10101~new456") 
+        ]),
+    ]
+    mock_client.enums.AssetFieldTypeEnum = MagicMock()
+    setattr(mock_client.enums.AssetFieldTypeEnum, "SQUARE_MARKETING_IMAGE", 1)
+
+    link_history = []
+    def mock_save_op(op):
+        link_history.append(op)
+    
+    mock_fs = MagicMock()
+    mock_fs.get_protected_assets.return_value = []
+    mock_fs.get_link_history_for_group.side_effect = lambda cid, ag_id: link_history
+    mock_fs.save_link_operation.side_effect = mock_save_op
+
+    with patch("src.core.auth_provider.default_auth_provider.get_google_ads_client", return_value=mock_client), \
+         patch("src.campaign.kpi_eviction_service.default_firestore_service", mock_fs), \
+         patch("src.campaign.bulk_assign_controller.default_firestore_service", mock_fs):
+        
+        payload1 = {
+            "file_token": file_token,
+            "asset_group_ids": ["10101"],
+            "customer_id": "9941182026",
+            "swap_rules": {"lookback_window": "30d", "eviction_kpi": "clicks", "grace_period_minutes": 1}
+        }
+        res1 = client.post("/v1/campaign/assign", json=payload1)
+        assert res1.status_code == status.HTTP_200_OK
+        data1 = res1.json()
+        assert data1["results"][0]["status"] == "SUCCESS"
+        assert data1["results"][0]["evicted_asset"]["asset_id"] == "0"
+        
+        img_bytes2 = create_test_image_bytes(1000, 1000)
+        upload_res2 = client.post(
+            "/v1/campaign/upload",
+            files={"file": ("dog_food.png", img_bytes2, "image/png")},
+        )
+        file_token2 = upload_res2.json()["file_token"]
+        
+        payload2 = {
+            "file_token": file_token2,
+            "asset_group_ids": ["10101"],
+            "customer_id": "9941182026",
+            "swap_rules": {"lookback_window": "30d", "eviction_kpi": "clicks", "grace_period_minutes": 1}
+        }
+        res2 = client.post("/v1/campaign/assign", json=payload2)
+        assert res2.status_code == status.HTTP_200_OK
+        data2 = res2.json()
+        
+        assert data2["results"][0]["evicted_asset"]["asset_id"] == "1"

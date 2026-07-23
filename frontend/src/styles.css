@@ -289,6 +289,10 @@ body {
 .border-amber-250 { border-color: #fce8e6; }
 .rounded-2xl { border-radius: 16px; }
 .animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 /* Common Layout Containers */
 .main-layout {

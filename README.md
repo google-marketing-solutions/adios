@@ -88,12 +88,13 @@ When assigning images to an Asset Group, Adios 2.0 automatically enforces Google
 
 ### 1. Capacity Enforcement & Idempotency
 * **Duplicate Link Check (Idempotency)**: If the new asset is already linked to the target Asset Group, the operation skips mutation and returns immediately as a successful NO-OP.
-* **Combined Limit Check**: A strict maximum of **20 images total** (across all aspect ratios: landscape, square, portrait) is enforced per Asset Group to align with Google Ads API constraints. If the total is < 20, the asset is appended directly.
+* **Combined Limit Check**: A strict maximum of **20 images total** (across all aspect ratios: landscape, square, portrait, tall portrait) is enforced per Asset Group to align with Google Ads API constraints. If the total is < 20, the asset is appended directly.
 
 ### 2. Eviction Eligibility & Protected Candidate Filtering
 If capacity limits are reached and eviction swap rules are provided, candidates are isolated via a strict exclusion hierarchy:
-* **Same-Format Matching**: To preserve responsive layout requirements, only existing assets of the **exact same aspect ratio/format type** are eligible for eviction.
+* **Format Matching & Cross-Ratio Swaps**: By default, only existing assets of the **exact same aspect ratio/format type** are eligible for eviction to preserve responsive layouts. However, if `allow_cross_aspect_ratio_swap` is enabled in the rules, assets of any format can be evicted.
 * **Account-Level Protection**: Assets marked as "Protected" in Firestore are completely exempt from eviction consideration.
+* **Temporal Grace Period**: To prevent rapid, cyclic, or redundant swaps, assets newly linked within the hardcoded **1 minute** grace period (`grace_period_minutes`) are strictly protected. This allows the system to completely block daisy-chain eviction loops during rapid bulk uploads (as requests arrive seconds apart) while still enabling immediate manual re-testing without waiting 24 hours. The lifecycle timeline is reconstructed utilizing Firestore `asset_group_links` audit logs.
 * **Statistical Significance Thresholds**: If `min_impressions` or `min_clicks` constraints are enabled, any candidate falling below these minimum values is never evicted. If both are set, an "AND" logic gate applies (candidate must pass both filters).
 
 ### 3. KPI Performance Evaluation & Sorting Logic
@@ -101,8 +102,8 @@ If eligible candidates remain, their performance metrics are queried from the Go
 * **Directional Sorting**: Eviction of the lowest performer is determined by the specific KPI metric type:
   * **Higher is Better** (Ascending sorting, evicts minimum value): CTR, Conv Rate, ROAS, Conversions, Clicks, Impressions.
   * **Lower is Better** (Descending sorting, evicts maximum value): CPA, Cost.
-* **Tie-Breaking**: In the event of identical KPI values, candidates are deterministically sorted by `asset_id` to ensure consistent execution.
-* **No Eligible Candidates**: If all matching format assets are either protected or fall below minimum thresholds, the eviction halts and returns a `FAILED` status with: *"No eligible assets found to swap. All assets are either protected or below minimum performance thresholds."*
+* **Tie-Breaking**: In the event of identical KPI values, the engine prefers evicting **legacy/evergreen assets** (oldest link timestamp derived from Firestore) to ensure new assets are given sufficient time to run. If both lack link timestamps, sorting falls back deterministically to `asset_id`.
+* **No Eligible Candidates**: If all matching format assets are either protected or fall below minimum thresholds, the eviction halts and returns a `FAILED` status with: *"No more capacity. How to fix: check swap rules and protected images, number of images limit per asset group is 20."*
 
 ### 4. Lookback Window Segments
 Dates are mapped precisely to standard Google Ads reporting segments:
@@ -121,3 +122,8 @@ To run the frontend and backend servers concurrently, use the local development 
 ./local/start-servers.sh
 ```
 The frontend proxy is configured to automatically route api calls (`/v1/*` and `/health`) to the FastAPI backend.
+
+### Demo Account & Local Testing
+To facilitate local end-to-end frontend verification without an active Google Ads Developer Token or live Asset Group data, the ID `9941182026` is configured as a reserved **Demo Account**:
+* Selecting **Store DE PMax Demo (994-118-2026)** in the frontend automatically triggers a `source: "mock"` fallback in the backend.
+* It returns a static list of 5 test assets, which support reading and persisting "Protected" asset status directly to the `protected_assets` Firestore collection exactly like live accounts.

@@ -657,7 +657,7 @@ export interface QueueItem {
                         </span>
                       </div>
                     } @else {
-                      <span class="text-xs text-slate-400 italic">None (Capacity open)</span>
+                      <span class="text-xs text-slate-400 italic">None</span>
                     }
                   </td>
                   <td class="py-3.5 px-4 align-middle">
@@ -1344,7 +1344,7 @@ export class AssetUploaderComponent implements OnInit {
             const lowerErr = rawErr.toLowerCase();
 
             const isLimitErr = lowerErr.includes('limit') || lowerErr.includes('20') || lowerErr.includes('capacity') || lowerErr.includes('resource_exhausted') || lowerErr.includes('max_assets');
-            const isMinCompErr = lowerErr.includes('headline') || lowerErr.includes('description') || lowerErr.includes('not_enough') || lowerErr.includes('minimum') || lowerErr.includes('composition') || lowerErr.includes('not met');
+            const isMinCompErr = lowerErr.includes('headline') || lowerErr.includes('description') || lowerErr.includes('not_enough') || (lowerErr.includes('minimum') && lowerErr.includes('composition')) || lowerErr.includes('not met');
 
             let displayError = rawErr;
             if (isLimitErr && !rawErr.includes('swap')) {

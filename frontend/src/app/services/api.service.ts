@@ -210,7 +210,7 @@ export class ApiService {
     return response.json();
   }
 
-  async toggleAssetProtection(assetId: string, isProtected: boolean): Promise<any> {
+  async toggleAssetProtection(assetId: string, isProtected: boolean, customerId: string): Promise<any> {
     const response = await fetch('/v1/campaign/assets/toggle-protection', {
       method: 'POST',
       headers: this.getHeaders({
@@ -219,7 +219,8 @@ export class ApiService {
       }),
       body: JSON.stringify({
         asset_id: assetId,
-        is_protected: isProtected
+        is_protected: isProtected,
+        customer_id: customerId
       })
     });
     if (!response.ok) {

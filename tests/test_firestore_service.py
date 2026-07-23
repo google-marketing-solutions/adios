@@ -84,21 +84,26 @@ def test_save_link_operation_success(mock_firestore: tuple[MagicMock, FirestoreS
 
 def test_get_last_linked_asset_success(mock_firestore: tuple[MagicMock, FirestoreService]) -> None:
     client, service = mock_firestore
+    now = datetime.now(timezone.utc)
     mock_doc1 = MagicMock()
-    mock_doc1.to_dict.return_value = {"google_ads_asset_id": "12345"}
+    mock_doc1.to_dict.return_value = {
+        "operation_id": "op1",
+        "operation_type": "LINK",
+        "customer_id": "9044713567",
+        "asset_group_id": "ag1",
+        "google_ads_asset_id": "12345",
+        "status": "SUCCESS",
+        "timestamp": now,
+    }
     
-    # Mocking chain: collection().where().where().order_by().limit().stream()
     mock_query = MagicMock()
     client.collection.return_value.where.return_value = mock_query
     mock_query.where.return_value = mock_query
-    mock_query.order_by.return_value = mock_query
-    mock_query.limit.return_value = mock_query
     mock_query.stream.return_value = [mock_doc1]
     
     # Mock for get_asset which is called internally
     mock_asset_doc = MagicMock()
     mock_asset_doc.exists = True
-    now = datetime.now(timezone.utc)
     mock_asset_doc.to_dict.return_value = {
         "google_ads_asset_id": "12345",
         "customer_id": "9044713567",
@@ -114,7 +119,6 @@ def test_get_last_linked_asset_success(mock_firestore: tuple[MagicMock, Firestor
     assert result is not None
     assert result.google_ads_asset_id == "12345"
     client.collection.assert_any_call("asset_group_links")
-    mock_query.order_by.assert_called_once_with("timestamp", direction="DESCENDING")
 
 
 def test_toggle_protection_success(mock_firestore: tuple[MagicMock, FirestoreService]) -> None:

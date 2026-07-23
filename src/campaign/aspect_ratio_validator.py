@@ -25,7 +25,7 @@ class AspectRatioInfo(NamedTuple):
 
 
 class UnsupportedAspectRatioError(ValueError):
-    """Raised when an uploaded image does not conform to 1.91:1, 1:1, or 4:5 native ratios."""
+    """Raised when an uploaded image does not conform to 1.91:1, 1:1, 4:5, or 9:16 native ratios."""
 
     pass
 

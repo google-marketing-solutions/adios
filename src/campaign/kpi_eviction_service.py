@@ -26,6 +26,7 @@ class SwapRules(BaseModel):
     min_clicks: int | None = None
     eviction_kpi: str = "ctr"
     allow_cross_aspect_ratio_swap: bool = False
+    grace_period_minutes: int = 1
 
 
 class EvictedAssetInfo(BaseModel):
@@ -152,14 +153,23 @@ class KPIEvictionService:
         # 2. Limit reached and rules provided: Eviction Engine Required
         logger.info(f"Asset Group {asset_group_id} capacity ({total_images}/20) reached. Executing eviction rules for {field_type}.")
         
+        # Fetch full state of asset_group_asset links from Firestore to prevent cyclic or redundant swaps
+        link_history = default_firestore_service.get_link_history_for_group(clean_customer_id, asset_group_id)
+
+        # Map of asset_id -> most recent LINK timestamp
+        link_timestamps: Dict[str, datetime] = {}
+        for op in reversed(link_history):  # Iterate oldest to newest so newest overwrites
+            if op.google_ads_asset_id:
+                link_timestamps[op.google_ads_asset_id] = op.timestamp
+
+        grace_period = rules.grace_period_minutes if rules else 1
+        cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=grace_period)
+
         # Query protected assets
         protected_asset_ids = set()
-        try:
-            protected_docs = default_firestore_service.get_protected_assets(clean_customer_id)
-            for doc in protected_docs:
-                protected_asset_ids.add(doc.google_ads_asset_id)
-        except Exception as e:
-            logger.warning(f"Could not retrieve protected assets: {e}")
+        protected_docs = default_firestore_service.get_protected_assets(clean_customer_id)
+        for asset_id in protected_docs:
+            protected_asset_ids.add(asset_id)
 
         # Query stats
         start_date, end_date = cls.calculate_date_range(rules.lookback_window, rules.custom_lookback_days)
@@ -215,13 +225,20 @@ class KPIEvictionService:
         # Build candidate list
         candidates = []
         for asset in linked_assets:
+            asset_id = asset["asset_id"]
             if not rules.allow_cross_aspect_ratio_swap and asset["field_type"] != field_type:
                 continue
                 
-            if asset["asset_id"] in protected_asset_ids:
+            if asset_id in protected_asset_ids:
                 continue
                 
-            stats = stats_map.get(asset["asset_id"], {"impressions": 0, "clicks": 0, "kpi_value": 0.0})
+            # Strictly filter out recently swapped assets (Grace Period)
+            link_time = link_timestamps.get(asset_id)
+            if link_time and link_time >= cutoff_time:
+                logger.info(f"Asset {asset_id} is protected by Grace Period (linked at {link_time}).")
+                continue
+                
+            stats = stats_map.get(asset_id, {"impressions": 0, "clicks": 0, "kpi_value": 0.0})
             
             # Apply thresholds
             if rules.min_impressions is not None and stats["impressions"] < rules.min_impressions:
@@ -233,7 +250,8 @@ class KPIEvictionService:
                 **asset,
                 "impressions": stats["impressions"],
                 "clicks": stats["clicks"],
-                "kpi_value": stats["kpi_value"]
+                "kpi_value": stats["kpi_value"],
+                "link_timestamp": link_time
             })
 
         if not candidates:
@@ -241,12 +259,17 @@ class KPIEvictionService:
                 "operations": [],
                 "evicted_asset": None,
                 "status": "FAILED",
-                "error_message": "No eligible assets found to swap. All assets are either protected or below minimum performance thresholds."
+                "error_message": "No more capacity. How to fix: check swap rules and protected images, number of images limit per asset group is 20."
             }
 
-        # Sort candidates
+        # Sort candidates: worst KPI first. Tie-breaker: oldest asset first (to prefer evicting legacy evergreen assets)
         is_descending = rules.eviction_kpi.lower() in ["cpa", "cost"]
-        candidates.sort(key=lambda x: (x["kpi_value"], x["asset_id"]), reverse=is_descending)
+        candidates.sort(
+            key=lambda x: (
+                -x["kpi_value"] if is_descending else x["kpi_value"],
+                x["link_timestamp"] if x["link_timestamp"] is not None else datetime.min.replace(tzinfo=timezone.utc)
+            )
+        )
         victim = candidates[0]
 
         # Build REMOVE operation

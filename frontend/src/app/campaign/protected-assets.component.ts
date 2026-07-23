@@ -122,7 +122,16 @@ import { ApiService, AccountItem } from '../services/api.service';
                     }
                   </button>
                 } @empty {
-                  <div class="px-4 py-4 text-xs text-slate-400 text-center">No accounts found</div>
+                  @if (isLoadingAccounts()) {
+                    <div class="px-4 py-6 flex flex-col items-center justify-center gap-2">
+                      <mat-icon class="animate-spin text-slate-400" style="font-size: 20px; width: 20px; height: 20px;">refresh</mat-icon>
+                      <span class="text-xs text-slate-400">Loading accounts...</span>
+                    </div>
+                  } @else if (accessibleAccounts().length === 0) {
+                    <div class="px-4 py-4 text-xs text-slate-400 text-center">No Accounts</div>
+                  } @else {
+                    <div class="px-4 py-4 text-xs text-slate-400 text-center">No matching accounts</div>
+                  }
                 }
               </div>
             </div>
@@ -504,6 +513,9 @@ export class ProtectedAssetsComponent implements OnInit {
   }
 
   async toggleAssetProtection(assetId: string): Promise<void> {
+    const account = this.selectedAccount();
+    if (!account) return;
+
     const asset = this.liveAssets().find(a => a.id === assetId);
     if (!asset) return;
 
@@ -520,7 +532,7 @@ export class ProtectedAssetsComponent implements OnInit {
 
     // 2. Persist to backend json registry
     try {
-      await this.apiService.toggleAssetProtection(assetId, targetProtection);
+      await this.apiService.toggleAssetProtection(assetId, targetProtection, account.id);
     } catch (err) {
       console.warn('Failed to persist protection state:', err);
       // Revert on error

@@ -128,16 +128,13 @@ class FirestoreService:
             .where("asset_group_id", "==", asset_group_id)
             .where("operation_type", "==", OperationType.LINK.value)
             .where("status", "==", OperationStatus.SUCCESS.value)
-            .order_by("timestamp", direction=firestore.Query.DESCENDING)
-            .limit(1)
             .stream()
         )
-        for doc in docs:
-            data = doc.to_dict()
-            asset_id = data.get("google_ads_asset_id")
-            if asset_id:
-                return self.get_asset(customer_id, asset_id)
-        return None
+        ops = [LinkOperationDocument(**doc.to_dict()) for doc in docs]
+        if not ops:
+            return None
+        ops.sort(key=lambda x: x.timestamp, reverse=True)
+        return self.get_asset(customer_id, ops[0].google_ads_asset_id)
 
     # Protected Assets
     def toggle_protection(self, customer_id: str, asset_id: str, is_protected: bool) -> None:
@@ -158,6 +155,19 @@ class FirestoreService:
             .stream()
         )
         return [doc.to_dict()["google_ads_asset_id"] for doc in docs if doc.to_dict().get("google_ads_asset_id")]
+
+    def get_link_history_for_group(self, customer_id: str, asset_group_id: str, limit: int = 100) -> list[LinkOperationDocument]:
+        docs = (
+            self.client.collection("asset_group_links")
+            .where("customer_id", "==", customer_id)
+            .where("asset_group_id", "==", asset_group_id)
+            .where("operation_type", "==", OperationType.LINK.value)
+            .where("status", "==", OperationStatus.SUCCESS.value)
+            .stream()
+        )
+        ops = [LinkOperationDocument(**doc.to_dict()) for doc in docs]
+        ops.sort(key=lambda x: x.timestamp, reverse=True)
+        return ops[:limit]
 
     # Scheduled Jobs
     def create_scheduled_job(self, job: ScheduledJobDocument) -> None:
