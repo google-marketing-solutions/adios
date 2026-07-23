@@ -119,8 +119,13 @@ Dates are mapped precisely to standard Google Ads reporting segments:
 To run the frontend and backend servers concurrently, use the local development orchestrator:
 ```bash
 # Start both servers (FastAPI on 8000, Angular SPA on 4200)
+# Linux / macOS
 ./local/start-servers.sh
+
+# Windows
+local\start-server.bat
 ```
+To stop servers on Linux/macOS, use `Ctrl+C` or `./local/stop-servers.sh`. On Windows, use `Ctrl+C` in the orchestrator window or run `local\stop-server.bat`.
 The frontend proxy is configured to automatically route api calls (`/v1/*` and `/health`) to the FastAPI backend.
 
 ### Demo Account & Local Testing

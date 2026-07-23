@@ -5,11 +5,11 @@
 
 set -eo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${SCRIPT_DIR}"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${REPO_DIR}"
 
-CONFIG_FILE="${SCRIPT_DIR}/config.txt"
-TEMPLATE_FILE="${SCRIPT_DIR}/config.template.txt"
+CONFIG_FILE="${REPO_DIR}/config.txt"
+TEMPLATE_FILE="${REPO_DIR}/config.template.txt"
 
 # Highlight text formatting
 bold=$(tput bold || echo "")
@@ -45,8 +45,8 @@ if [ -f "${CONFIG_FILE}" ]; then
 fi
 
 # Locate python executable in .venv or system
-if [ -f "${SCRIPT_DIR}/.venv/bin/uvicorn" ]; then
-  UVICORN_CMD="${SCRIPT_DIR}/.venv/bin/uvicorn"
+if [ -f "${REPO_DIR}/.venv/bin/uvicorn" ]; then
+  UVICORN_CMD="${REPO_DIR}/.venv/bin/uvicorn"
 elif command -v uvicorn &> /dev/null; then
   UVICORN_CMD="uvicorn"
 else

@@ -4,7 +4,7 @@
 # Copy this file to 'config.txt' in the project root and populate with active credentials:
 #   cp config.template.txt config.txt
 #
-# 'config.txt' is git-ignored and used by server-start.sh and deploy.sh.
+# 'config.txt' is git-ignored and used by local/server-start.sh and deploy.sh.
 # ==============================================================================
 
 # Google Login OAuth Client ID & Secret

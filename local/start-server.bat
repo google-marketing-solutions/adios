@@ -11,7 +11,7 @@ echo ==========================================================================
 cd /d "%~dp0"
 
 :: Launch the PowerShell orchestrator script
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0local\start-servers.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0start-servers.ps1"
 
 echo ==========================================================================
 echo Servers have exited.
