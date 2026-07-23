@@ -102,40 +102,44 @@ export class AuthHandlerComponent implements OnInit {
   readonly errorMsg = signal<string | null>(null);
 
   ngOnInit(): void {
-    // Read the fragment hash (e.g. #id_token=...&access_token=...)
-    this.route.fragment.subscribe({
-      next: (fragment) => {
-        if (fragment) {
-          const params = new URLSearchParams(fragment);
-          const idToken = params.get('id_token');
-          const accessToken = params.get('access_token');
-          if (idToken) {
-            this.verifyToken(idToken, accessToken);
+    const code = this.route.snapshot.queryParamMap.get('code');
+    if (code) {
+      const redirectUri = window.location.origin + '/auth-handler';
+      this.verifyCode(code, redirectUri);
+    } else {
+      // Fallback/Error handling for fragments
+      this.route.fragment.subscribe({
+        next: (fragment) => {
+          if (fragment) {
+            const params = new URLSearchParams(fragment);
+            const error = params.get('error');
+            if (error) {
+              this.errorMsg.set(`Google authentication error: ${error}`);
+            } else {
+              this.errorMsg.set('Unexpected response format. Please ensure Authorization Code flow is active.');
+            }
           } else {
-            this.errorMsg.set('No Google authentication token was found in the redirect response.');
+            const errorParam = this.route.snapshot.queryParamMap.get('error');
+            if (errorParam) {
+              this.errorMsg.set(`Google authentication error: ${errorParam}`);
+            } else {
+              this.errorMsg.set('Missing Authorization Code from Google response.');
+            }
           }
-        } else {
-          // If no fragment, check query parameters (just in case they used response_type=code or query)
-          const code = this.route.snapshot.queryParamMap.get('code');
-          if (code) {
-            this.errorMsg.set('Authorization code flow is not supported. Please configure Implicit flow.');
-          } else {
-            this.errorMsg.set('Missing OAuth response fragment. Please initiate sign-in from the login page.');
-          }
+        },
+        error: (err) => {
+          this.errorMsg.set('Failed to parse OAuth callback response.');
+          console.error(err);
         }
-      },
-      error: (err) => {
-        this.errorMsg.set('Failed to parse Google OAuth callback response.');
-        console.error(err);
-      }
-    });
+      });
+    }
   }
 
-  private async verifyToken(idToken: string, accessToken?: string | null): Promise<void> {
+  private async verifyCode(code: string, redirectUri: string): Promise<void> {
     try {
-      await this.authService.handleAuthCallback(idToken, accessToken);
+      await this.authService.verifyCode(code, redirectUri);
     } catch (err: any) {
-      this.errorMsg.set(err?.message || 'Failed to verify session credentials with the backend.');
+      this.errorMsg.set(err?.message || 'Failed to exchange authorization code with the backend.');
     }
   }
 

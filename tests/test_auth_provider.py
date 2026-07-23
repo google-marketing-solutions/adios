@@ -52,3 +52,10 @@ def test_auth_token_provider_get_client(monkeypatch) -> None:
     provider.get_google_ads_client(user_access_token="ya29.test_token_123")
     mock_oauth_creds.assert_called_with(token="ya29.test_token_123")
     assert mock_googleads_client.called
+
+    # Test with refresh_token_override
+    mock_googleads_client.reset_mock()
+    provider.get_google_ads_client(refresh_token_override="override_token_xyz")
+    assert mock_googleads_client.load_from_dict.called
+    called_config = mock_googleads_client.load_from_dict.call_args[0][0]
+    assert called_config["refresh_token"] == "override_token_xyz"

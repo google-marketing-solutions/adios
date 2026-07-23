@@ -26,7 +26,6 @@ class OperationStatus(str, Enum):
 
 
 class ScheduledJobStatus(str, Enum):
-    PENDING = "PENDING"
     LINKED = "LINKED"
     COMPLETED_UNLINKED = "COMPLETED_UNLINKED"
     FAILED = "FAILED"
@@ -76,7 +75,8 @@ class ScheduledJobDocument(BaseModel):
     asset_name: str
     image_gcs_uri: str
     asset_id: str | None = None
-    start_date: str
+    evicted_asset_ids: dict[str, str] | None = None
+    refresh_token: str | None = None
     end_date: str
     field_type: str = "MARKETING_IMAGE"
     status: ScheduledJobStatus
@@ -215,23 +215,17 @@ class FirestoreService:
         jobs = [ScheduledJobDocument(**doc.to_dict()) for doc in docs]
         return sorted(jobs, key=lambda j: j.created_at, reverse=True)
 
-    def get_pending_start_jobs(self, as_of_date: str) -> list[ScheduledJobDocument]:
-        docs = (
-            self.client.collection("scheduled_jobs")
-            .where("status", "==", ScheduledJobStatus.PENDING.value)
-            .where("start_date", "<=", as_of_date)
-            .stream()
-        )
-        return [ScheduledJobDocument(**doc.to_dict()) for doc in docs]
-
     def get_pending_end_jobs(self, as_of_date: str) -> list[ScheduledJobDocument]:
         docs = (
             self.client.collection("scheduled_jobs")
             .where("status", "==", ScheduledJobStatus.LINKED.value)
-            .where("end_date", "<", as_of_date)
             .stream()
         )
-        return [ScheduledJobDocument(**doc.to_dict()) for doc in docs]
+        return [
+            ScheduledJobDocument(**doc.to_dict())
+            for doc in docs
+            if doc.to_dict().get("end_date") < as_of_date
+        ]
 
 
 # Singleton instance

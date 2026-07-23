@@ -76,9 +76,9 @@ State persistence, audit logs, and scheduling records are stored in Google Fires
   * **Fields**: `customer_id`, `is_protected`, `updated_at`
 
   #### `scheduled_jobs`
-  Manages future-dated asset linking/unlinking background jobs.
+  Manages scheduled asset unlinking background jobs.
   * **Document ID**: `job_id`
-  * **Fields**: `customer_id`, `asset_group_ids`, `asset_name`, `image_gcs_uri`, `asset_id`, `start_date`, `end_date`, `field_type`, `status` (PENDING | LINKED | COMPLETED_UNLINKED | FAILED), `error_message`, `created_at`, `updated_at`, `swap_rules` (Optional)
+  * **Fields**: `customer_id`, `asset_group_ids`, `asset_name`, `image_gcs_uri`, `asset_id`, `end_date`, `field_type`, `status` (LINKED | COMPLETED_UNLINKED | FAILED), `error_message`, `created_at`, `updated_at`, `swap_rules` (Optional)
 
 ---
 
@@ -132,3 +132,44 @@ The frontend proxy is configured to automatically route api calls (`/v1/*` and `
 To facilitate local end-to-end frontend verification without an active Google Ads Developer Token or live Asset Group data, the ID `9941182026` is configured as a reserved **Demo Account**:
 * Selecting **Store DE PMax Demo (994-118-2026)** in the frontend automatically triggers a `source: "mock"` fallback in the backend.
 * It returns a static list of 5 test assets, which support reading and persisting "Protected" asset status directly to the `protected_assets` Firestore collection exactly like live accounts.
+
+---
+
+## Automated PMax Scheduling & Lifecycle Simulation
+
+Adios 2.0 supports scheduled automated End-Date unlinking rollbacks. To ensure reliability, it links assets immediately upon assignment, isolates background authentications by persisting the user's `refresh_token`, and guarantees atomic rollbacks by storing an exact `evicted_asset_ids` mapping in Firestore.
+
+### Manual End-to-End Local Testing
+To test the full background lifecycle manually exactly as it will run via Google Cloud Scheduler:
+
+#### 1. Boot the Local Services
+Start the orchestrator:
+```bash
+./local/start-servers.sh
+```
+
+#### 2. Schedule an Asset via FastAPI Swagger UI
+1. Open your browser and navigate to the interactive API docs: `http://localhost:8000/docs`.
+2. Expand the `POST /v1/campaign/assign` endpoint.
+3. Click the **"Try it out"** button.
+4. Execute an assignment payload passing an `end_date`. For example:
+  ```json
+  {
+    "customer_id": "9941182026",
+    "asset_group_ids": ["123456789"],
+    "file_token": "YOUR_VALID_GCS_UPLOAD_TOKEN",
+    "end_date": "2026-08-01",
+    "swap_rules": {}
+  }
+  ```
+5. Click **Execute**. The API will IMMEDIATELY link the asset, and the response will return `"status": "SUCCESS"`. Simultaneously, a background job is registered in Firestore with `"status": "LINKED"`.
+
+#### 3. Fast-Forward Time and Trigger the Background Scheduler
+Normally, the daily Cloud Scheduler will hit the API endpoint every night. To test the unlinking immediately, bypass the calendar by passing the future `YYYY-MM-DD` date as a fast-forward argument to the local trigger script:
+
+```bash
+# Simulates that "today" is 2026-08-01 (triggers the atomic UNLINK & RESTORE phase)
+./scripts/scheduler.sh "2026-08-01"
+```
+
+The server fetches the job, isolates Auth credentials using the persisted token, invokes Google Ads mutations to unlink the asset, restores the original evicted candidates, and transitions the state seamlessly without requiring you to wait or change your system clock.

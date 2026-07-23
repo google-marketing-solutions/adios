@@ -143,11 +143,11 @@ graph TD
 3. **Protected / Fixed Assets ("Must Not Replace"):**
    - Users can lock specific high-value or brand-mandatory images within an Asset Group (via UI toggle or file naming convention such as `*_FIXED.*`).
    - Protected assets are excluded from the candidate pool during KPI-driven eviction.
-4. **Scheduled Promotional Images & Fallback Logic:**
-   - Users can assign a **start date/time** and **end date/time** to uploaded promotional assets (e.g., "Seasonal 20-% Off Sale").
-   - A daily background scheduled task checks active timers:
-     - **Activation:** At start time, the promotional image is inserted into the target Asset Group (evicting the lowest-performing non-protected asset if necessary).
-     - **Expiration & Reversion:** At end time, the promotional asset is removed. The system automatically restores the exact image that was evicted prior to the schedule, OR if unavailable, assigns an asset from a pre-configured **"Fallback Bucket"** (GCS folder of evergreen brand imagery).
+4. **Scheduled Promotional Unlinking & Fallback Logic:**
+   - The system supports an "immediate link, scheduled unlinking" lifecycle model. Upon saving, the promotional image is immediately inserted into the target Asset Group (evicting the lowest-performing non-protected asset if necessary).
+   - Users can assign an **end date** to the uploaded promotional assets.
+   - A daily background scheduled task checks for active expiration dates:
+     - **Expiration & Reversion:** At end date, the promotional asset is automatically unlinked. The system restores the exact image that was evicted prior to the schedule.
 5. **Audit & Execution Reporting:**
    - The UI provides a dedicated **Replacement Summary & Error Log Table** containing: `Timestamp | Account | Campaign Name | Asset Group Name | Replaced Asset ID/Name | New Asset ID/Name | Reason (KPI Optimization vs. Scheduled Promo) | Status (Success/Error details)`.
 6. **Dimension-Locked vs. Cross-Dimension Replacement:**
@@ -301,8 +301,8 @@ graph TD
 2. **Config:** Selects `Theme: Holiday Season`, `Background: Cozy living room with blurred festive lights`, and checks `Generate 1:1, 4:5, 1.91:1`.
 3. **Automated Gatekeeping:** Feature 5 runs generation; 4,600 pass scoring (>85) and enter the HITL review grid; 400 auto-fail (due to clipped product boundaries) and are automatically regenerated.
 4. **HITL Review:** Marketing team approves 4,950 images in bulk and rejects 50 with comments.
-5. **Sync:** Approved URLs are pushed simultaneously to the primary GMC and CSS Partner MC feeds as `additional_image_links`, and sent to Feature 1 with a scheduled timer: *Active Nov 1 – Dec 26*.
-6. **Reversion:** On Dec 27, the scheduler automatically removes the holiday assets from all PMax asset groups and restores the baseline studio images.
+5. **Sync:** Approved URLs are pushed simultaneously to the primary GMC and CSS Partner MC feeds as `additional_image_links`, and sent to Feature 1 on Nov 1 to be linked immediately with a scheduled expiration date of Dec 26.
+6. **Reversion:** On Dec 27, the scheduler automatically unlinks the holiday assets from all PMax asset groups and restores the baseline studio images.
 
 ### Use Case B: Pre-Flight Campaign Quality Audit
 1. A marketing manager uploads 40 new banner images and 15 headlines for a major summer promotion via Feature 1.

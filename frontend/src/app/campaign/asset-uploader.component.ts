@@ -23,7 +23,6 @@ export interface QueueItem {
   isScheduled?: boolean;
   scheduleDetails?: {
     offerName: string;
-    startDate: string;
     endDate: string;
   };
 }
@@ -117,23 +116,17 @@ export interface QueueItem {
                   </div>
 
                   <!-- Master Schedule Bar for Bulk Apply -->
-                  <div class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <span class="text-[11px] font-bold text-indigo-900 flex items-center gap-1 shrink-0">
-                      <mat-icon class="icon-size text-indigo">schedule</mat-icon>
+                  <div class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-lg flex flex-col sm:flex-row sm:items-center gap-6">
+                    <span class="text-[11px] font-bold text-indigo-900 flex items-center gap-2 shrink-0">
+                      <mat-icon class="icon-size text-indigo flex items-center justify-center mt-0.5">schedule</mat-icon>
                       Master Schedule Configurator
                     </span>
-                    <div class="flex items-center gap-2 text-xs grow max-w-xl">
-                      <span class="text-xs font-medium text-slate-600 shrink-0">Start:</span>
-                      <input 
-                        type="date" 
-                        [(ngModel)]="masterSchedule.startDate"
-                        class="bg-white border rounded px-2.5 py-1 text-xs w-full focus:outline-none focus:border-indigo"
-                      />
+                    <div class="flex items-center gap-2 text-xs">
                       <span class="text-xs font-medium text-slate-600 shrink-0 ml-1">End:</span>
                       <input 
                         type="date" 
                         [(ngModel)]="masterSchedule.endDate"
-                        class="bg-white border rounded px-2.5 py-1 text-xs w-full focus:outline-none focus:border-indigo"
+                        class="bg-white border rounded px-2.5 py-1 text-xs w-[140px] focus:outline-none focus:border-indigo"
                       />
                       <button
                         (click)="applyBulkSchedule()"
@@ -160,7 +153,6 @@ export interface QueueItem {
                           </th>
                           <th class="p-3 w-20">Image Preview</th>
                           <th class="p-3">Image Name</th>
-                          <th class="p-3 w-44">Schedule Start</th>
                           <th class="p-3 w-44">Schedule End</th>
                           <th class="p-3 w-12 text-center">Action</th>
                         </tr>
@@ -187,17 +179,6 @@ export interface QueueItem {
                             <!-- Image Name -->
                             <td class="p-3 align-middle">
                               <p class="font-bold text-slate-700 m-0">{{ item.name }}</p>
-                            </td>
-
-                            <!-- Schedule Start -->
-                            <td class="p-3 align-middle">
-                              <input 
-                                type="date" 
-                                [ngModel]="getItemStartDate(item)"
-                                (ngModelChange)="setItemStartDate(item, $event)"
-                                [disabled]="!item.isScheduled"
-                                class="w-full text-xs border rounded p-1.5 bg-white disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:border-indigo"
-                              />
                             </td>
 
                             <!-- Schedule End -->
@@ -836,7 +817,6 @@ export class AssetUploaderComponent implements OnInit {
   // Master schedule controls for bulk application
   masterSchedule = {
     offerName: '',
-    startDate: '',
     endDate: ''
   };
 
@@ -1127,24 +1107,6 @@ export class AssetUploaderComponent implements OnInit {
     }));
   }
 
-  getItemStartDate(item: QueueItem): string {
-    return item.scheduleDetails?.startDate ?? '';
-  }
-
-  setItemStartDate(item: QueueItem, value: string): void {
-    this.uploadedQueue.update(queue => queue.map(i => {
-      if (i.id === item.id) {
-        const details = i.scheduleDetails || { offerName: '', startDate: '', endDate: '' };
-        return {
-          ...i,
-          isScheduled: true,
-          scheduleDetails: { ...details, startDate: value }
-        };
-      }
-      return i;
-    }));
-  }
-
   getItemEndDate(item: QueueItem): string {
     return item.scheduleDetails?.endDate ?? '';
   }
@@ -1152,7 +1114,7 @@ export class AssetUploaderComponent implements OnInit {
   setItemEndDate(item: QueueItem, value: string): void {
     this.uploadedQueue.update(queue => queue.map(i => {
       if (i.id === item.id) {
-        const details = i.scheduleDetails || { offerName: '', startDate: '', endDate: '' };
+        const details = i.scheduleDetails || { offerName: '', endDate: '' };
         return {
           ...i,
           isScheduled: true,
@@ -1310,7 +1272,6 @@ export class AssetUploaderComponent implements OnInit {
           fileToken = uploadRes.file_token;
         }
 
-        const startDate = item.isScheduled && item.scheduleDetails?.startDate ? item.scheduleDetails.startDate : undefined;
         const endDate = item.isScheduled && item.scheduleDetails?.endDate ? item.scheduleDetails.endDate : undefined;
 
         let assignRes: AssignResponse | null = null;
@@ -1321,7 +1282,6 @@ export class AssetUploaderComponent implements OnInit {
             fileToken,
             selectedGroups,
             this.selectedAccountId(),
-            startDate,
             endDate,
             swapRules
           );
@@ -1403,7 +1363,6 @@ export class AssetUploaderComponent implements OnInit {
             uploadDate: new Date().toISOString().split('T')[0],
             scheduledTiming: item.isScheduled && item.scheduleDetails ? {
               id: `sched-${Date.now()}`,
-              startDate: item.scheduleDetails.startDate,
               endDate: item.scheduleDetails.endDate,
               offerName: item.scheduleDetails.offerName,
               fallbackAssetId: evictedAsset ? evictedAsset.id : `fallback-${Date.now()}`

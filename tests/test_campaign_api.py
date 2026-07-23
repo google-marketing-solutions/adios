@@ -274,37 +274,6 @@ def test_assign_asset_to_asset_groups() -> None:
         assert assign_data["results"][0]["status"] == "SUCCESS"
 
 
-def test_assign_future_scheduled_asset() -> None:
-    img_bytes = create_test_image_bytes(1000, 1000)
-    upload_res = client.post(
-        "/v1/campaign/upload",
-        files={"file": ("future_promo.png", img_bytes, "image/png")},
-    )
-    assert upload_res.status_code == status.HTTP_201_CREATED
-    file_token = upload_res.json()["file_token"]
-
-    payload = {
-        "file_token": file_token,
-        "asset_group_ids": ["ag_sched_1"],
-        "customer_id": "9044713567",
-        "start_date": "2099-01-01",
-        "end_date": "2099-01-15",
-    }
-    with patch("src.campaign.bulk_assign_controller.default_gcs_service.download_image_by_token") as mock_dl:
-        mock_dl.return_value = (img_bytes, "future_promo.png")
-        assign_res = client.post("/v1/campaign/assign", json=payload)
-        assert assign_res.status_code == status.HTTP_200_OK
-    data = assign_res.json()
-    assert data["total_assigned"] == 0
-    assert data["results"][0]["status"] == "SCHEDULED_PENDING"
-
-    # Verify job in /scheduled-jobs endpoint
-    jobs_res = client.get("/v1/campaign/scheduled-jobs")
-    assert jobs_res.status_code == status.HTTP_200_OK
-    jobs = jobs_res.json()["jobs"]
-    assert any(j["asset_name"] == "future_promo.png" for j in jobs)
-
-
 def test_trigger_scheduler_endpoint() -> None:
     with patch("src.campaign.bulk_assign_controller.process_scheduled_jobs") as mock_proc:
         mock_proc.return_value = {"started_jobs": 1, "unlinked_jobs": 0, "failed_jobs": 0, "details": []}
@@ -741,3 +710,133 @@ def test_assign_consecutive_swaps_grace_period() -> None:
         data2 = res2.json()
         
         assert data2["results"][0]["evicted_asset"]["asset_id"] == "1"
+
+
+def test_assign_scheduled_end_date_saves_tokens_and_evictions() -> None:
+    from src.core.auth_provider import GoogleAdsCredentials
+    img_bytes = create_test_image_bytes(1000, 1000)
+    upload_res = client.post(
+        "/v1/campaign/upload",
+        files={"file": ("schedule_test.png", img_bytes, "image/png")},
+    )
+    assert upload_res.status_code == status.HTTP_201_CREATED
+    file_token = upload_res.json()["file_token"]
+
+    mock_client = MagicMock()
+    mock_asset_res = MagicMock()
+    mock_asset_res.resource_name = "customers/9941182026/assets/new_sched_123"
+    mock_client.get_service("AssetService").mutate_assets.return_value.results = [mock_asset_res]
+
+    mock_aga_res_remove = MagicMock()
+    mock_aga_res_remove.resource_name = "customers/9941182026/assetGroupAssets/10101~0~SQUARE_MARKETING_IMAGE"
+    mock_aga_res_add = MagicMock()
+    mock_aga_res_add.resource_name = "customers/9941182026/assetGroupAssets/10101~new_sched_123~SQUARE_MARKETING_IMAGE"
+    mock_client.get_service("AssetGroupAssetService").mutate_asset_group_assets.return_value.results = [
+        mock_aga_res_remove,
+        mock_aga_res_add,
+    ]
+
+    def create_mock_row(idx: str):
+        row = MagicMock()
+        row.asset_group_asset.asset = f"customers/9941182026/assets/{idx}"
+        row.asset.image_asset.full_size.url = f"https://example.com/{idx}.png"
+        row.asset.name = f"Image {idx}"
+        row.asset_group_asset.field_type.name = "SQUARE_MARKETING_IMAGE"
+        row.metrics.clicks = 100
+        return row
+
+    mock_client.get_service("GoogleAdsService").search.side_effect = [
+        [create_mock_row(str(i)) for i in range(20)],  # Full group to force eviction
+        [create_mock_row(str(i)) for i in range(20)],
+    ]
+
+    mock_creds = GoogleAdsCredentials(
+        developer_token="dev_tok",
+        client_id="client_id",
+        client_secret="client_sec",
+        refresh_token="test_schedule_refresh_token",
+        use_proto_plus=False,
+    )
+
+    mock_fs = MagicMock()
+    mock_fs.get_protected_assets.return_value = []
+    mock_fs.get_link_history_for_group.return_value = []
+
+    with patch("src.core.auth_provider.default_auth_provider.get_google_ads_client", return_value=mock_client), \
+         patch("src.core.auth_provider.default_auth_provider.get_google_ads_credentials", return_value=mock_creds), \
+         patch("src.campaign.kpi_eviction_service.default_firestore_service", mock_fs), \
+         patch("src.campaign.bulk_assign_controller.default_firestore_service", mock_fs):
+        
+        payload = {
+            "file_token": file_token,
+            "asset_group_ids": ["10101"],
+            "customer_id": "9941182026",
+            "end_date": "2026-12-31",
+            "swap_rules": {"lookback_window": "30d", "eviction_kpi": "clicks", "grace_period_minutes": 1}
+        }
+        headers = {"X-Refresh-Token": "test_schedule_refresh_token"}
+        res = client.post("/v1/campaign/assign", json=payload, headers=headers)
+        assert res.status_code == status.HTTP_200_OK
+        data = res.json()
+        assert data["results"][0]["status"] == "SUCCESS"
+        assert data["results"][0]["evicted_asset"] is not None
+
+        # Verify ScheduledJobDocument was created with refresh_token and evicted_asset_ids
+        mock_fs.create_scheduled_job.assert_called_once()
+        saved_job = mock_fs.create_scheduled_job.call_args[0][0]
+        
+        assert saved_job.status == "LINKED"
+        assert saved_job.end_date == "2026-12-31"
+        assert saved_job.refresh_token == "test_schedule_refresh_token"
+        assert "10101" in saved_job.evicted_asset_ids
+        assert saved_job.evicted_asset_ids["10101"] == data["results"][0]["evicted_asset"]["asset_id"]
+
+
+def test_assign_scheduled_fallback_saves_refresh_token() -> None:
+    from src.core.auth_provider import GoogleAdsCredentials
+    img_bytes = create_test_image_bytes(1000, 1000)
+    upload_res = client.post(
+        "/v1/campaign/upload",
+        files={"file": ("fallback_sched.png", img_bytes, "image/png")},
+    )
+    assert upload_res.status_code == status.HTTP_201_CREATED
+    file_token = upload_res.json()["file_token"]
+
+    mock_creds = GoogleAdsCredentials(
+        developer_token="mock_developer_token_2026",
+        client_id="client_id",
+        client_secret="client_sec",
+        refresh_token="old_unused",
+        use_proto_plus=False,
+    )
+
+    mock_fs = MagicMock()
+    with patch("src.campaign.bulk_assign_controller.default_firestore_service", mock_fs), \
+         patch("src.core.auth_provider.default_auth_provider.get_google_ads_credentials", return_value=mock_creds):
+
+        payload = {
+            "file_token": file_token,
+            "asset_group_ids": ["20202"],
+            "customer_id": "9941182026",
+            "end_date": "2026-11-30",
+        }
+        headers = {"X-Refresh-Token": "fallback_refresh_token_123"}
+        res = client.post("/v1/campaign/assign", json=payload, headers=headers)
+        assert res.status_code == status.HTTP_200_OK
+
+        mock_fs.create_scheduled_job.assert_called_once()
+        saved_job = mock_fs.create_scheduled_job.call_args[0][0]
+        assert saved_job.end_date == "2026-11-30"
+        assert saved_job.refresh_token == "fallback_refresh_token_123"
+
+
+def test_assign_scheduled_end_date_requires_refresh_token() -> None:
+    payload = {
+        "file_token": "dummy_token",
+        "asset_group_ids": ["20202"],
+        "customer_id": "9941182026",
+        "end_date": "2026-11-30",
+    }
+    res = client.post("/v1/campaign/assign", json=payload)
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "No Refresh Token provided" in res.json()["detail"]

@@ -322,10 +322,13 @@ def unlink_asset_from_groups(
         op.remove = f"customers/{customer_id}/assetGroupAssets/{group_id}~{asset_id}~{field_type}"
         operations.append(op)
 
-    response = asset_group_asset_service.mutate_asset_group_assets(
-        customer_id=customer_id,
-        operations=operations,
-    )
+    req = g_client.get_type("MutateAssetGroupAssetsRequest")
+    req.customer_id = customer_id
+    req.partial_failure = True
+    for op_item in operations:
+        req.operations.append(op_item)
+
+    response = asset_group_asset_service.mutate_asset_group_assets(request=req)
     unlinked_resources = [r.resource_name for r in response.results]
     logger.info(f"Unlinked asset {asset_id} from {len(unlinked_resources)} asset groups for customer {customer_id}")
     return unlinked_resources
@@ -348,150 +351,27 @@ def process_scheduled_jobs(
         "details": [],
     }
 
-    pending_start = default_firestore_service.get_pending_start_jobs(as_of_date)
     pending_end = default_firestore_service.get_pending_end_jobs(as_of_date)
 
-    logger.info(f"Processing schedule jobs as of {as_of_date}: {len(pending_start)} pending start, {len(pending_end)} pending end.")
+    logger.info(f"Processing schedule jobs as of {as_of_date}: {len(pending_end)} pending end.")
 
     if dry_run:
         summary["dry_run"] = True
-        summary["pending_start_ids"] = [j.job_id for j in pending_start]
         summary["pending_end_ids"] = [j.job_id for j in pending_end]
         return summary
 
-    g_client = None
-    try:
-        g_client = default_auth_provider.get_google_ads_client(
-            user_access_token=user_access_token,
-            include_login_customer_id=True,
-        )
-    except Exception as err:
-        logger.warning(f"Google Ads API client instantiation unavailable: {err}")
-
-    # 1. Process Start Date Activations
-    for job in pending_start:
-        try:
-            asset_id = job.asset_id
-            if g_client:
-                if not asset_id:
-                    # Download image from GCS
-                    logger.info(f"Downloading image from GCS for job {job.job_id}: {job.image_gcs_uri}")
-                    image_bytes = default_gcs_service.download_image(job.image_gcs_uri)
-                    asset_id = create_asset_in_library(g_client, job.customer_id, job.asset_name, image_bytes)
-                    
-                    # Save Asset Document to Firestore
-                    asset_doc = AssetDocument(
-                        google_ads_asset_id=asset_id,
-                        customer_id=job.customer_id,
-                        gcs_uri=job.image_gcs_uri,
-                        asset_name=job.asset_name,
-                        asset_group_ids=job.asset_group_ids,
-                    )
-                    default_firestore_service.save_asset(asset_doc)
-                    logger.info(f"Saved AssetDocument to Firestore for {asset_id}")
-
-                # Link Asset to Groups
-                try:
-                    swap_rules = getattr(job, "swap_rules", None)
-                    link_res = link_asset_to_groups(
-                        g_client, 
-                        job.customer_id, 
-                        asset_id, 
-                        job.asset_group_ids, 
-                        field_type=job.field_type,
-                        swap_rules_dict=swap_rules
-                    )
-                    
-                    results = link_res["results"]
-                    success_count = 0
-                    err_msgs = []
-                    
-                    for res_item in results:
-                        ag_id = res_item["asset_group_id"]
-                        if res_item["status"] == "SUCCESS":
-                            success_count += 1
-                            add_rn = res_item["asset_group_asset_resource_name"]
-                            
-                            op_link = LinkOperationDocument(
-                                operation_id=str(uuid.uuid4()),
-                                operation_type=OperationType.LINK,
-                                customer_id=job.customer_id,
-                                asset_group_id=ag_id,
-                                google_ads_asset_id=asset_id,
-                                google_ads_asset_group_asset_id=add_rn.split("/")[-1],
-                                status=OperationStatus.SUCCESS,
-                                error_message=res_item.get("error_message"),
-                            )
-                            default_firestore_service.save_link_operation(op_link)
-                            
-                            if res_item.get("evicted_asset"):
-                                op_un = LinkOperationDocument(
-                                    operation_id=str(uuid.uuid4()),
-                                    operation_type=OperationType.UNLINK,
-                                    customer_id=job.customer_id,
-                                    asset_group_id=ag_id,
-                                    google_ads_asset_id=res_item["evicted_asset"].asset_id,
-                                    status=OperationStatus.SUCCESS,
-                                )
-                                default_firestore_service.save_link_operation(op_un)
-                        else:
-                            err_msg = res_item["error_message"] or "Failed to link"
-                            err_msgs.append(f"Group {ag_id}: {err_msg}")
-                            op_fail = LinkOperationDocument(
-                                operation_id=str(uuid.uuid4()),
-                                operation_type=OperationType.LINK,
-                                customer_id=job.customer_id,
-                                asset_group_id=ag_id,
-                                google_ads_asset_id=asset_id,
-                                status=OperationStatus.FAILED,
-                                error_message=err_msg,
-                            )
-                            default_firestore_service.save_link_operation(op_fail)
-
-                    if success_count == 0:
-                        raise Exception(" | ".join(err_msgs) if err_msgs else "All asset groups failed to link.")
-
-                    successful_groups = [r["asset_group_id"] for r in results if r["status"] == "SUCCESS"]
-                    job.asset_group_ids = successful_groups
-
-                except Exception as api_exc:
-                    if "results" not in locals():
-                        for ag_id in job.asset_group_ids:
-                            op_link = LinkOperationDocument(
-                                operation_id=str(uuid.uuid4()),
-                                operation_type=OperationType.LINK,
-                                customer_id=job.customer_id,
-                                asset_group_id=ag_id,
-                                google_ads_asset_id=asset_id,
-                                status=OperationStatus.FAILED,
-                                error_message=str(api_exc),
-                            )
-                            default_firestore_service.save_link_operation(op_link)
-                    raise api_exc
-
-            default_firestore_service.update_scheduled_job(
-                job.customer_id, 
-                job.job_id, 
-                {
-                    "status": ScheduledJobStatus.LINKED, 
-                    "asset_id": asset_id,
-                    "asset_group_ids": job.asset_group_ids
-                }
-            )
-            summary["started_jobs"] += 1
-            summary["details"].append({"job_id": job.job_id, "action": "START", "status": "SUCCESS"})
-        except Exception as exc:
-            logger.error(f"Failed to process start schedule for job {job.job_id}: {exc}", exc_info=True)
-            default_firestore_service.update_scheduled_job(job.customer_id, job.job_id, {"status": ScheduledJobStatus.FAILED, "error_message": str(exc)})
-            summary["failed_jobs"] += 1
-            summary["details"].append({"job_id": job.job_id, "action": "START", "status": "FAILED", "error": str(exc)})
-
-    # 2. Process End Date Expirations (Unlinking)
+    # 1. Process End Date Expirations (Unlinking & Restoring)
     for job in pending_end:
         try:
-            if g_client and job.asset_id:
+            rt = getattr(job, "refresh_token", None)
+            if rt:
+                job_client = default_auth_provider.get_google_ads_client(refresh_token_override=rt)
+            else:
+                job_client = default_auth_provider.get_google_ads_client(user_access_token=user_access_token)
+
+            if job_client and job.asset_id:
                 try:
-                    unlinked_resources = unlink_asset_from_groups(g_client, job.customer_id, job.asset_id, job.asset_group_ids, field_type=job.field_type)
+                    unlinked_resources = unlink_asset_from_groups(job_client, job.customer_id, job.asset_id, job.asset_group_ids, field_type=job.field_type)
                     
                     # Save UNLINK Operations as SUCCESS
                     for ag_id in job.asset_group_ids:
@@ -506,29 +386,96 @@ def process_scheduled_jobs(
                         )
                         default_firestore_service.save_link_operation(op)
                 except Exception as api_exc:
-                    # Save UNLINK Operations as FAILED
-                    for ag_id in job.asset_group_ids:
-                        op_id = str(uuid.uuid4())
-                        op = LinkOperationDocument(
-                            operation_id=op_id,
-                            operation_type=OperationType.UNLINK,
-                            customer_id=job.customer_id,
-                            asset_group_id=ag_id,
-                            google_ads_asset_id=job.asset_id,
-                            status=OperationStatus.FAILED,
-                            error_message=str(api_exc),
-                        )
-                        default_firestore_service.save_link_operation(op)
-                    raise api_exc
+                    err_str = str(api_exc)
+                    if "MUTATE_ERROR_ENTITY_DOES_NOT_EXIST" in err_str or "RESOURCE_NOT_FOUND" in err_str:
+                        logger.warning(f"Asset {job.asset_id} was already unlinked from groups for job {job.job_id}.")
+                    else:
+                        # Save UNLINK Operations as FAILED
+                        for ag_id in job.asset_group_ids:
+                            op_id = str(uuid.uuid4())
+                            op = LinkOperationDocument(
+                                operation_id=op_id,
+                                operation_type=OperationType.UNLINK,
+                                customer_id=job.customer_id,
+                                asset_group_id=ag_id,
+                                google_ads_asset_id=job.asset_id,
+                                status=OperationStatus.FAILED,
+                                error_message=err_str,
+                            )
+                            default_firestore_service.save_link_operation(op)
+                        raise api_exc
+
+                # Restore Logic (Re-linking original evicted assets)
+                evicted_asset_ids = getattr(job, "evicted_asset_ids", {})
+                if evicted_asset_ids:
+                    asset_group_asset_service = job_client.get_service("AssetGroupAssetService")
+                    restore_ops = []
+                    restore_metadata = []
+                    for ag_id, original_asset_id in evicted_asset_ids.items():
+                        if ag_id in job.asset_group_ids:
+                            op_add = job_client.get_type("AssetGroupAssetOperation")
+                            aga_add = op_add.create
+                            aga_add.asset_group = f"customers/{job.customer_id}/assetGroups/{ag_id}"
+                            aga_add.asset = f"customers/{job.customer_id}/assets/{original_asset_id}"
+                            aga_add.field_type = getattr(job_client.enums.AssetFieldTypeEnum, job.field_type)
+                            restore_ops.append(op_add)
+                            restore_metadata.append({"ag_id": ag_id, "original_asset_id": original_asset_id})
+
+                    if restore_ops:
+                        try:
+                            req = job_client.get_type("MutateAssetGroupAssetsRequest")
+                            req.customer_id = job.customer_id
+                            req.partial_failure = True
+                            for op_item in restore_ops:
+                                req.operations.append(op_item)
+
+                            res = asset_group_asset_service.mutate_asset_group_assets(request=req)
+                            for meta, r in zip(restore_metadata, res.results):
+                                add_rn = getattr(r, "resource_name", "")
+                                if add_rn:
+                                    op_res = LinkOperationDocument(
+                                        operation_id=str(uuid.uuid4()),
+                                        operation_type=OperationType.LINK,
+                                        customer_id=job.customer_id,
+                                        asset_group_id=meta["ag_id"],
+                                        google_ads_asset_id=meta["original_asset_id"],
+                                        google_ads_asset_group_asset_id=add_rn.split("/")[-1],
+                                        status=OperationStatus.SUCCESS,
+                                    )
+                                else:
+                                    op_res = LinkOperationDocument(
+                                        operation_id=str(uuid.uuid4()),
+                                        operation_type=OperationType.LINK,
+                                        customer_id=job.customer_id,
+                                        asset_group_id=meta["ag_id"],
+                                        google_ads_asset_id=meta["original_asset_id"],
+                                        status=OperationStatus.FAILED,
+                                        error_message="Failed to restore original asset during schedule rollback",
+                                    )
+                                default_firestore_service.save_link_operation(op_res)
+                        except Exception as rest_exc:
+                            logger.error(f"Failed during restore batch for job {job.job_id}: {rest_exc}")
+                            for meta in restore_metadata:
+                                op_res = LinkOperationDocument(
+                                    operation_id=str(uuid.uuid4()),
+                                    operation_type=OperationType.LINK,
+                                    customer_id=job.customer_id,
+                                    asset_group_id=meta["ag_id"],
+                                    google_ads_asset_id=meta["original_asset_id"],
+                                    status=OperationStatus.FAILED,
+                                    error_message=str(rest_exc),
+                                )
+                                default_firestore_service.save_link_operation(op_res)
+                            raise rest_exc
 
             default_firestore_service.update_scheduled_job(job.customer_id, job.job_id, {"status": ScheduledJobStatus.COMPLETED_UNLINKED})
             summary["unlinked_jobs"] += 1
-            summary["details"].append({"job_id": job.job_id, "action": "UNLINK", "status": "SUCCESS"})
+            summary["details"].append({"job_id": job.job_id, "action": "UNLINK_AND_RESTORE", "status": "SUCCESS"})
         except Exception as exc:
             logger.error(f"Failed to process end schedule unlinking for job {job.job_id}: {exc}", exc_info=True)
-            default_firestore_service.update_scheduled_job(job.customer_id, job.job_id, {"status": ScheduledJobStatus.FAILED, "error_message": str(exc)})
+            default_firestore_service.update_scheduled_job(job.customer_id, job.job_id, {"error_message": str(exc)})
             summary["failed_jobs"] += 1
-            summary["details"].append({"job_id": job.job_id, "action": "UNLINK", "status": "FAILED", "error": str(exc)})
+            summary["details"].append({"job_id": job.job_id, "action": "UNLINK_AND_RESTORE", "status": "FAILED", "error": str(exc)})
 
     return summary
 

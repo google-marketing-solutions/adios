@@ -112,6 +112,7 @@ class AuthTokenProvider:
         user_access_token: str | None = None,
         include_login_customer_id: bool = True,
         login_customer_id_override: str | None = None,
+        refresh_token_override: str | None = None,
     ) -> Any:
         """Instantiates a GoogleAdsClient using either user OAuth access token or environment refresh token.
 
@@ -119,6 +120,7 @@ class AuthTokenProvider:
             user_access_token: Optional OAuth 2.0 Bearer access_token from the logged-in user session.
             include_login_customer_id: Whether to set login_customer_id header (must be False for list_accessible_customers).
             login_customer_id_override: Optional specific login_customer_id string to override default MCC ID.
+            refresh_token_override: Optional explicit OAuth 2.0 Refresh Token to use instead of environment default.
 
         Returns:
             GoogleAdsClient object initialized with appropriate credentials.
@@ -140,19 +142,21 @@ class AuthTokenProvider:
             if include_login_customer_id and effective_login_id:
                 kwargs["login_customer_id"] = effective_login_id
             return GoogleAdsClient(**kwargs)
-        elif creds.refresh_token and creds.refresh_token != "mock_refresh_token":
-            client_config: Dict[str, Any] = {
-                "developer_token": creds.developer_token,
-                "client_id": creds.client_id,
-                "client_secret": creds.client_secret,
-                "refresh_token": creds.refresh_token,
-                "use_proto_plus": creds.use_proto_plus,
-            }
-            if include_login_customer_id and effective_login_id:
-                client_config["login_customer_id"] = effective_login_id
-            return GoogleAdsClient.load_from_dict(client_config)
         else:
-            raise ValueError("No active user OAuth session or refresh token. Please sign in with Google.")
+            refresh_token_to_use = refresh_token_override or creds.refresh_token
+            if refresh_token_to_use and refresh_token_to_use != "mock_refresh_token":
+                client_config: Dict[str, Any] = {
+                    "developer_token": creds.developer_token,
+                    "client_id": creds.client_id,
+                    "client_secret": creds.client_secret,
+                    "refresh_token": refresh_token_to_use,
+                    "use_proto_plus": creds.use_proto_plus,
+                }
+                if include_login_customer_id and effective_login_id:
+                    client_config["login_customer_id"] = effective_login_id
+                return GoogleAdsClient.load_from_dict(client_config)
+            else:
+                raise ValueError("No active user OAuth session or refresh token. Please sign in with Google.")
 
 
 # Singleton auth provider instance

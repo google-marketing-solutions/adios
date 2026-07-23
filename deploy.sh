@@ -84,6 +84,7 @@ gcloud services enable \
   run.googleapis.com \
   artifactregistry.googleapis.com \
   cloudbuild.googleapis.com \
+  cloudscheduler.googleapis.com \
   --project="${GCP_PROJECT}"
 
 # 5. Create Artifact Registry Repository if not exists
@@ -142,12 +143,37 @@ gcloud run deploy "${BACKEND_SERVICE}" \
   --region "${GCP_REGION}" \
   --allow-unauthenticated \
   --port 8080 \
-  --set-env-vars "GCP_PROJECT_ID=${GCP_PROJECT},GOOGLE_LOGIN_CLIENT_ID=${GOOGLE_LOGIN_CLIENT_ID:-},GOOGLE_LOGIN_CLIENT_SECRET=${GOOGLE_LOGIN_CLIENT_SECRET:-},GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN:-},GOOGLE_ADS_MCC_CUSTOMER_ID=${GOOGLE_ADS_MCC_CUSTOMER_ID:-${GOOGLE_ADS_CUSTOMER_ID:-}},FIRESTORE_DATABASE_ID=${FIRESTORE_DATABASE_ID:-},GCS_BUCKET=${GCS_BUCKET:-}" \
+  --set-env-vars "SCHEDULER_SECRET_KEY=${SCHEDULER_SECRET_KEY:-local_secret_key},GCP_PROJECT_ID=${GCP_PROJECT},GOOGLE_LOGIN_CLIENT_ID=${GOOGLE_LOGIN_CLIENT_ID:-},GOOGLE_LOGIN_CLIENT_SECRET=${GOOGLE_LOGIN_CLIENT_SECRET:-},GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN:-},GOOGLE_ADS_MCC_CUSTOMER_ID=${GOOGLE_ADS_MCC_CUSTOMER_ID:-${GOOGLE_ADS_CUSTOMER_ID:-}},FIRESTORE_DATABASE_ID=${FIRESTORE_DATABASE_ID:-},GCS_BUCKET=${GCS_BUCKET:-}" \
   --project="${GCP_PROJECT}"
 
 # Retrieve Backend Service URL
 BACKEND_URL=$(gcloud run services describe "${BACKEND_SERVICE}" --platform managed --region "${GCP_REGION}" --format="value(status.url)" --project="${GCP_PROJECT}")
 log "Backend Service successfully deployed to: ${bold}${BACKEND_URL}${normal}"
+
+# 8. Configure Cloud Scheduler Job for Automated Lifecycle Processing
+log "Checking Cloud Scheduler Job..."
+JOB_NAME="adios-pmax-scheduler"
+if ! gcloud scheduler jobs describe "${JOB_NAME}" --location="${GCP_REGION}" --project="${GCP_PROJECT}" &>/dev/null; then
+  log "Creating Cloud Scheduler job '${JOB_NAME}'..."
+  gcloud scheduler jobs create http "${JOB_NAME}" \
+    --location="${GCP_REGION}" \
+    --schedule="0 0 * * *" \
+    --uri="${BACKEND_URL}/v1/campaign/jobs/run-scheduler" \
+    --http-method=POST \
+    --headers="X-Scheduler-Secret-Key=${SCHEDULER_SECRET_KEY:-local_secret_key},Content-Type=application/json" \
+    --message-body="{}" \
+    --project="${GCP_PROJECT}"
+else
+  log "Updating Cloud Scheduler job '${JOB_NAME}'..."
+  gcloud scheduler jobs update http "${JOB_NAME}" \
+    --location="${GCP_REGION}" \
+    --schedule="0 0 * * *" \
+    --uri="${BACKEND_URL}/v1/campaign/jobs/run-scheduler" \
+    --http-method=POST \
+    --headers="X-Scheduler-Secret-Key=${SCHEDULER_SECRET_KEY:-local_secret_key},Content-Type=application/json" \
+    --message-body="{}" \
+    --project="${GCP_PROJECT}"
+fi
 
 # 7. Build and Deploy Frontend Service
 log "Building Frontend Docker image using Cloud Build..."

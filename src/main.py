@@ -49,6 +49,17 @@ class UserProfileResponse(BaseModel):
     picture: str = Field(..., description="User profile picture URL")
 
 
+class AuthCallbackRequest(BaseModel):
+    code: str = Field(..., description="Authorization Code received from Google")
+    redirect_uri: str = Field(..., description="Redirect URI used during authorization request")
+
+
+class AuthCallbackResponse(BaseModel):
+    access_token: str = Field(..., description="Google OAuth2 Access Token")
+    refresh_token: str = Field(..., description="Google OAuth2 Refresh Token for offline access")
+    id_token: str = Field(..., description="Google OAuth2 ID Token JWT")
+
+
 app = FastAPI(
     title="Adios 2.0 Advanced API",
     description="Enterprise-grade PMax campaign and Google Merchant Center automation engine.",
@@ -58,7 +69,9 @@ app = FastAPI(
 )
 
 from src.campaign.bulk_assign_controller import router as campaign_router
+from src.campaign.jobs_router import router as jobs_router
 app.include_router(campaign_router)
+app.include_router(jobs_router)
 
 
 @app.exception_handler(Exception)
@@ -167,6 +180,66 @@ async def verify_google_token(payload: GoogleAuthRequest) -> UserProfileResponse
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while validating Google session."
         ) from err
+
+
+@app.post(
+    "/v1/auth/callback",
+    response_model=AuthCallbackResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Authentication"],
+    summary="Exchange Authorization Code for Access & Refresh Tokens",
+)
+async def auth_callback(payload: AuthCallbackRequest) -> AuthCallbackResponse:
+    """
+    Exchanges the Google OAuth2 Authorization Code for short-lived access token,
+    long-lived offline refresh token, and user identity ID token.
+    """
+    import httpx
+    from fastapi import HTTPException
+    from src.core.auth_provider import default_auth_provider
+
+    creds = default_auth_provider.get_google_ads_credentials()
+    if not creds.client_id or not creds.client_secret:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google OAuth Client ID or Client Secret is not configured in the backend."
+        )
+
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        "code": payload.code,
+        "client_id": creds.client_id,
+        "client_secret": creds.client_secret,
+        "redirect_uri": payload.redirect_uri,
+        "grant_type": "authorization_code",
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(token_url, data=data)
+
+    if response.status_code != 200:
+        logger.warning(f"Google OAuth Code Exchange failed: {response.text}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Failed to exchange Authorization Code: {response.text}"
+        )
+
+    token_data = response.json()
+    access_token = token_data.get("access_token")
+    refresh_token = token_data.get("refresh_token")
+    id_token = token_data.get("id_token")
+
+    if not access_token or not refresh_token or not id_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google did not return all required tokens. Did you configure access_type=offline and prompt=consent?"
+        )
+
+    return AuthCallbackResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        id_token=id_token,
+    )
 
 
 if __name__ == "__main__":

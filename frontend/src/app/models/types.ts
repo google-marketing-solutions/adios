@@ -25,7 +25,6 @@ export interface AssetGroup {
 
 export interface ScheduledTiming {
   id: string;
-  startDate: string;
   endDate: string;
   offerName: string;
   fallbackAssetId: string; // Image to go back to when special offer ends

@@ -193,7 +193,6 @@ class AssignRequest(BaseModel):
     file_token: str = Field(..., description="Upload session token returned by /upload")
     asset_group_ids: List[str] = Field(..., description="List of target Asset Group IDs")
     customer_id: str = Field(default="9941182026", description="Google Ads Customer ID (without hyphens)")
-    start_date: str | None = Field(default=None, description="Optional ISO start date (YYYY-MM-DD)")
     end_date: str | None = Field(default=None, description="Optional ISO end date (YYYY-MM-DD)")
     swap_rules: SwapRules | None = Field(default=None, description="Optional KPI-based eviction and rotation rules")
 
@@ -862,8 +861,15 @@ async def upload_image(file: UploadFile = File(...)) -> ImageUploadResponse:
 async def assign_asset(
     payload: AssignRequest,
     authorization: str | None = Header(None),
+    x_refresh_token: str | None = Header(None, alias="X-Refresh-Token"),
 ) -> AssignResponse:
     """Creates Google Ads Image Asset and links it to target Asset Groups via Google Ads API."""
+    if payload.end_date and not x_refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No Refresh Token provided. Please sign out and sign back in on the frontend to establish offline background scheduling session.",
+        )
+
     try:
         image_bytes, filename = default_gcs_service.download_image_by_token(payload.file_token)
     except ValueError as val_err:
@@ -893,36 +899,8 @@ async def assign_asset(
     results: list[AssignmentResult] = []
 
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    if payload.start_date and payload.start_date > today_str:
-        job = ScheduledJobDocument(
-            job_id=str(uuid.uuid4()),
-            customer_id=clean_customer_id,
-            asset_group_ids=payload.asset_group_ids,
-            asset_name=filename,
-            image_gcs_uri=gcs_uri,
-            start_date=payload.start_date,
-            end_date=payload.end_date or "",
-            field_type=ratio_info.field_type,
-            status=FirestoreJobStatus.PENDING,
-            swap_rules=payload.swap_rules.model_dump() if payload.swap_rules else None,
-        )
-        default_firestore_service.create_scheduled_job(job)
-        return AssignResponse(
-            file_token=payload.file_token,
-            field_type=ratio_info.field_type,
-            total_assigned=0,
-            results=[
-                AssignmentResult(
-                    asset_group_id=ag_id,
-                    status="SCHEDULED_PENDING",
-                    asset_resource_name="",
-                    asset_group_asset_resource_name="",
-                )
-                for ag_id in payload.asset_group_ids
-            ],
-        )
-
     creds = default_auth_provider.get_google_ads_credentials()
+    
     user_access_token = _extract_bearer_token(authorization)
 
     client_attempts: list[tuple[str, Any]] = []
@@ -1209,6 +1187,11 @@ async def assign_asset(
                 if payload.end_date:
                     success_groups = [r.asset_group_id for r in results if r.status == "SUCCESS"]
                     if success_groups:
+                        evicted_ids = {}
+                        for r in results:
+                            if r.status == "SUCCESS" and r.evicted_asset:
+                                evicted_ids[r.asset_group_id] = r.evicted_asset.asset_id
+
                         job = ScheduledJobDocument(
                             job_id=str(uuid.uuid4()),
                             customer_id=clean_customer_id,
@@ -1216,7 +1199,8 @@ async def assign_asset(
                             asset_name=filename,
                             image_gcs_uri=gcs_uri,
                             asset_id=extracted_asset_id,
-                            start_date=payload.start_date or today_str,
+                            evicted_asset_ids=evicted_ids,
+                            refresh_token=x_refresh_token if x_refresh_token else None,
                             end_date=payload.end_date,
                             field_type=ratio_info.field_type,
                             status=FirestoreJobStatus.LINKED,
@@ -1286,10 +1270,10 @@ async def assign_asset(
             asset_name=filename,
             image_gcs_uri=gcs_uri,
             asset_id=extracted_asset_id,
-            start_date=payload.start_date or today_str,
             end_date=payload.end_date,
             field_type=ratio_info.field_type,
             status=FirestoreJobStatus.LINKED,
+            refresh_token=x_refresh_token if x_refresh_token else None,
         )
         default_firestore_service.create_scheduled_job(job)
 

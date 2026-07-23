@@ -251,18 +251,22 @@ export class ApiService {
     fileToken: string,
     assetGroupIds: string[],
     customerId?: string,
-    startDate?: string,
     endDate?: string,
     swapRules?: SwapRules
   ): Promise<AssignResponse> {
+    const headers = this.getHeaders({ 'Content-Type': 'application/json' });
+    const refreshToken = localStorage.getItem('adios_refresh_token');
+    if (refreshToken) {
+      headers['X-Refresh-Token'] = refreshToken;
+    }
+
     const response = await fetch('/v1/campaign/assign', {
       method: 'POST',
-      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      headers: headers,
       body: JSON.stringify({
         file_token: fileToken,
         asset_group_ids: assetGroupIds,
         customer_id: customerId || '9044713567',
-        start_date: startDate || null,
         end_date: endDate || null,
         swap_rules: swapRules || null
       })

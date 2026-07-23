@@ -335,6 +335,7 @@ body {
 .w-64 { width: 256px; }
 .w-\[72px\] { width: 72px; }
 .h-\[72px\] { height: 72px; }
+.w-\[140px\] { width: 140px; }
 
 .max-h-\[240px\] { max-height: 240px; }
 .max-h-\[260px\] { max-height: 260px; }

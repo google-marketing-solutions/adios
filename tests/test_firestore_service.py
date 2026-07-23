@@ -158,9 +158,8 @@ def test_create_scheduled_job_success(mock_firestore: tuple[MagicMock, Firestore
         asset_group_ids=["ag1"],
         asset_name="start.png",
         image_gcs_uri="gs://bucket/assets/start.png",
-        start_date="2026-07-20",
         end_date="2026-07-30",
-        status=ScheduledJobStatus.PENDING,
+        status=ScheduledJobStatus.LINKED,
     )
     
     service.create_scheduled_job(job)
@@ -181,9 +180,8 @@ def test_get_scheduled_job_success(mock_firestore: tuple[MagicMock, FirestoreSer
         "asset_group_ids": ["ag1"],
         "asset_name": "start.png",
         "image_gcs_uri": "gs://bucket/assets/start.png",
-        "start_date": "2026-07-20",
         "end_date": "2026-07-30",
-        "status": "PENDING",
+        "status": "LINKED",
         "created_at": now,
         "updated_at": now,
     }
@@ -209,51 +207,19 @@ def test_update_scheduled_job_success(mock_firestore: tuple[MagicMock, Firestore
         "asset_group_ids": ["ag1"],
         "asset_name": "start.png",
         "image_gcs_uri": "gs://bucket/assets/start.png",
-        "start_date": "2026-07-20",
         "end_date": "2026-07-30",
-        "status": "PENDING",
+        "status": "LINKED",
         "created_at": now,
         "updated_at": now,
     }
     client.collection().document().get.return_value = mock_doc
 
-    updated = service.update_scheduled_job("9044713567", "job-1", {"status": ScheduledJobStatus.LINKED})
+    updated = service.update_scheduled_job("9044713567", "job-1", {"status": ScheduledJobStatus.COMPLETED_UNLINKED})
     
-    assert updated.status == ScheduledJobStatus.LINKED
+    assert updated.status == ScheduledJobStatus.COMPLETED_UNLINKED
     client.collection().document().update.assert_called_once()
     called_args = client.collection().document().update.call_args[0][0]
-    assert called_args["status"] == ScheduledJobStatus.LINKED
-
-
-def test_get_pending_start_jobs_success(mock_firestore: tuple[MagicMock, FirestoreService]) -> None:
-    client, service = mock_firestore
-    now = datetime.now(timezone.utc)
-    mock_doc = MagicMock()
-    mock_doc.to_dict.return_value = {
-        "job_id": "job-1",
-        "customer_id": "9044713567",
-        "asset_group_ids": ["ag1"],
-        "asset_name": "start.png",
-        "image_gcs_uri": "gs://bucket/assets/start.png",
-        "start_date": "2026-07-20",
-        "end_date": "2026-07-30",
-        "status": "PENDING",
-        "created_at": now,
-        "updated_at": now,
-    }
-    
-    mock_query = MagicMock()
-    client.collection.return_value.where.return_value = mock_query
-    mock_query.where.return_value = mock_query
-    mock_query.stream.return_value = [mock_doc]
-
-    results = service.get_pending_start_jobs("2026-07-21")
-    
-    assert len(results) == 1
-    assert results[0].job_id == "job-1"
-    client.collection.assert_called_once_with("scheduled_jobs")
-    client.collection.return_value.where.assert_called_once_with("status", "==", "PENDING")
-    mock_query.where.assert_called_once_with("start_date", "<=", "2026-07-21")
+    assert called_args["status"] == ScheduledJobStatus.COMPLETED_UNLINKED
 
 
 def test_get_pending_end_jobs_success(mock_firestore: tuple[MagicMock, FirestoreService]) -> None:
@@ -266,7 +232,6 @@ def test_get_pending_end_jobs_success(mock_firestore: tuple[MagicMock, Firestore
         "asset_group_ids": ["ag1"],
         "asset_name": "start.png",
         "image_gcs_uri": "gs://bucket/assets/start.png",
-        "start_date": "2026-07-20",
         "end_date": "2026-07-30",
         "status": "LINKED",
         "created_at": now,
@@ -275,7 +240,6 @@ def test_get_pending_end_jobs_success(mock_firestore: tuple[MagicMock, Firestore
     
     mock_query = MagicMock()
     client.collection.return_value.where.return_value = mock_query
-    mock_query.where.return_value = mock_query
     mock_query.stream.return_value = [mock_doc]
 
     results = service.get_pending_end_jobs("2026-07-31")
@@ -284,7 +248,6 @@ def test_get_pending_end_jobs_success(mock_firestore: tuple[MagicMock, Firestore
     assert results[0].job_id == "job-1"
     client.collection.assert_called_once_with("scheduled_jobs")
     client.collection.return_value.where.assert_called_once_with("status", "==", "LINKED")
-    mock_query.where.assert_called_once_with("end_date", "<", "2026-07-31")
 
 
 def test_list_scheduled_jobs_success(mock_firestore: tuple[MagicMock, FirestoreService]) -> None:
@@ -297,9 +260,8 @@ def test_list_scheduled_jobs_success(mock_firestore: tuple[MagicMock, FirestoreS
         "asset_group_ids": ["ag1"],
         "asset_name": "start.png",
         "image_gcs_uri": "gs://bucket/assets/start.png",
-        "start_date": "2026-07-20",
         "end_date": "2026-07-30",
-        "status": "PENDING",
+        "status": "LINKED",
         "created_at": now1,
         "updated_at": now1,
     }
