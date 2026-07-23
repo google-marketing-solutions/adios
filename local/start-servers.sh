@@ -8,6 +8,14 @@ set -e
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_DIR}"
 
+# Add localized .node bin folder to PATH
+if [ -d "${REPO_DIR}/.node/bin" ]; then
+  export PATH="${REPO_DIR}/.node/bin:${PATH}"
+fi
+
+# Bypass Angular CLI Node version checks for localized installation
+export NG_DISABLE_VERSION_CHECK=1
+
 echo "=========================================================================="
 echo "Starting Adios 2.0 Development Orchestrator"
 echo "Repository Root: ${REPO_DIR}"

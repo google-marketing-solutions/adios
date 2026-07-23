@@ -254,7 +254,7 @@ export class SidebarComponent {
     {
       id: 'background',
       route: '/background-studio',
-      label: 'AI Background Studio',
+      label: 'AI Image Studio',
       description: 'Seasonal background replacement',
       icon: 'image',
       activeColorClass: 'icon-background-active',

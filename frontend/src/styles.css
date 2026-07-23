@@ -503,3 +503,21 @@ button:disabled {
 .account-select-panel {
   max-height: 320px !important;
 }
+
+.object-cover {
+  object-fit: cover !important;
+}
+
+.left-2\.5 {
+  left: 10px !important;
+}
+
+.right-2\.5 {
+  right: 10px !important;
+}
+
+.bottom-2\.5 {
+  bottom: 10px !important;
+}
+
+
