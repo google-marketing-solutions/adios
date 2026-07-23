@@ -143,6 +143,8 @@ class AssetGroupItem(BaseModel):
     landscape_capacity: int = Field(default=20, description="Landscape image slot limit")
     portrait_count: int = Field(default=0, description="Currently linked portrait images")
     portrait_capacity: int = Field(default=20, description="Portrait image slot limit")
+    tall_portrait_count: int = Field(default=0, description="Currently linked tall portrait images")
+    tall_portrait_capacity: int = Field(default=20, description="Tall portrait image slot limit")
 
 
 class AssetGroupListResponse(BaseModel):
@@ -652,6 +654,7 @@ async def get_asset_groups(
                 square_counts: dict[str, int] = {}
                 landscape_counts: dict[str, int] = {}
                 portrait_counts: dict[str, int] = {}
+                tall_portrait_counts: dict[str, int] = {}
                 image_type_counts: dict[str, int] = {}
                 try:
                     asset_query = """
@@ -680,6 +683,8 @@ async def get_asset_groups(
                             landscape_counts[ag_id_str] = landscape_counts.get(ag_id_str, 0) + 1
                         elif ft == "PORTRAIT_MARKETING_IMAGE":
                             portrait_counts[ag_id_str] = portrait_counts.get(ag_id_str, 0) + 1
+                        elif ft == "TALL_PORTRAIT_MARKETING_IMAGE":
+                            tall_portrait_counts[ag_id_str] = tall_portrait_counts.get(ag_id_str, 0) + 1
                 except Exception as count_err:
                     logger.warning(f"Could not fetch live asset counts via asset_group_asset GAQL: {count_err}")
 
@@ -689,6 +694,7 @@ async def get_asset_groups(
                     sq_c = square_counts.get(ag_id_str, 0)
                     ls_c = landscape_counts.get(ag_id_str, 0)
                     pt_c = portrait_counts.get(ag_id_str, 0)
+                    tpt_c = tall_portrait_counts.get(ag_id_str, 0)
                     tot_c = image_type_counts.get(ag_id_str, 0)
                     groups.append(
                         AssetGroupItem(
@@ -700,6 +706,7 @@ async def get_asset_groups(
                             total_image_count=tot_c,
                             landscape_count=ls_c,
                             portrait_count=pt_c,
+                            tall_portrait_count=tpt_c,
                         )
                     )
                 

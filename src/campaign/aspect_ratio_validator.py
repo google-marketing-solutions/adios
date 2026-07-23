@@ -5,6 +5,7 @@ Enforces strict Google Ads PMax image aspect ratio rules without automatic resiz
 - Landscape (1.91:1, ±0.02) -> MARKETING_IMAGE
 - Square (1:1, ±0.01) -> SQUARE_MARKETING_IMAGE
 - Portrait (4:5, ±0.01) -> PORTRAIT_MARKETING_IMAGE
+- Tall Portrait (9:16, ±0.01) -> TALL_PORTRAIT_MARKETING_IMAGE
 """
 
 import io
@@ -33,10 +34,12 @@ class UnsupportedAspectRatioError(ValueError):
 LANDSCAPE_RATIO: Final[float] = 1.91
 SQUARE_RATIO: Final[float] = 1.0
 PORTRAIT_RATIO: Final[float] = 0.8  # 4/5 = 0.8
+TALL_PORTRAIT_RATIO: Final[float] = 0.5625  # 9/16 = 0.5625
 
 LANDSCAPE_TOLERANCE: Final[float] = 0.02
 SQUARE_TOLERANCE: Final[float] = 0.01
 PORTRAIT_TOLERANCE: Final[float] = 0.01
+TALL_PORTRAIT_TOLERANCE: Final[float] = 0.01
 
 
 def inspect_image_aspect_ratio(image_bytes: bytes) -> AspectRatioInfo:
@@ -92,9 +95,19 @@ def inspect_image_aspect_ratio(image_bytes: bytes) -> AspectRatioInfo:
             aspect_ratio=round(ratio, 4),
         )
 
+    # Check 9:16 Tall Portrait (0.5625)
+    if abs(ratio - TALL_PORTRAIT_RATIO) <= TALL_PORTRAIT_TOLERANCE:
+        return AspectRatioInfo(
+            ratio_type="TALL_PORTRAIT",
+            field_type="TALL_PORTRAIT_MARKETING_IMAGE",
+            width=width,
+            height=height,
+            aspect_ratio=round(ratio, 4),
+        )
+
     err_msg = (
         f"Unsupported aspect ratio [{width}:{height} -> ratio {ratio:.2f}]. "
-        "No automatic resizing is allowed; please upload native 1.91:1, 1:1, or 4:5 images."
+        "No automatic resizing is allowed; please upload native 1.91:1, 1:1, 4:5, or 9:16 images."
     )
     logger.warning(err_msg)
     raise UnsupportedAspectRatioError(err_msg)

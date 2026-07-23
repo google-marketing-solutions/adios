@@ -25,6 +25,7 @@ class SwapRules(BaseModel):
     min_impressions: int | None = None
     min_clicks: int | None = None
     eviction_kpi: str = "ctr"
+    allow_cross_aspect_ratio_swap: bool = False
 
 
 class EvictedAssetInfo(BaseModel):
@@ -164,6 +165,12 @@ class KPIEvictionService:
         start_date, end_date = cls.calculate_date_range(rules.lookback_window, rules.custom_lookback_days)
         kpi_field = KPI_METRIC_MAP.get(rules.eviction_kpi.lower(), "metrics.ctr")
         
+        field_type_filter = (
+            "IN ('MARKETING_IMAGE', 'SQUARE_MARKETING_IMAGE', 'PORTRAIT_MARKETING_IMAGE', 'TALL_PORTRAIT_MARKETING_IMAGE')"
+            if rules.allow_cross_aspect_ratio_swap
+            else f"= '{field_type}'"
+        )
+        
         query_stats = f"""
             SELECT 
               asset_group_asset.asset,
@@ -172,7 +179,7 @@ class KPIEvictionService:
               {kpi_field}
             FROM asset_group_asset
             WHERE asset_group_asset.asset_group = 'customers/{clean_customer_id}/assetGroups/{asset_group_id}'
-              AND asset_group_asset.field_type = '{field_type}'
+              AND asset_group_asset.field_type {field_type_filter}
               AND segments.date >= '{start_date}' AND segments.date <= '{end_date}'
         """
         
@@ -192,19 +199,23 @@ class KPIEvictionService:
                 "kpi_value": float(val)
             }
 
-        format_assets = [a for a in linked_assets if a["field_type"] == field_type]
+        if rules.allow_cross_aspect_ratio_swap:
+            format_assets = linked_assets
+        else:
+            format_assets = [a for a in linked_assets if a["field_type"] == field_type]
+
         if not format_assets:
             return {
                 "operations": [],
                 "evicted_asset": None,
                 "status": "FAILED",
-                "error_message": "No same aspect ratio images to swap"
+                "error_message": "No images to swap" if rules.allow_cross_aspect_ratio_swap else "No same aspect ratio images to swap"
             }
 
         # Build candidate list
         candidates = []
         for asset in linked_assets:
-            if asset["field_type"] != field_type:
+            if not rules.allow_cross_aspect_ratio_swap and asset["field_type"] != field_type:
                 continue
                 
             if asset["asset_id"] in protected_asset_ids:
@@ -240,7 +251,7 @@ class KPIEvictionService:
 
         # Build REMOVE operation
         op_remove = g_client.get_type("AssetGroupAssetOperation")
-        op_remove.remove = f"customers/{clean_customer_id}/assetGroupAssets/{asset_group_id}~{victim['asset_id']}~{field_type}"
+        op_remove.remove = f"customers/{clean_customer_id}/assetGroupAssets/{asset_group_id}~{victim['asset_id']}~{victim['field_type']}"
 
         evicted_info = EvictedAssetInfo(
             asset_id=victim["asset_id"],

@@ -420,7 +420,7 @@ export interface QueueItem {
                   }
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <!-- 1. Lookback Window Dropdown -->
                   <div class="space-y-1.5 flex flex-col">
                     <label class="text-xs font-bold text-slate-700">Lookback Window</label>
@@ -519,6 +519,27 @@ export interface QueueItem {
                       <option value="cpa">CPA (Cost Per Acquisition)</option>
                       <option value="roas">ROAS (Return On Ad Spend)</option>
                     </select>
+                  </div>
+
+                  <!-- 5. Allow Cross Aspect Ratio Swap Toggle -->
+                  <div class="space-y-1.5 flex flex-col md:border-l md:border-slate-200 md:pl-4">
+                    <div class="flex items-center justify-between">
+                      <label class="text-xs font-bold text-slate-700 cursor-pointer flex items-center gap-1.5">
+                        <input 
+                          type="checkbox" 
+                          [ngModel]="allowCrossAspectRatioSwap()" 
+                          (ngModelChange)="allowCrossAspectRatioSwap.set($event)"
+                          class="rounded text-brand focus:ring-0 cursor-pointer"
+                        />
+                        <span>Cross Ratio Swap</span>
+                      </label>
+                      <span [class]="'text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ' + (allowCrossAspectRatioSwap() ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500')">
+                        {{ allowCrossAspectRatioSwap() ? 'ON' : 'OFF' }}
+                      </span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 italic m-0 pt-2">
+                      {{ allowCrossAspectRatioSwap() ? 'Allows all marketing images to be swapped' : 'Strictly same aspect ratio only' }}
+                    </p>
                   </div>
                 </div>
 
@@ -838,6 +859,7 @@ export class AssetUploaderComponent implements OnInit {
   readonly enableMinClicks = signal<boolean>(false);
   readonly minClicks = signal<number>(50);
   readonly swapMetric = signal<'ctr' | 'conv_rate' | 'cpa' | 'roas'>('ctr');
+  readonly allowCrossAspectRatioSwap = signal<boolean>(false);
 
   // Custom naming protection pattern
   readonly protectionPattern = signal<string>('_Protected');
@@ -1265,7 +1287,8 @@ export class AssetUploaderComponent implements OnInit {
       custom_lookback_days: this.lookbackWindow() === 'custom' ? this.customLookbackDays() : null,
       min_impressions: this.enableMinImpressions() ? this.minImpressions() : null,
       min_clicks: this.enableMinClicks() ? this.minClicks() : null,
-      eviction_kpi: this.swapMetric()
+      eviction_kpi: this.swapMetric(),
+      allow_cross_aspect_ratio_swap: this.allowCrossAspectRatioSwap()
     };
 
     this.syncStatus.set({ message: 'Validating & synchronizing images via Google Ads API...', type: 'info' });

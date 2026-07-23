@@ -32,6 +32,8 @@ export interface AssetGroupItem {
   landscape_capacity: number;
   portrait_count: number;
   portrait_capacity: number;
+  tall_portrait_count: number;
+  tall_portrait_capacity: number;
 }
 
 export interface AssetGroupListResponse {
@@ -71,6 +73,7 @@ export interface SwapRules {
   min_impressions?: number | null;
   min_clicks?: number | null;
   eviction_kpi: string;
+  allow_cross_aspect_ratio_swap: boolean;
 }
 
 export interface EvictedAssetInfo {

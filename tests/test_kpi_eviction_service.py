@@ -312,3 +312,33 @@ def test_get_operations_tall_portrait_triggers_eviction(mock_dependencies):
     assert len(res["operations"]) == 2
     remove_op = next(op for op in res["operations"] if op["type"] == "remove")
     assert "MARKETING_IMAGE" in remove_op["proto"].remove
+
+
+def test_get_operations_cross_ratio_eviction_success(mock_dependencies):
+    mock_g_client = MagicMock()
+    
+    # Capacity is full: 10 Marketing + 10 Square = 20 total
+    rows = [create_mock_row(str(i), "MARKETING_IMAGE", 1000, 10 + i, 0.1) for i in range(10)]
+    # Give square images lower CTR (e.g. 0.05) so they are the victims
+    rows += [create_mock_row(str(10 + i), "SQUARE_MARKETING_IMAGE", 1000, 10 + i, 0.05) for i in range(10)]
+    mock_g_client.get_service("GoogleAdsService").search.return_value = rows
+    
+    rules = SwapRules(lookback_window="30d", eviction_kpi="ctr", allow_cross_aspect_ratio_swap=True)
+    
+    # Attempt to add PORTRAIT_MARKETING_IMAGE
+    res = KPIEvictionService.get_operations_for_group(
+        g_client=mock_g_client,
+        clean_customer_id="9044713567",
+        asset_group_id="ag1",
+        field_type="PORTRAIT_MARKETING_IMAGE",
+        new_asset_resource_name="customers/9044713567/assets/new123",
+        rules=rules
+    )
+    
+    assert res["status"] == "SUCCESS"
+    assert len(res["operations"]) == 2
+    remove_op = next(op for op in res["operations"] if op["type"] == "remove")
+    
+    # Victim should be a Square Marketing Image because it had lower CTR!
+    assert "SQUARE_MARKETING_IMAGE" in remove_op["proto"].remove
+    assert res["evicted_asset"].kpi_value == 0.05

@@ -162,8 +162,13 @@ def test_get_asset_groups_live_api_capacity_logic() -> None:
         
         # Logos must be EXCLUDED, Tall Portrait INCLUDED. So strictly 4 images!
         assert ag["total_image_count"] == 4
+        assert ag["total_image_capacity"] == 20
         assert ag["landscape_count"] == 1
+        assert ag["landscape_capacity"] == 20
         assert ag["portrait_count"] == 1
+        assert ag["portrait_capacity"] == 20
+        assert ag["tall_portrait_count"] == 1
+        assert ag["tall_portrait_capacity"] == 20
 
 
 def test_get_campaign_assets_endpoint() -> None:

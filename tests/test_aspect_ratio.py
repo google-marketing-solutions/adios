@@ -40,10 +40,17 @@ def test_portrait_aspect_ratio_4_to_5() -> None:
     assert info.field_type == "PORTRAIT_MARKETING_IMAGE"
 
 
+def test_tall_portrait_aspect_ratio_9_to_16() -> None:
+    img_bytes = create_test_image(600, 1067)  # 600/1067 = 0.5623
+    info = inspect_image_aspect_ratio(img_bytes)
+    assert info.ratio_type == "TALL_PORTRAIT"
+    assert info.field_type == "TALL_PORTRAIT_MARKETING_IMAGE"
+
+
 def test_unsupported_aspect_ratio_raises_error() -> None:
     img_bytes = create_test_image(1920, 1080)  # 16:9 banner ratio
     with pytest.raises(UnsupportedAspectRatioError) as exc_info:
         inspect_image_aspect_ratio(img_bytes)
 
     assert "Unsupported aspect ratio" in str(exc_info.value)
-    assert "No automatic resizing is allowed" in str(exc_info.value)
+    assert "9:16 images" in str(exc_info.value)
