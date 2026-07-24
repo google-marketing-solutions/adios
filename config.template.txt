@@ -1,25 +1,46 @@
 # ==============================================================================
 # Adios 2.0 Environment Configuration Template
 # ==============================================================================
-# Copy this file to 'config.txt' in the project root and populate with active credentials:
+# Copy this file to 'config.txt' in the project root and populate credentials.
 #   cp config.template.txt config.txt
 #
-# 'config.txt' is git-ignored and used by local/start-servers.sh and deploy.sh.
+# Any variable left empty or commented out will be dynamically derived or
+# prompted during execution of ./deploy.sh
 # ==============================================================================
 
-# Google Login OAuth Client ID & Secret
-GOOGLE_LOGIN_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
-GOOGLE_LOGIN_CLIENT_SECRET="your-google-client-secret"
-
-# Google Ads API Credentials
+# --- [MANDATORY CREDENTIALS] --------------------------------------------------
+# Required to target the correct GCP project, Google Ads API, and OAuth exchanges.
+GCP_PROJECT_ID=""
 GOOGLE_ADS_DEVELOPER_TOKEN="your-developer-token"
 GOOGLE_ADS_MCC_CUSTOMER_ID="994-118-2026"
 
-# GCP Project & Regional Deployment Settings
-GCP_PROJECT_ID="your-gcp-project-id"
-GCP_REGION="europe-west1"
-FIRESTORE_DATABASE_ID="YOUR_FIRESTORE_DATABASE_ID"
-GCS_BUCKET="YOUR_GCS_BUCKET"
+# Google Login OAuth 2.0 Web Client Credentials.
+# If left empty, deploy.sh will gracefully prompt you for them.
+GOOGLE_LOGIN_CLIENT_ID=""
+GOOGLE_LOGIN_CLIENT_SECRET=""
 
-# Scheduler Execution Security Key
-SCHEDULER_SECRET_KEY="generate-a-random-secure-secret-key-here"
+# --- [OPTIONAL ORCHESTRATION DEFAULTS] ----------------------------------------
+# If left empty or commented out, these will be intelligently derived or defaulted
+# on the fly by ./deploy.sh on each run.
+
+# Cloud Run / Deployment Region. Default: us-central1
+GCP_REGION="us-central1"
+
+# Access policy for Identity-Aware Proxy (IAP) securing the Frontend. 
+# Defaults to all Google internal accounts if not specified.
+IAP_USER_GROUP="domain:google.com"
+
+# Firestore Native Database ID. Default: (default)
+FIRESTORE_DATABASE_ID="(default)"
+
+# GCS Bucket Name for Assets. Default: "${GCP_PROJECT_ID}-adios_20"
+GCS_BUCKET=""
+
+# Artifact Registry Repository Name. Default: adios-20-docker-repo
+ARTIFACT_REPO="adios-20-docker-repo"
+
+# Cloud Run Service Names.
+APP_SERVICE="adios-20-app"
+
+# Scheduler Endpoint Security Key. Default: Auto-generated random hex string
+SCHEDULER_SECRET_KEY=""

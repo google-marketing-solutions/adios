@@ -1,7 +1,8 @@
 import logging
+import os
 from typing import Any
 from fastapi import FastAPI, Request, status, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 # Configure basic logging
@@ -94,6 +95,36 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=error_payload.model_dump(),
     )
+
+
+@app.exception_handler(404)
+async def spa_exception_handler(request: Request, exc: Exception) -> JSONResponse | FileResponse:
+    """Serves the Angular SPA for frontend paths, falling back to index.html for HTML5 routing."""
+    path = request.url.path.lstrip("/")
+    
+    # Do not swallow unknown /v1/ API paths or health check
+    if path.startswith("v1/") or path == "health":
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=StructuredErrorResponse(
+                error_code=status.HTTP_404_NOT_FOUND,
+                status="NOT_FOUND",
+                message=f"API Endpoint /{path} not found.",
+                details=[
+                    ErrorDetail(
+                        domain="adios.core",
+                        reason="ROUTE_NOT_FOUND",
+                        message=f"The requested API path '/{path}' was not found on this server.",
+                    )
+                ],
+            ).model_dump(),
+        )
+    
+    # Serve actual file if it exists, otherwise fall back to index.html
+    file_path = os.path.join("frontend/dist/adios-frontend/browser", path)
+    if path and os.path.isfile(file_path):
+        return FileResponse(file_path)
+    return FileResponse("frontend/dist/adios-frontend/browser/index.html")
 
 
 @app.get(
@@ -240,6 +271,8 @@ async def auth_callback(payload: AuthCallbackRequest) -> AuthCallbackResponse:
         refresh_token=refresh_token,
         id_token=id_token,
     )
+
+
 
 
 if __name__ == "__main__":
