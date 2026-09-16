@@ -73,6 +73,19 @@ export class ImageUploadService extends Triggerable {
         Logger.log('No images to upload.');
       } else {
         this._googleAdsApi.uploadImageAssets(images);
+        if (CONFIG['Additional Accounts For Upload']) {
+          const additionalAccounts = CONFIG['Additional Accounts For Upload']
+            .split(',')
+            .map(e => e.trim());
+          for (const account of additionalAccounts) {
+            const googleAdsApi = new GoogleAdsApi(
+              CONFIG['Ads API Key'],
+              CONFIG['Manager ID'],
+              account
+            );
+            googleAdsApi.uploadImageAssets(images);
+          }
+        }
         this._gcsApi.moveImages(
           CONFIG['Account ID'],
           adGroup.adGroup.id,
