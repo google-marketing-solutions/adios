@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { CampaignStateService } from '../services/campaign-state.service';
-import { MerchantProduct, CategoryPreset } from '../models/types';
-import { ComplianceBadgeComponent } from '../shared/compliance-badge.component';
+import {CommonModule} from '@angular/common';
+import {Component, computed, inject, signal} from '@angular/core';
+import {FormsModule} from '@angular/forms';
+import {MatIconModule} from '@angular/material/icon';
+import {CategoryPreset, MerchantProduct} from '../models/types';
+import {CampaignStateService} from '../services/campaign-state.service';
+import {ComplianceBadgeComponent} from '../shared/compliance-badge.component';
 
 @Component({
   selector: 'app-animation',
@@ -446,7 +446,8 @@ import { ComplianceBadgeComponent } from '../shared/compliance-badge.component';
       }
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     .panel {
       border-color: #dadce0;
     }
@@ -587,7 +588,8 @@ import { ComplianceBadgeComponent } from '../shared/compliance-badge.component';
         opacity: 0;
       }
     }
-  `]
+  `,
+  ],
 })
 export class AnimationComponent {
   readonly stateService = inject(CampaignStateService);
@@ -614,7 +616,8 @@ export class AnimationComponent {
 
     return productsList.filter((p: MerchantProduct) => {
       const matchesCategory = cat === 'All' || p.category === cat;
-      const matchesSearch = !query || 
+      const matchesSearch =
+        !query ||
         p.name.toLowerCase().includes(query) ||
         p.sku.toLowerCase().includes(query);
       return matchesCategory && matchesSearch;
@@ -625,41 +628,49 @@ export class AnimationComponent {
     const filtered = this.filteredProducts();
     const selected = this.selectedProductIds();
     if (filtered.length === 0) return false;
-    return filtered.every(p => selected.includes(p.id));
+    return filtered.every((p) => selected.includes(p.id));
   });
 
   readonly activeAnimationCount = computed<number>(() => {
-    return this.stateService.merchantProducts().filter((p: MerchantProduct) => p.animationStatus !== 'idle').length;
+    return this.stateService
+      .merchantProducts()
+      .filter((p: MerchantProduct) => p.animationStatus !== 'idle').length;
   });
 
   readonly rejectedAnimations = computed<MerchantProduct[]>(() => {
-    return this.stateService.merchantProducts().filter((p: MerchantProduct) => p.animationStatus === 'rejected');
+    return this.stateService
+      .merchantProducts()
+      .filter((p: MerchantProduct) => p.animationStatus === 'rejected');
   });
 
   toggleProduct(id: string): void {
-    this.selectedProductIds.update(prev => 
-      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
+    this.selectedProductIds.update((prev) =>
+      prev.includes(id) ? prev.filter((pId) => pId !== id) : [...prev, id],
     );
   }
 
   toggleSelectAll(): void {
     const filtered = this.filteredProducts();
     if (this.isAllFilteredSelected()) {
-      const filteredIds = filtered.map(p => p.id);
-      this.selectedProductIds.update(prev => prev.filter(id => !filteredIds.includes(id)));
+      const filteredIds = filtered.map((p) => p.id);
+      this.selectedProductIds.update((prev) =>
+        prev.filter((id) => !filteredIds.includes(id)),
+      );
     } else {
       const currentSelected = this.selectedProductIds();
-      const nextSelected = Array.from(new Set([...currentSelected, ...filtered.map(p => p.id)]));
+      const nextSelected = Array.from(
+        new Set([...currentSelected, ...filtered.map((p) => p.id)]),
+      );
       this.selectedProductIds.set(nextSelected);
     }
   }
 
   togglePlayback(productId: string): void {
-    this.activePlayId.update(prev => prev === productId ? null : productId);
+    this.activePlayId.update((prev) => (prev === productId ? null : productId));
   }
 
   updateCommentInput(productId: string, value: string): void {
-    this.commentInputs.update(prev => ({ ...prev, [productId]: value }));
+    this.commentInputs.update((prev) => ({...prev, [productId]: value}));
   }
 
   handleBulkAnimate(): void {
@@ -670,73 +681,86 @@ export class AnimationComponent {
     const products = this.stateService.merchantProducts();
     const updated = products.map((p: MerchantProduct) => {
       if (selectedIds.includes(p.id)) {
-        return { ...p, animationStatus: 'generating' as const };
+        return {...p, animationStatus: 'generating' as const};
       }
       return p;
     });
     this.stateService.updateBulkProducts(updated);
 
     selectedIds.forEach((id, index) => {
-      setTimeout(() => {
-        const targetProduct = this.stateService.merchantProducts().find((p: MerchantProduct) => p.id === id);
-        if (!targetProduct) return;
+      setTimeout(
+        () => {
+          const targetProduct = this.stateService
+            .merchantProducts()
+            .find((p: MerchantProduct) => p.id === id);
+          if (!targetProduct) return;
 
-        const vibeScore = Math.floor(Math.random() * 8) + 91;
-        const generated: MerchantProduct = {
-          ...targetProduct,
-          animationStatus: 'completed',
-          brandScore: vibeScore,
-          animationUrl: `https://storage.googleapis.com/adios-assets-prod/videos/${targetProduct.sku}_scene_machine_30fps.mp4`,
-          complianceDetails: {
-            technicalPassed: true,
-            safeZonePassed: true,
-            logoDetected: true,
-            textDensityPassed: true,
-            vibeScore: vibeScore - 2
-          }
-        };
-        this.stateService.updateProduct(generated);
-      }, (index + 1) * 100);
+          const vibeScore = Math.floor(Math.random() * 8) + 91;
+          const generated: MerchantProduct = {
+            ...targetProduct,
+            animationStatus: 'completed',
+            brandScore: vibeScore,
+            animationUrl: `https://storage.googleapis.com/adios-assets-prod/videos/${targetProduct.sku}_scene_machine_30fps.mp4`,
+            complianceDetails: {
+              technicalPassed: true,
+              safeZonePassed: true,
+              logoDetected: true,
+              textDensityPassed: true,
+              vibeScore: vibeScore - 2,
+            },
+          };
+          this.stateService.updateProduct(generated);
+        },
+        (index + 1) * 100,
+      );
     });
 
     this.selectedProductIds.set([]);
   }
 
   handleConfirm(id: string): void {
-    const target = this.stateService.merchantProducts().find((p: MerchantProduct) => p.id === id);
+    const target = this.stateService
+      .merchantProducts()
+      .find((p: MerchantProduct) => p.id === id);
     if (!target) return;
     this.stateService.updateProduct({
       ...target,
       animationStatus: 'completed',
-      rejectionComment: undefined
+      rejectionComment: undefined,
     });
   }
 
   handleReject(id: string): void {
-    const comment = this.commentInputs()[id] || 'The food particles fall slightly too fast, making the packaging text unreadable.';
-    const target = this.stateService.merchantProducts().find((p: MerchantProduct) => p.id === id);
+    const comment =
+      this.commentInputs()[id] ||
+      'The food particles fall slightly too fast, making the packaging text unreadable.';
+    const target = this.stateService
+      .merchantProducts()
+      .find((p: MerchantProduct) => p.id === id);
     if (!target) return;
 
     this.stateService.updateProduct({
       ...target,
       animationStatus: 'rejected',
-      rejectionComment: comment
+      rejectionComment: comment,
     });
 
-    this.commentInputs.update(prev => {
-      const copy = { ...prev };
+    this.commentInputs.update((prev) => {
+      const copy = {...prev};
       delete copy[id];
       return copy;
     });
   }
 
   handleRegenerate(id: string): void {
-    const target = this.stateService.merchantProducts().find((p: MerchantProduct) => p.id === id);
+    const target = this.stateService
+      .merchantProducts()
+      .find((p: MerchantProduct) => p.id === id);
     if (!target) return;
 
     this.stateService.updateProduct({
       ...target,
-      animationStatus: 'generating'
+      animationStatus: 'generating',
     });
 
     setTimeout(() => {
@@ -745,14 +769,14 @@ export class AnimationComponent {
         animationStatus: 'completed',
         animationUrl: `https://storage.googleapis.com/adios-assets-prod/videos/${target.sku}_scene_machine_revised.mp4`,
         brandScore: Math.floor(Math.random() * 5) + 95,
-        rejectionComment: undefined
+        rejectionComment: undefined,
       });
     }, 100);
   }
 
   retryAllRejected(): void {
     const rejected = this.rejectedAnimations();
-    rejected.forEach(p => this.handleRegenerate(p.id));
+    rejected.forEach((p) => this.handleRegenerate(p.id));
   }
 
   getStatusClass(status: string): string {

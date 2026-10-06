@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import {computed, Injectable, signal} from '@angular/core';
 
 export interface HealthResponse {
   status_code: string;
@@ -119,7 +119,7 @@ export interface CampaignAssetListResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ApiService {
   private readonly healthState = signal<HealthResponse | null>(null);
@@ -134,8 +134,10 @@ export class ApiService {
     this.checkHealth();
   }
 
-  private getHeaders(extra: Record<string, string> = {}): Record<string, string> {
-    const headers: Record<string, string> = { ...extra };
+  private getHeaders(
+    extra: Record<string, string> = {},
+  ): Record<string, string> {
+    const headers: Record<string, string> = {...extra};
     const token = localStorage.getItem('adios_access_token');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -148,15 +150,17 @@ export class ApiService {
     this.errorState.set(null);
     try {
       const response = await fetch('/health', {
-        headers: this.getHeaders({ 'Accept': 'application/json' })
+        headers: this.getHeaders({'Accept': 'application/json'}),
       });
       if (!response.ok) {
         const errJson = await response.json().catch(() => null);
-        throw errJson || {
-          error_code: response.status,
-          status: response.statusText,
-          message: `Failed to fetch health check from backend (${response.status})`
-        };
+        throw (
+          errJson || {
+            error_code: response.status,
+            status: response.statusText,
+            message: `Failed to fetch health check from backend (${response.status})`,
+          }
+        );
       }
       const data: HealthResponse = await response.json();
       this.healthState.set(data);
@@ -164,7 +168,7 @@ export class ApiService {
       this.errorState.set({
         error_code: err?.error_code || 500,
         status: err?.status || 'FETCH_ERROR',
-        message: err?.message || 'Unable to connect to FastAPI backend service'
+        message: err?.message || 'Unable to connect to FastAPI backend service',
       });
     } finally {
       this.loadingState.set(false);
@@ -173,10 +177,12 @@ export class ApiService {
 
   async fetchAccessibleAccounts(): Promise<AccountListResponse> {
     const response = await fetch('/v1/campaign/accounts', {
-      headers: this.getHeaders({ 'Accept': 'application/json' })
+      headers: this.getHeaders({'Accept': 'application/json'}),
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: 'Failed to load accessible accounts' }));
+      const err = await response
+        .json()
+        .catch(() => ({detail: 'Failed to load accessible accounts'}));
       throw new Error(err.detail || 'Failed to fetch customer accounts');
     }
     return response.json();
@@ -187,44 +193,60 @@ export class ApiService {
       ? `/v1/campaign/asset-groups?customer_id=${encodeURIComponent(customerId)}`
       : '/v1/campaign/asset-groups';
     const response = await fetch(url, {
-      headers: this.getHeaders({ 'Accept': 'application/json' })
+      headers: this.getHeaders({'Accept': 'application/json'}),
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: 'Failed to load asset groups' }));
-      throw new Error(err.detail || 'Failed to fetch asset groups from Google Ads API');
+      const err = await response
+        .json()
+        .catch(() => ({detail: 'Failed to load asset groups'}));
+      throw new Error(
+        err.detail || 'Failed to fetch asset groups from Google Ads API',
+      );
     }
     return response.json();
   }
 
-  async fetchCampaignAssets(customerId?: string): Promise<CampaignAssetListResponse> {
+  async fetchCampaignAssets(
+    customerId?: string,
+  ): Promise<CampaignAssetListResponse> {
     const url = customerId
       ? `/v1/campaign/assets?customer_id=${encodeURIComponent(customerId)}`
       : '/v1/campaign/assets';
     const response = await fetch(url, {
-      headers: this.getHeaders({ 'Accept': 'application/json' })
+      headers: this.getHeaders({'Accept': 'application/json'}),
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: 'Failed to load assets' }));
-      throw new Error(err.detail || 'Failed to fetch assets from Google Ads API');
+      const err = await response
+        .json()
+        .catch(() => ({detail: 'Failed to load assets'}));
+      throw new Error(
+        err.detail || 'Failed to fetch assets from Google Ads API',
+      );
     }
     return response.json();
   }
 
-  async toggleAssetProtection(assetId: string, isProtected: boolean, customerId: string): Promise<any> {
+  async toggleAssetProtection(
+    assetId: string,
+    isProtected: boolean,
+    customerId: string,
+  ): Promise<any> {
     const response = await fetch('/v1/campaign/assets/toggle-protection', {
       method: 'POST',
       headers: this.getHeaders({
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
       }),
       body: JSON.stringify({
         asset_id: assetId,
         is_protected: isProtected,
-        customer_id: customerId
-      })
+        customer_id: customerId,
+      }),
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: 'Failed to update protection status' }));
+      const err = await response
+        .json()
+        .catch(() => ({detail: 'Failed to update protection status'}));
       throw new Error(err.detail || 'Failed to update protection status');
     }
     return response.json();
@@ -237,11 +259,13 @@ export class ApiService {
     const response = await fetch('/v1/campaign/upload', {
       method: 'POST',
       headers: this.getHeaders(),
-      body: formData
+      body: formData,
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: 'Failed to upload image' }));
+      const err = await response
+        .json()
+        .catch(() => ({detail: 'Failed to upload image'}));
       throw new Error(err.detail || 'Image validation failed');
     }
     return response.json();
@@ -252,9 +276,9 @@ export class ApiService {
     assetGroupIds: string[],
     customerId?: string,
     endDate?: string,
-    swapRules?: SwapRules
+    swapRules?: SwapRules,
   ): Promise<AssignResponse> {
-    const headers = this.getHeaders({ 'Content-Type': 'application/json' });
+    const headers = this.getHeaders({'Content-Type': 'application/json'});
     const refreshToken = localStorage.getItem('adios_refresh_token');
     if (refreshToken) {
       headers['X-Refresh-Token'] = refreshToken;
@@ -266,14 +290,16 @@ export class ApiService {
       body: JSON.stringify({
         file_token: fileToken,
         asset_group_ids: assetGroupIds,
-        customer_id: customerId || '9044713567',
+        customer_id: customerId || '1234567890',
         end_date: endDate || null,
-        swap_rules: swapRules || null
-      })
+        swap_rules: swapRules || null,
+      }),
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: 'Failed to assign assets' }));
+      const err = await response
+        .json()
+        .catch(() => ({detail: 'Failed to assign assets'}));
       throw new Error(err.detail || 'Assignment failed');
     }
     return response.json();

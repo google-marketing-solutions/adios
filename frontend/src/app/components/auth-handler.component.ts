@@ -1,7 +1,7 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
+import {CommonModule} from '@angular/common';
+import {Component, OnInit, inject, signal} from '@angular/core';
+import {ActivatedRoute, Router} from '@angular/router';
+import {AuthService} from '../services/auth.service';
 
 @Component({
   selector: 'app-auth-handler',
@@ -27,7 +27,8 @@ import { AuthService } from '../services/auth.service';
       </div>
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     .auth-handler-container {
       display: flex;
       align-items: center;
@@ -92,7 +93,8 @@ import { AuthService } from '../services/auth.service';
     .retry-btn:hover {
       background-color: #1557b0;
     }
-  `]
+  `,
+  ],
 })
 export class AuthHandlerComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -116,21 +118,25 @@ export class AuthHandlerComponent implements OnInit {
             if (error) {
               this.errorMsg.set(`Google authentication error: ${error}`);
             } else {
-              this.errorMsg.set('Unexpected response format. Please ensure Authorization Code flow is active.');
+              this.errorMsg.set(
+                'Unexpected response format. Please ensure Authorization Code flow is active.',
+              );
             }
           } else {
             const errorParam = this.route.snapshot.queryParamMap.get('error');
             if (errorParam) {
               this.errorMsg.set(`Google authentication error: ${errorParam}`);
             } else {
-              this.errorMsg.set('Missing Authorization Code from Google response.');
+              this.errorMsg.set(
+                'Missing Authorization Code from Google response.',
+              );
             }
           }
         },
         error: (err) => {
           this.errorMsg.set('Failed to parse OAuth callback response.');
           console.error(err);
-        }
+        },
       });
     }
   }
@@ -139,7 +145,10 @@ export class AuthHandlerComponent implements OnInit {
     try {
       await this.authService.verifyCode(code, redirectUri);
     } catch (err: any) {
-      this.errorMsg.set(err?.message || 'Failed to exchange authorization code with the backend.');
+      this.errorMsg.set(
+        err?.message ||
+          'Failed to exchange authorization code with the backend.',
+      );
     }
   }
 

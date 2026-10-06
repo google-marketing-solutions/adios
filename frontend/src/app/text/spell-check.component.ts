@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { CampaignStateService } from '../services/campaign-state.service';
-import { SpellingError } from '../models/types';
+import {CommonModule} from '@angular/common';
+import {Component, computed, inject, signal} from '@angular/core';
+import {FormsModule} from '@angular/forms';
+import {MatIconModule} from '@angular/material/icon';
+import {SpellingError} from '../models/types';
+import {CampaignStateService} from '../services/campaign-state.service';
 
 @Component({
   selector: 'app-spell-check',
@@ -236,7 +236,8 @@ import { SpellingError } from '../models/types';
       }
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     .panel {
       border-color: #dadce0;
     }
@@ -285,7 +286,8 @@ import { SpellingError } from '../models/types';
       width: 12px;
       height: 12px;
     }
-  `]
+  `,
+  ],
 })
 export class SpellCheckComponent {
   readonly stateService = inject(CampaignStateService);
@@ -296,11 +298,11 @@ export class SpellCheckComponent {
   readonly scheduleConfig = signal<string>('Monthly (1st of month)');
   readonly doneNotification = signal<string | null>(null);
 
-  getHighlightParts(err: SpellingError): { before: string; after: string } {
+  getHighlightParts(err: SpellingError): {before: string; after: string} {
     const parts = err.originalText.split(err.errorWord);
     return {
       before: parts[0] || '',
-      after: parts[1] || ''
+      after: parts[1] || '',
     };
   }
 
@@ -312,10 +314,10 @@ export class SpellCheckComponent {
 
     // Reset spelling errors
     const errors = this.stateService.spellingErrors();
-    const reset = errors.map(e => ({
+    const reset = errors.map((e) => ({
       ...e,
       status: 'pending' as const,
-      userModifiedText: undefined
+      userModifiedText: undefined,
     }));
     this.stateService.updateBulkSpellingErrors(reset);
 
@@ -332,57 +334,60 @@ export class SpellCheckComponent {
   }
 
   handleAccept(id: string): void {
-    const target = this.stateService.spellingErrors().find(e => e.id === id);
+    const target = this.stateService.spellingErrors().find((e) => e.id === id);
     if (!target) return;
 
-    const correctedText = target.originalText.replace(target.errorWord, target.suggestion);
+    const correctedText = target.originalText.replace(
+      target.errorWord,
+      target.suggestion,
+    );
     this.stateService.updateSpellingError({
       ...target,
       status: 'accepted',
-      userModifiedText: correctedText
+      userModifiedText: correctedText,
     });
   }
 
   handleDeny(id: string): void {
-    const target = this.stateService.spellingErrors().find(e => e.id === id);
+    const target = this.stateService.spellingErrors().find((e) => e.id === id);
     if (!target) return;
 
     this.stateService.updateSpellingError({
       ...target,
       status: 'denied',
-      userModifiedText: target.originalText
+      userModifiedText: target.originalText,
     });
   }
 
   handleModifyText(id: string, text: string): void {
-    const target = this.stateService.spellingErrors().find(e => e.id === id);
+    const target = this.stateService.spellingErrors().find((e) => e.id === id);
     if (!target) return;
 
     this.stateService.updateSpellingError({
       ...target,
       status: 'modified',
-      userModifiedText: text
+      userModifiedText: text,
     });
   }
 
   handleReset(id: string): void {
-    const target = this.stateService.spellingErrors().find(e => e.id === id);
+    const target = this.stateService.spellingErrors().find((e) => e.id === id);
     if (!target) return;
 
     this.stateService.updateSpellingError({
       ...target,
       status: 'pending',
-      userModifiedText: undefined
+      userModifiedText: undefined,
     });
   }
 
   handleDone(): void {
-    const acceptedCount = this.stateService.spellingErrors().filter(
-      e => e.status === 'accepted' || e.status === 'modified'
-    ).length;
-    
+    const acceptedCount = this.stateService
+      .spellingErrors()
+      .filter((e) => e.status === 'accepted' || e.status === 'modified').length;
+
     this.doneNotification.set(
-      `Audit Complete! Synced ${acceptedCount} corrected text assets directly back to Google Ads PMax campaigns.`
+      `Audit Complete! Synced ${acceptedCount} corrected text assets directly back to Google Ads PMax campaigns.`,
     );
     setTimeout(() => this.doneNotification.set(null), 5000);
   }
@@ -394,7 +399,8 @@ export class SpellCheckComponent {
   }
 
   getBadgeClass(type: string): string {
-    if (type === 'headline') return 'bg-indigo-light text-brand border border-indigo-100';
+    if (type === 'headline')
+      return 'bg-indigo-light text-brand border border-indigo-100';
     if (type === 'long_headline') return 'bg-purple-100 text-purple-800';
     return 'bg-amber-light text-amber-800';
   }

@@ -3,16 +3,33 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject, signal, computed, OnInit, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { CampaignStateService } from '../services/campaign-state.service';
-import { ApiService, AccountItem, AssignResponse, SwapRules } from '../services/api.service';
-import { CampaignAsset, AssetGroup, ReplacementLog, ScheduledTiming } from '../models/types';
+import {CommonModule} from '@angular/common';
+import {
+  Component,
+  computed,
+  inject,
+  Input,
+  OnInit,
+  signal,
+} from '@angular/core';
+import {FormsModule} from '@angular/forms';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatSelectModule} from '@angular/material/select';
+import {
+  AssetGroup,
+  CampaignAsset,
+  ReplacementLog,
+  ScheduledTiming,
+} from '../models/types';
+import {
+  AccountItem,
+  ApiService,
+  AssignResponse,
+  SwapRules,
+} from '../services/api.service';
+import {CampaignStateService} from '../services/campaign-state.service';
 
 export interface QueueItem {
   id: string;
@@ -36,7 +53,7 @@ export interface QueueItem {
     MatIconModule,
     MatSelectModule,
     MatFormFieldModule,
-    MatInputModule
+    MatInputModule,
   ],
   template: `
     <div class="space-y-6" id="uploader-section">
@@ -673,7 +690,8 @@ export interface QueueItem {
       </div>
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     .step-num {
       width: 20px;
       height: 20px;
@@ -787,25 +805,31 @@ export interface QueueItem {
       background-color: rgba(95, 99, 104, 0.1);
       color: #5f6368;
     }
-  `]
+  `,
+  ],
 })
 export class AssetUploaderComponent implements OnInit {
   readonly stateService = inject(CampaignStateService);
   readonly apiService = inject(ApiService);
-  
+
   readonly accessibleAccounts = signal<AccountItem[]>([]);
   readonly selectedAccountId = signal<string>('');
   readonly accountSearchQuery = signal<string>('');
   readonly isLoadingAccounts = signal<boolean>(false);
   readonly isLoadingAssetGroups = signal<boolean>(false);
-  readonly reloadNotice = signal<{ message: string; type: 'success' | 'warning' | 'info' } | null>(null);
+  readonly reloadNotice = signal<{
+    message: string;
+    type: 'success' | 'warning' | 'info';
+  } | null>(null);
   readonly uploadError = signal<string | null>(null);
 
   readonly acceptedFileTypes = computed(() => {
     const formats = this.stateService.supportedFormats();
-    const mimeTypes = formats.map(ext => {
+    const mimeTypes = formats.map((ext) => {
       const clean = ext.replace('.', '').toLowerCase();
-      return clean === 'jpg' || clean === 'jpeg' ? 'image/jpeg' : `image/${clean}`;
+      return clean === 'jpg' || clean === 'jpeg'
+        ? 'image/jpeg'
+        : `image/${clean}`;
     });
     return [...formats, ...mimeTypes].join(',');
   });
@@ -817,7 +841,7 @@ export class AssetUploaderComponent implements OnInit {
   // Master schedule controls for bulk application
   masterSchedule = {
     offerName: '',
-    endDate: ''
+    endDate: '',
   };
 
   // Upload and queue states
@@ -827,10 +851,12 @@ export class AssetUploaderComponent implements OnInit {
   // Filter / Selection states
   readonly searchQuery = signal<string>('');
   readonly selectedAssetGroups = signal<string[]>([]);
-  readonly selectedKpi = signal<'impressions' | 'ctr' | 'conversions' | 'roas' | 'conversion_value'>('ctr');
+  readonly selectedKpi = signal<
+    'impressions' | 'ctr' | 'conversions' | 'roas' | 'conversion_value'
+  >('ctr');
   readonly maxCapacity = signal<number>(20);
   readonly activeViewerGroup = signal<string>('ag1');
-  
+
   // Reworked Swap Rule & Performance Filter Signals
   readonly lookbackWindow = signal<'7d' | '30d' | 'quarter' | 'custom'>('30d');
   readonly customLookbackDays = signal<number>(14);
@@ -845,11 +871,14 @@ export class AssetUploaderComponent implements OnInit {
   readonly protectionPattern = signal<string>('_Protected');
 
   // Triggering simulation message
-  readonly syncStatus = signal<{ message: string; type: 'success' | 'error' | 'info' | 'idle' }>({ message: '', type: 'idle' });
+  readonly syncStatus = signal<{
+    message: string;
+    type: 'success' | 'error' | 'info' | 'idle';
+  }>({message: '', type: 'idle'});
 
   readonly filterError = computed<boolean>(() => {
-    const minImp = this.enableMinImpressions() ? (this.minImpressions() || 0) : 0;
-    const minClk = this.enableMinClicks() ? (this.minClicks() || 0) : 0;
+    const minImp = this.enableMinImpressions() ? this.minImpressions() || 0 : 0;
+    const minClk = this.enableMinClicks() ? this.minClicks() || 0 : 0;
 
     // Check if thresholds exclude assets or are unnaturally restrictive
     if (minImp > 50000 || minClk > 5000) {
@@ -859,12 +888,15 @@ export class AssetUploaderComponent implements OnInit {
     const selectedGroups = this.selectedAssetGroups();
     if (selectedGroups.length === 0) return false;
 
-    const groupAssets = selectedGroups.flatMap(gId => this.stateService.campaignAssets()[gId] || []);
+    const groupAssets = selectedGroups.flatMap(
+      (gId) => this.stateService.campaignAssets()[gId] || [],
+    );
     if (groupAssets.length === 0) return false;
 
-    const eligibleForSwap = groupAssets.filter(a => {
+    const eligibleForSwap = groupAssets.filter((a) => {
       if (a.isProtected) return false;
-      const imp = a.impressions ?? (a.kpiValue ? Math.round(a.kpiValue * 500) : 800);
+      const imp =
+        a.impressions ?? (a.kpiValue ? Math.round(a.kpiValue * 500) : 800);
       const clk = a.clicks ?? (a.kpiValue ? Math.round(a.kpiValue * 25) : 30);
       return imp >= minImp && clk >= minClk;
     });
@@ -884,7 +916,7 @@ export class AssetUploaderComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.loadAccessibleAccounts();
-    const targetAccount = this.selectedAccountId() || '9044713567';
+    const targetAccount = this.selectedAccountId() || '1234567890';
     await this.reloadAssetGroups(targetAccount);
   }
 
@@ -909,7 +941,9 @@ export class AssetUploaderComponent implements OnInit {
     const accs = this.accessibleAccounts();
     const q = this.accountSearchQuery().toLowerCase().trim();
     if (!q) return accs;
-    return accs.filter(a => a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q));
+    return accs.filter(
+      (a) => a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q),
+    );
   });
 
   async onAccountChange(accountId: string): Promise<void> {
@@ -918,13 +952,14 @@ export class AssetUploaderComponent implements OnInit {
   }
 
   async reloadAssetGroups(customerId?: string): Promise<void> {
-    const targetCustomer = customerId || this.selectedAccountId() || '9044713567';
+    const targetCustomer =
+      customerId || this.selectedAccountId() || '1234567890';
     this.isLoadingAssetGroups.set(true);
     this.reloadNotice.set(null);
     try {
       const res = await this.apiService.fetchAssetGroups(targetCustomer);
       const rawGroups = res?.asset_groups || [];
-      const formattedGroups: AssetGroup[] = rawGroups.map(ag => ({
+      const formattedGroups: AssetGroup[] = rawGroups.map((ag) => ({
         id: ag.id,
         name: ag.name,
         campaignId: ag.campaign_id,
@@ -934,19 +969,20 @@ export class AssetUploaderComponent implements OnInit {
         maxImages: ag.total_image_capacity || 20,
         currentKpiMetric: 'ctr',
         status: (ag.status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED',
-        campaignStatus: (ag.campaign_status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED'
+        campaignStatus:
+          (ag.campaign_status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED',
       }));
       this.stateService.setAssetGroups(formattedGroups);
-      
+
       if (res?.error_message) {
         this.reloadNotice.set({
           message: `Live Google Ads API query notice: ${res.error_message}`,
-          type: 'warning'
+          type: 'warning',
         });
       } else if (res?.source === 'live_google_ads_api') {
         this.reloadNotice.set({
           message: `Successfully loaded ${res.total_count} live Asset Groups via Google Ads API (Account: ${targetCustomer})!`,
-          type: 'success'
+          type: 'success',
         });
       }
     } catch (err: any) {
@@ -954,7 +990,7 @@ export class AssetUploaderComponent implements OnInit {
       this.stateService.setAssetGroups([]);
       this.reloadNotice.set({
         message: `Unable to connect to Google Ads API endpoint: ${err?.message || err}`,
-        type: 'warning'
+        type: 'warning',
       });
     } finally {
       this.isLoadingAssetGroups.set(false);
@@ -969,19 +1005,22 @@ export class AssetUploaderComponent implements OnInit {
     const activeGroupOnly = this.onlyActiveAssetGroups();
 
     if (activeCampOnly) {
-      groups = groups.filter(ag => !ag.campaignStatus || ag.campaignStatus === 'ENABLED');
+      groups = groups.filter(
+        (ag) => !ag.campaignStatus || ag.campaignStatus === 'ENABLED',
+      );
     }
 
     if (activeGroupOnly) {
-      groups = groups.filter(ag => !ag.status || ag.status === 'ENABLED');
+      groups = groups.filter((ag) => !ag.status || ag.status === 'ENABLED');
     }
 
     if (query) {
-      groups = groups.filter(ag => 
-        ag.name.toLowerCase().includes(query) ||
-        ag.campaignName.toLowerCase().includes(query) ||
-        ag.account.toLowerCase().includes(query) ||
-        ag.id.toLowerCase().includes(query)
+      groups = groups.filter(
+        (ag) =>
+          ag.name.toLowerCase().includes(query) ||
+          ag.campaignName.toLowerCase().includes(query) ||
+          ag.account.toLowerCase().includes(query) ||
+          ag.id.toLowerCase().includes(query),
       );
     }
 
@@ -997,7 +1036,7 @@ export class AssetUploaderComponent implements OnInit {
     const filtered = this.filteredAssetGroups();
     const selected = this.selectedAssetGroups();
     if (filtered.length === 0) return false;
-    return filtered.every(ag => selected.includes(ag.id));
+    return filtered.every((ag) => selected.includes(ag.id));
   });
 
   getAssetGroupImageCount(ag: AssetGroup): number {
@@ -1045,14 +1084,17 @@ export class AssetUploaderComponent implements OnInit {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-      if (supportedExts.includes(ext) || supportedExts.some(s => s.toLowerCase() === ext)) {
+      if (
+        supportedExts.includes(ext) ||
+        supportedExts.some((s) => s.toLowerCase() === ext)
+      ) {
         validItems.push({
           id: `up-${Date.now()}-${i}`,
           name: file.name.split('.')[0] || 'uploaded_image',
           url: URL.createObjectURL(file),
           rawFile: file,
           isProtected: false,
-          isScheduled: false
+          isScheduled: false,
         });
       } else {
         invalidNames.push(file.name);
@@ -1060,30 +1102,36 @@ export class AssetUploaderComponent implements OnInit {
     }
 
     if (invalidNames.length > 0) {
-      this.uploadError.set(`Skipped file(s) [${invalidNames.join(', ')}]. Unsupported format. Configured allowed formats: ${supportedExts.join(', ')}`);
+      this.uploadError.set(
+        `Skipped file(s) [${invalidNames.join(', ')}]. Unsupported format. Configured allowed formats: ${supportedExts.join(', ')}`,
+      );
     }
 
     if (validItems.length > 0) {
-      this.uploadedQueue.update(prev => [...prev, ...validItems]);
+      this.uploadedQueue.update((prev) => [...prev, ...validItems]);
     }
   }
 
   toggleItemSchedule(itemId: string): void {
-    this.uploadedQueue.update(queue => queue.map(item => {
-      if (item.id === itemId) {
-        const nextState = !item.isScheduled;
-        return {
-          ...item,
-          isScheduled: nextState,
-          scheduleDetails: nextState ? (item.scheduleDetails || { ...this.masterSchedule }) : item.scheduleDetails
-        };
-      }
-      return item;
-    }));
+    this.uploadedQueue.update((queue) =>
+      queue.map((item) => {
+        if (item.id === itemId) {
+          const nextState = !item.isScheduled;
+          return {
+            ...item,
+            isScheduled: nextState,
+            scheduleDetails: nextState
+              ? item.scheduleDetails || {...this.masterSchedule}
+              : item.scheduleDetails,
+          };
+        }
+        return item;
+      }),
+    );
   }
 
   readonly selectedScheduledCount = computed<number>(() => {
-    return this.uploadedQueue().filter(i => i.isScheduled).length;
+    return this.uploadedQueue().filter((i) => i.isScheduled).length;
   });
 
   readonly applyScheduleButtonText = computed<string>(() => {
@@ -1093,18 +1141,20 @@ export class AssetUploaderComponent implements OnInit {
 
   applyBulkSchedule(): void {
     const queue = this.uploadedQueue();
-    const hasSelected = queue.some(item => item.isScheduled);
+    const hasSelected = queue.some((item) => item.isScheduled);
 
-    this.uploadedQueue.update(currentQueue => currentQueue.map(item => {
-      if (hasSelected ? item.isScheduled : true) {
-        return {
-          ...item,
-          isScheduled: true,
-          scheduleDetails: { ...this.masterSchedule }
-        };
-      }
-      return item;
-    }));
+    this.uploadedQueue.update((currentQueue) =>
+      currentQueue.map((item) => {
+        if (hasSelected ? item.isScheduled : true) {
+          return {
+            ...item,
+            isScheduled: true,
+            scheduleDetails: {...this.masterSchedule},
+          };
+        }
+        return item;
+      }),
+    );
   }
 
   getItemEndDate(item: QueueItem): string {
@@ -1112,31 +1162,37 @@ export class AssetUploaderComponent implements OnInit {
   }
 
   setItemEndDate(item: QueueItem, value: string): void {
-    this.uploadedQueue.update(queue => queue.map(i => {
-      if (i.id === item.id) {
-        const details = i.scheduleDetails || { offerName: '', endDate: '' };
-        return {
-          ...i,
-          isScheduled: true,
-          scheduleDetails: { ...details, endDate: value }
-        };
-      }
-      return i;
-    }));
+    this.uploadedQueue.update((queue) =>
+      queue.map((i) => {
+        if (i.id === item.id) {
+          const details = i.scheduleDetails || {offerName: '', endDate: ''};
+          return {
+            ...i,
+            isScheduled: true,
+            scheduleDetails: {...details, endDate: value},
+          };
+        }
+        return i;
+      }),
+    );
   }
 
   isAllQueueScheduled(): boolean {
     const q = this.uploadedQueue();
-    return q.length > 0 && q.every(i => i.isScheduled);
+    return q.length > 0 && q.every((i) => i.isScheduled);
   }
 
   toggleAllQueueSchedule(e: Event): void {
     const checked = (e.target as HTMLInputElement).checked;
-    this.uploadedQueue.update(queue => queue.map(item => ({
-      ...item,
-      isScheduled: checked,
-      scheduleDetails: checked ? (item.scheduleDetails || { ...this.masterSchedule }) : item.scheduleDetails
-    })));
+    this.uploadedQueue.update((queue) =>
+      queue.map((item) => ({
+        ...item,
+        isScheduled: checked,
+        scheduleDetails: checked
+          ? item.scheduleDetails || {...this.masterSchedule}
+          : item.scheduleDetails,
+      })),
+    );
   }
 
   createCanvasMockFile(filename: string, width: number, height: number): File {
@@ -1158,23 +1214,41 @@ export class AssetUploaderComponent implements OnInit {
     for (let i = 0; i < byteString.length; i++) {
       ia[i] = byteString.charCodeAt(i);
     }
-    const blob = new Blob([ab], { type: 'image/png' });
-    return new File([blob], `${filename}.png`, { type: 'image/png' });
+    const blob = new Blob([ab], {type: 'image/png'});
+    return new File([blob], `${filename}.png`, {type: 'image/png'});
   }
 
-  handleLoadMockImage(preset: 'dog_pool' | 'cat_bowl' | 'scratching_tree'): void {
+  handleLoadMockImage(
+    preset: 'dog_pool' | 'cat_bowl' | 'scratching_tree',
+  ): void {
     const mockSpecs = {
-      dog_pool: { name: 'Store_SummerPool_Promo_July', width: 1000, height: 1000 },
-      cat_bowl: { name: 'Store_Gourmet_Salmon_Dynamic', width: 1200, height: 628 },
-      scratching_tree: { name: 'CatScratch_SolidOak_Deluxe', width: 1000, height: 1250 }
+      dog_pool: {
+        name: 'Store_SummerPool_Promo_July',
+        width: 1000,
+        height: 1000,
+      },
+      cat_bowl: {
+        name: 'Store_Gourmet_Salmon_Dynamic',
+        width: 1200,
+        height: 628,
+      },
+      scratching_tree: {
+        name: 'CatScratch_SolidOak_Deluxe',
+        width: 1000,
+        height: 1250,
+      },
     };
     const spec = mockSpecs[preset];
-    const rawFile = this.createCanvasMockFile(spec.name, spec.width, spec.height);
+    const rawFile = this.createCanvasMockFile(
+      spec.name,
+      spec.width,
+      spec.height,
+    );
     this.addFilesToQueue([rawFile]);
   }
 
   removeFromQueue(id: string): void {
-    this.uploadedQueue.update(prev => prev.filter(item => item.id !== id));
+    this.uploadedQueue.update((prev) => prev.filter((item) => item.id !== id));
   }
 
   clearQueue(): void {
@@ -1182,19 +1256,23 @@ export class AssetUploaderComponent implements OnInit {
   }
 
   toggleGroupSelection(id: string): void {
-    this.selectedAssetGroups.update(prev => 
-      prev.includes(id) ? prev.filter(gId => gId !== id) : [...prev, id]
+    this.selectedAssetGroups.update((prev) =>
+      prev.includes(id) ? prev.filter((gId) => gId !== id) : [...prev, id],
     );
   }
 
   toggleSelectAll(): void {
     const filtered = this.filteredAssetGroups();
     if (this.isAllFilteredSelected()) {
-      const filteredIds = filtered.map(ag => ag.id);
-      this.selectedAssetGroups.update(prev => prev.filter(id => !filteredIds.includes(id)));
+      const filteredIds = filtered.map((ag) => ag.id);
+      this.selectedAssetGroups.update((prev) =>
+        prev.filter((id) => !filteredIds.includes(id)),
+      );
     } else {
       const currentSelected = this.selectedAssetGroups();
-      const nextSelected = Array.from(new Set([...currentSelected, ...filtered.map(ag => ag.id)]));
+      const nextSelected = Array.from(
+        new Set([...currentSelected, ...filtered.map((ag) => ag.id)]),
+      );
       this.selectedAssetGroups.set(nextSelected);
     }
   }
@@ -1202,11 +1280,11 @@ export class AssetUploaderComponent implements OnInit {
   simulateScheduleTimeout(assetId: string): void {
     const group = this.activeViewerGroup();
     const groupAssets = [...(this.stateService.campaignAssets()[group] || [])];
-    const assetToTimeout = groupAssets.find(a => a.id === assetId);
+    const assetToTimeout = groupAssets.find((a) => a.id === assetId);
     if (!assetToTimeout || !assetToTimeout.scheduledTiming) return;
 
     const fallbackAssetId = assetToTimeout.scheduledTiming.fallbackAssetId;
-    
+
     const fallbackMockAsset: CampaignAsset = {
       id: fallbackAssetId,
       name: 'DogFood_OldFallback_Restored',
@@ -1214,10 +1292,10 @@ export class AssetUploaderComponent implements OnInit {
       performanceScore: 'Good',
       kpiValue: 2.1,
       isProtected: false,
-      uploadDate: new Date().toISOString().split('T')[0]
+      uploadDate: new Date().toISOString().split('T')[0],
     };
 
-    const updated = groupAssets.map(asset => {
+    const updated = groupAssets.map((asset) => {
       if (asset.id === assetId) return fallbackMockAsset;
       return asset;
     });
@@ -1228,13 +1306,17 @@ export class AssetUploaderComponent implements OnInit {
     this.stateService.addLog({
       id: `log-fallback-${Date.now()}`,
       date: new Date().toISOString(),
-      campaignName: this.stateService.assetGroups().find(g => g.id === group)?.campaignName || 'Retailer_Campaign',
-      assetGroupName: this.stateService.assetGroups().find(g => g.id === group)?.name || 'Asset Group',
-      replacedAsset: { name: assetToTimeout.name, url: assetToTimeout.url },
-      newAsset: { name: fallbackMockAsset.name, url: fallbackMockAsset.url },
+      campaignName:
+        this.stateService.assetGroups().find((g) => g.id === group)
+          ?.campaignName || 'Retailer_Campaign',
+      assetGroupName:
+        this.stateService.assetGroups().find((g) => g.id === group)?.name ||
+        'Asset Group',
+      replacedAsset: {name: assetToTimeout.name, url: assetToTimeout.url},
+      newAsset: {name: fallbackMockAsset.name, url: fallbackMockAsset.url},
       reason: 'Special Offer',
       kpiMetric: `Promo "${assetToTimeout.scheduledTiming.offerName}" expired. Reverted to fallback asset.`,
-      status: 'Success'
+      status: 'Success',
     });
   }
 
@@ -1242,23 +1324,35 @@ export class AssetUploaderComponent implements OnInit {
     const queue = this.uploadedQueue();
     const selectedGroups = this.selectedAssetGroups();
     if (queue.length === 0) {
-      this.syncStatus.set({ message: 'Please upload or load at least one image to sync.', type: 'error' });
+      this.syncStatus.set({
+        message: 'Please upload or load at least one image to sync.',
+        type: 'error',
+      });
       return;
     }
     if (selectedGroups.length === 0) {
-      this.syncStatus.set({ message: 'Please select at least one PMax Asset Group.', type: 'error' });
+      this.syncStatus.set({
+        message: 'Please select at least one PMax Asset Group.',
+        type: 'error',
+      });
       return;
     }
     const swapRules: SwapRules = {
       lookback_window: this.lookbackWindow(),
-      custom_lookback_days: this.lookbackWindow() === 'custom' ? this.customLookbackDays() : null,
-      min_impressions: this.enableMinImpressions() ? this.minImpressions() : null,
+      custom_lookback_days:
+        this.lookbackWindow() === 'custom' ? this.customLookbackDays() : null,
+      min_impressions: this.enableMinImpressions()
+        ? this.minImpressions()
+        : null,
       min_clicks: this.enableMinClicks() ? this.minClicks() : null,
       eviction_kpi: this.swapMetric(),
-      allow_cross_aspect_ratio_swap: this.allowCrossAspectRatioSwap()
+      allow_cross_aspect_ratio_swap: this.allowCrossAspectRatioSwap(),
     };
 
-    this.syncStatus.set({ message: 'Validating & synchronizing images via Google Ads API...', type: 'info' });
+    this.syncStatus.set({
+      message: 'Validating & synchronizing images via Google Ads API...',
+      type: 'info',
+    });
 
     let hasSuccess = false;
     let hasFailure = false;
@@ -1266,13 +1360,16 @@ export class AssetUploaderComponent implements OnInit {
     try {
       for (const item of queue) {
         let fileToken = item.id;
-        
+
         if (item.rawFile) {
           const uploadRes = await this.apiService.uploadImage(item.rawFile);
           fileToken = uploadRes.file_token;
         }
 
-        const endDate = item.isScheduled && item.scheduleDetails?.endDate ? item.scheduleDetails.endDate : undefined;
+        const endDate =
+          item.isScheduled && item.scheduleDetails?.endDate
+            ? item.scheduleDetails.endDate
+            : undefined;
 
         let assignRes: AssignResponse | null = null;
         let apiErrorMsg: string | null = null;
@@ -1283,34 +1380,57 @@ export class AssetUploaderComponent implements OnInit {
             selectedGroups,
             this.selectedAccountId(),
             endDate,
-            swapRules
+            swapRules,
           );
         } catch (err: any) {
           apiErrorMsg = err?.message || 'Google Ads API mutation failed';
         }
 
         for (const groupId of selectedGroups) {
-          const currentGroup = this.stateService.assetGroups().find(g => g.id === groupId);
-          const groupAssets = [...(this.stateService.campaignAssets()[groupId] || [])];
+          const currentGroup = this.stateService
+            .assetGroups()
+            .find((g) => g.id === groupId);
+          const groupAssets = [
+            ...(this.stateService.campaignAssets()[groupId] || []),
+          ];
           if (!currentGroup) continue;
 
-          const groupResult = assignRes?.results?.find(r => r.asset_group_id === groupId);
-          const isGroupFailedInBackend = groupResult ? groupResult.status === 'FAILED' : false;
+          const groupResult = assignRes?.results?.find(
+            (r) => r.asset_group_id === groupId,
+          );
+          const isGroupFailedInBackend = groupResult
+            ? groupResult.status === 'FAILED'
+            : false;
 
           // If API assignment threw an error or backend returned FAILED for this group
           if (apiErrorMsg || isGroupFailedInBackend) {
             hasFailure = true;
-            const rawErr = groupResult?.error_message || apiErrorMsg || 'Google Ads API mutation failed to link asset to Asset Group.';
+            const rawErr =
+              groupResult?.error_message ||
+              apiErrorMsg ||
+              'Google Ads API mutation failed to link asset to Asset Group.';
             const lowerErr = rawErr.toLowerCase();
 
-            const isLimitErr = lowerErr.includes('limit') || lowerErr.includes('20') || lowerErr.includes('capacity') || lowerErr.includes('resource_exhausted') || lowerErr.includes('max_assets');
-            const isMinCompErr = lowerErr.includes('headline') || lowerErr.includes('description') || lowerErr.includes('not_enough') || (lowerErr.includes('minimum') && lowerErr.includes('composition')) || lowerErr.includes('not met');
+            const isLimitErr =
+              lowerErr.includes('limit') ||
+              lowerErr.includes('20') ||
+              lowerErr.includes('capacity') ||
+              lowerErr.includes('resource_exhausted') ||
+              lowerErr.includes('max_assets');
+            const isMinCompErr =
+              lowerErr.includes('headline') ||
+              lowerErr.includes('description') ||
+              lowerErr.includes('not_enough') ||
+              (lowerErr.includes('minimum') &&
+                lowerErr.includes('composition')) ||
+              lowerErr.includes('not met');
 
             let displayError = rawErr;
             if (isLimitErr && !rawErr.includes('swap')) {
               displayError = 'Reached limit of 20 images';
             } else if (isMinCompErr) {
-              displayError = 'Requires minimum composition (headlines/descriptions)';
+              displayError =
+                'Requires minimum composition (headlines/descriptions)';
             }
 
             this.stateService.addLog({
@@ -1319,11 +1439,11 @@ export class AssetUploaderComponent implements OnInit {
               campaignName: currentGroup.campaignName,
               assetGroupName: currentGroup.name,
               replacedAsset: null,
-              newAsset: { name: item.name, url: item.url },
+              newAsset: {name: item.name, url: item.url},
               reason: item.isScheduled ? 'Special Offer' : 'Manual',
               status: 'Error',
               errorMsg: displayError,
-              fullApiError: rawErr
+              fullApiError: rawErr,
             });
             continue;
           }
@@ -1331,7 +1451,9 @@ export class AssetUploaderComponent implements OnInit {
           let evictedAsset: CampaignAsset | null = null;
           if (groupResult?.evicted_asset) {
             const backendEvicted = groupResult.evicted_asset;
-            const evictIdx = groupAssets.findIndex(a => a.id === backendEvicted.asset_id);
+            const evictIdx = groupAssets.findIndex(
+              (a) => a.id === backendEvicted.asset_id,
+            );
             if (evictIdx !== -1) {
               evictedAsset = groupAssets[evictIdx];
               groupAssets.splice(evictIdx, 1);
@@ -1343,13 +1465,15 @@ export class AssetUploaderComponent implements OnInit {
                 performanceScore: 'Pending',
                 kpiValue: backendEvicted.kpi_value,
                 isProtected: false,
-                uploadDate: new Date().toISOString().split('T')[0]
+                uploadDate: new Date().toISOString().split('T')[0],
               };
             }
           }
 
-          const realAssetId = groupResult?.asset_group_asset_resource_name 
-            ? groupResult.asset_group_asset_resource_name.split('~')[1] || groupResult.asset_group_asset_resource_name.split('/').pop() || `asset-${Date.now()}`
+          const realAssetId = groupResult?.asset_group_asset_resource_name
+            ? groupResult.asset_group_asset_resource_name.split('~')[1] ||
+              groupResult.asset_group_asset_resource_name.split('/').pop() ||
+              `asset-${Date.now()}`
             : `asset-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
           // Fresh newly uploaded image
@@ -1361,17 +1485,25 @@ export class AssetUploaderComponent implements OnInit {
             kpiValue: 0,
             isProtected: item.isProtected,
             uploadDate: new Date().toISOString().split('T')[0],
-            scheduledTiming: item.isScheduled && item.scheduleDetails ? {
-              id: `sched-${Date.now()}`,
-              endDate: item.scheduleDetails.endDate,
-              offerName: item.scheduleDetails.offerName,
-              fallbackAssetId: evictedAsset ? evictedAsset.id : `fallback-${Date.now()}`
-            } : undefined
+            scheduledTiming:
+              item.isScheduled && item.scheduleDetails
+                ? {
+                    id: `sched-${Date.now()}`,
+                    endDate: item.scheduleDetails.endDate,
+                    offerName: item.scheduleDetails.offerName,
+                    fallbackAssetId: evictedAsset
+                      ? evictedAsset.id
+                      : `fallback-${Date.now()}`,
+                  }
+                : undefined,
           };
 
           groupAssets.push(freshAsset);
           this.stateService.updateAssets(groupId, groupAssets);
-          this.stateService.updateAssetGroupImageCount(groupId, groupAssets.length);
+          this.stateService.updateAssetGroupImageCount(
+            groupId,
+            groupAssets.length,
+          );
           hasSuccess = true;
 
           this.stateService.addLog({
@@ -1379,10 +1511,12 @@ export class AssetUploaderComponent implements OnInit {
             date: new Date().toISOString(),
             campaignName: currentGroup.campaignName,
             assetGroupName: currentGroup.name,
-            replacedAsset: evictedAsset ? { name: evictedAsset.name, url: evictedAsset.url } : null,
-            newAsset: { name: freshAsset.name, url: freshAsset.url },
+            replacedAsset: evictedAsset
+              ? {name: evictedAsset.name, url: evictedAsset.url}
+              : null,
+            newAsset: {name: freshAsset.name, url: freshAsset.url},
             reason: item.isScheduled ? 'Special Offer' : 'Manual',
-            status: 'Success'
+            status: 'Success',
           });
         }
       }
@@ -1393,26 +1527,30 @@ export class AssetUploaderComponent implements OnInit {
       this.uploadedQueue.set([]);
       if (hasFailure && !hasSuccess) {
         this.syncStatus.set({
-          message: 'Sync failed for selected Asset Group(s). Check replacement logs below for details.',
-          type: 'error'
+          message:
+            'Sync failed for selected Asset Group(s). Check replacement logs below for details.',
+          type: 'error',
         });
       } else if (hasFailure && hasSuccess) {
         this.syncStatus.set({
-          message: 'Sync completed with warnings. Some creative linked successfully while others failed (check logs below).',
-          type: 'info'
+          message:
+            'Sync completed with warnings. Some creative linked successfully while others failed (check logs below).',
+          type: 'info',
         });
       } else {
         this.syncStatus.set({
           message: `Google Ads API Sync completed successfully! Assigned creative to ${selectedGroups.length} Asset Group(s).`,
-          type: 'success'
+          type: 'success',
         });
       }
-      setTimeout(() => this.syncStatus.set({ message: '', type: 'idle' }), 6000);
+      setTimeout(() => this.syncStatus.set({message: '', type: 'idle'}), 6000);
     } catch (err: any) {
       console.error('Google Ads API sync error:', err);
       this.syncStatus.set({
-        message: err?.message || 'Google Ads API sync failed. Please check network/credentials.',
-        type: 'error'
+        message:
+          err?.message ||
+          'Google Ads API sync failed. Please check network/credentials.',
+        type: 'error',
       });
     }
   }
@@ -1432,8 +1570,9 @@ export class AssetUploaderComponent implements OnInit {
     const logs = this.stateService.replacementLogs();
     if (!logs || logs.length === 0) return;
 
-    let csvContent = 'data:text/csv;charset=utf-8,Date,Campaign,Asset Group,Evicted Asset,New Asset,Trigger,Status\n';
-    logs.forEach(l => {
+    let csvContent =
+      'data:text/csv;charset=utf-8,Date,Campaign,Asset Group,Evicted Asset,New Asset,Trigger,Status\n';
+    logs.forEach((l) => {
       const row = [
         `"${this.formatLocalTimestamp(l.date)}"`,
         `"${l.campaignName}"`,
@@ -1441,7 +1580,7 @@ export class AssetUploaderComponent implements OnInit {
         `"${l.replacedAsset?.name || 'None'}"`,
         `"${l.newAsset.name}"`,
         `"${l.reason}"`,
-        `"${l.status}"`
+        `"${l.status}"`,
       ].join(',');
       csvContent += row + '\n';
     });

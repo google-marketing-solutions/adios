@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field
-from typing import Any, List
-from fastapi import APIRouter, Header, HTTPException, status
-import os
 import asyncio
 import logging
+import os
+from typing import Any, List
+from fastapi import APIRouter, HTTPException, Header, status
+from pydantic import BaseModel, Field
 from src.campaign.scheduler import process_scheduled_jobs
 
 logger = logging.getLogger("adios.jobs")
@@ -12,18 +12,18 @@ router = APIRouter(prefix="/v1/campaign/jobs", tags=["Jobs"])
 
 
 class SchedulerResponseDetail(BaseModel):
-    job_id: str
-    action: str
-    status: str
-    error: str | None = None
+  job_id: str
+  action: str
+  status: str
+  error: str | None = None
 
 
 class SchedulerResponse(BaseModel):
-    as_of_date: str
-    started_jobs: int
-    unlinked_jobs: int
-    failed_jobs: int
-    details: list[SchedulerResponseDetail] = Field(default_factory=list)
+  as_of_date: str
+  started_jobs: int
+  unlinked_jobs: int
+  failed_jobs: int
+  details: list[SchedulerResponseDetail] = Field(default_factory=list)
 
 
 @router.post(
@@ -34,33 +34,40 @@ class SchedulerResponse(BaseModel):
 )
 async def run_scheduler(
     as_of_date: str | None = None,
-    x_scheduler_secret_key: str | None = Header(None, alias="X-Scheduler-Secret-Key")
+    x_scheduler_secret_key: str | None = Header(
+        None, alias="X-Scheduler-Secret-Key"
+    ),
 ) -> SchedulerResponse:
-    """
-    Triggers the automated background schedule processing for PMax asset lifecycles.
-    Secured by X-Scheduler-Secret-Key.
-    """
-    expected_secret = os.getenv("SCHEDULER_SECRET_KEY")
-    if not expected_secret:
-        logger.error("SCHEDULER_SECRET_KEY is not configured on the server")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="SCHEDULER_SECRET_KEY is not configured on the server",
-        )
+  """Triggers the automated background schedule processing for PMax asset lifecycles.
 
-    if x_scheduler_secret_key != expected_secret:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid scheduler secret key",
-        )
+  Secured by X-Scheduler-Secret-Key.
+  """
+  expected_secret = os.getenv("SCHEDULER_SECRET_KEY")
+  if not expected_secret:
+    logger.error("SCHEDULER_SECRET_KEY is not configured on the server")
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="SCHEDULER_SECRET_KEY is not configured on the server",
+    )
 
-    logger.info(f"Triggering background scheduler execution via API (as_of_date={as_of_date})...")
-    try:
-        result = await asyncio.to_thread(process_scheduled_jobs, as_of_date=as_of_date)
-        return SchedulerResponse(**result)
-    except Exception as exc:
-        logger.error(f"Scheduler execution failed: {exc}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Scheduler execution failed: {exc}",
-        )
+  if x_scheduler_secret_key != expected_secret:
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid scheduler secret key",
+    )
+
+  logger.info(
+      "Triggering background scheduler execution via API"
+      f" (as_of_date={as_of_date})..."
+  )
+  try:
+    result = await asyncio.to_thread(
+        process_scheduled_jobs, as_of_date=as_of_date
+    )
+    return SchedulerResponse(**result)
+  except Exception as exc:
+    logger.error(f"Scheduler execution failed: {exc}", exc_info=True)
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=f"Scheduler execution failed: {exc}",
+    )

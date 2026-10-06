@@ -357,15 +357,7 @@ run_with_heartbeat "Cloud Run Deploy (App)" \
     --no-allow-unauthenticated \
     --iap \
     --port 8080 \
-    --set-env-vars "GOOGLE_LOGIN_CLIENT_ID=${GOOGLE_LOGIN_CLIENT_ID}" \
-    --set-env-vars "GOOGLE_LOGIN_CLIENT_SECRET=${GOOGLE_LOGIN_CLIENT_SECRET}" \
-    --set-env-vars "GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN}" \
-    --set-env-vars "GOOGLE_ADS_MCC_CUSTOMER_ID=${GOOGLE_ADS_MCC_CUSTOMER_ID}" \
-    --set-env-vars "GCP_PROJECT_ID=${GCP_PROJECT}" \
-    --set-env-vars "GCP_REGION=${GCP_REGION}" \
-    --set-env-vars "FIRESTORE_DATABASE_ID=${FIRESTORE_DATABASE_ID}" \
-    --set-env-vars "GCS_BUCKET=${GCS_BUCKET}" \
-    --set-env-vars "SCHEDULER_SECRET_KEY=${SCHEDULER_SECRET_KEY}" \
+    --set-env-vars "GOOGLE_LOGIN_CLIENT_ID=${GOOGLE_LOGIN_CLIENT_ID},GOOGLE_LOGIN_CLIENT_SECRET=${GOOGLE_LOGIN_CLIENT_SECRET},GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN},GOOGLE_ADS_MCC_CUSTOMER_ID=${GOOGLE_ADS_MCC_CUSTOMER_ID},GCP_PROJECT_ID=${GCP_PROJECT},GCP_REGION=${GCP_REGION},FIRESTORE_DATABASE_ID=${FIRESTORE_DATABASE_ID},GCS_BUCKET=${GCS_BUCKET},SCHEDULER_SECRET_KEY=${SCHEDULER_SECRET_KEY}" \
     --project="${GCP_PROJECT}"
 
 APP_URL=$(gcloud run services describe "${APP_SERVICE}" --region "${GCP_REGION}" --format="value(status.url)" --project="${GCP_PROJECT}")
@@ -395,6 +387,22 @@ run_with_heartbeat "Granting IAP Invoker Access" \
     --region="${GCP_REGION}" \
     --project="${GCP_PROJECT}"
 
+run_with_heartbeat "Granting Scheduler OIDC Invoker Access to ${RUNTIME_SA}" \
+  gcloud run services add-iam-policy-binding "${APP_SERVICE}" \
+    --member="serviceAccount:${RUNTIME_SA}" \
+    --role="roles/run.invoker" \
+    --region="${GCP_REGION}" \
+    --project="${GCP_PROJECT}"
+
+run_with_heartbeat "Granting Scheduler IAP Access to ${RUNTIME_SA}" \
+  gcloud iap web add-iam-policy-binding \
+    --resource-type=cloud-run \
+    --service="${APP_SERVICE}" \
+    --region="${GCP_REGION}" \
+    --member="serviceAccount:${RUNTIME_SA}" \
+    --role="roles/iap.httpsResourceAccessor" \
+    --project="${GCP_PROJECT}"
+
 close_phase
 
 # --- 15. Provision Cloud Scheduler --------------------------------------------
@@ -411,6 +419,8 @@ if ! gcloud scheduler jobs describe "${JOB_NAME}" --location="${GCP_REGION}" --p
     --http-method=POST \
     --headers="X-Scheduler-Secret-Key=${SCHEDULER_SECRET_KEY},Content-Type=application/json" \
     --message-body="{}" \
+    --oidc-service-account-email="${RUNTIME_SA}" \
+    --oidc-token-audience="${APP_URL}" \
     --project="${GCP_PROJECT}"
 else
   echo "  Updating scheduler job '${JOB_NAME}'..."
@@ -421,6 +431,8 @@ else
     --http-method=POST \
     --update-headers="X-Scheduler-Secret-Key=${SCHEDULER_SECRET_KEY},Content-Type=application/json" \
     --message-body="{}" \
+    --oidc-service-account-email="${RUNTIME_SA}" \
+    --oidc-token-audience="${APP_URL}" \
     --project="${GCP_PROJECT}"
 fi
 echo " ✓ Cloud Scheduler configured."

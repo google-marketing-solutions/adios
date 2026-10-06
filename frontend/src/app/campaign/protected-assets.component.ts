@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { CampaignStateService } from '../services/campaign-state.service';
-import { CampaignAsset, AssetGroup } from '../models/types';
-import { ApiService, AccountItem } from '../services/api.service';
+import {CommonModule} from '@angular/common';
+import {Component, computed, inject, OnInit, signal} from '@angular/core';
+import {FormsModule} from '@angular/forms';
+import {MatIconModule} from '@angular/material/icon';
+import {AssetGroup, CampaignAsset} from '../models/types';
+import {AccountItem, ApiService} from '../services/api.service';
+import {CampaignStateService} from '../services/campaign-state.service';
 
 @Component({
   selector: 'app-protected-assets',
@@ -222,7 +222,8 @@ import { ApiService, AccountItem } from '../services/api.service';
       </div>
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     .protection-container {
       max-width: 1200px;
       margin: 0 auto;
@@ -404,7 +405,8 @@ import { ApiService, AccountItem } from '../services/api.service';
       color: #70757a;
       display: block;
     }
-  `]
+  `,
+  ],
 })
 export class ProtectedAssetsComponent implements OnInit {
   readonly stateService = inject(CampaignStateService);
@@ -437,7 +439,7 @@ export class ProtectedAssetsComponent implements OnInit {
         this.selectedAccount.set(res.accounts[0]);
         await Promise.all([
           this.reloadAssetGroups(res.accounts[0].id),
-          this.reloadCampaignAssets(res.accounts[0].id)
+          this.reloadCampaignAssets(res.accounts[0].id),
         ]);
       }
     } catch (err) {
@@ -452,7 +454,7 @@ export class ProtectedAssetsComponent implements OnInit {
     try {
       const res = await this.apiService.fetchAssetGroups(customerId);
       const rawGroups = res?.asset_groups || [];
-      const formattedGroups: AssetGroup[] = rawGroups.map(ag => ({
+      const formattedGroups: AssetGroup[] = rawGroups.map((ag) => ({
         id: ag.id,
         name: ag.name,
         campaignId: ag.campaign_id,
@@ -462,7 +464,8 @@ export class ProtectedAssetsComponent implements OnInit {
         maxImages: ag.total_image_capacity || 20,
         currentKpiMetric: 'ctr',
         status: (ag.status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED',
-        campaignStatus: (ag.campaign_status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED'
+        campaignStatus:
+          (ag.campaign_status as 'ENABLED' | 'PAUSED' | 'REMOVED') || 'ENABLED',
       }));
       this.stateService.setAssetGroups(formattedGroups);
     } catch (err) {
@@ -477,7 +480,7 @@ export class ProtectedAssetsComponent implements OnInit {
     this.isLoadingAssets.set(true);
     try {
       const res = await this.apiService.fetchCampaignAssets(customerId);
-      const assetsList: CampaignAsset[] = (res?.assets || []).map(a => {
+      const assetsList: CampaignAsset[] = (res?.assets || []).map((a) => {
         let score: 'Low' | 'Good' | 'Best' | 'Pending' = 'Pending';
         if (a.performance_score === 'Best') score = 'Best';
         else if (a.performance_score === 'Good') score = 'Good';
@@ -490,7 +493,7 @@ export class ProtectedAssetsComponent implements OnInit {
           performanceScore: score,
           kpiValue: a.kpi_value || 0,
           isProtected: a.is_protected,
-          uploadDate: a.upload_date
+          uploadDate: a.upload_date,
         };
       });
       this.liveAssets.set(assetsList);
@@ -508,7 +511,7 @@ export class ProtectedAssetsComponent implements OnInit {
     this.accountSearchQuery.set('');
     await Promise.all([
       this.reloadAssetGroups(acc.id),
-      this.reloadCampaignAssets(acc.id)
+      this.reloadCampaignAssets(acc.id),
     ]);
   }
 
@@ -516,32 +519,40 @@ export class ProtectedAssetsComponent implements OnInit {
     const account = this.selectedAccount();
     if (!account) return;
 
-    const asset = this.liveAssets().find(a => a.id === assetId);
+    const asset = this.liveAssets().find((a) => a.id === assetId);
     if (!asset) return;
 
     const targetProtection = !asset.isProtected;
 
     // 1. Optimistic UI update
-    this.liveAssets.update(prev => prev.map(a => {
-      if (a.id === assetId) {
-        return { ...a, isProtected: targetProtection };
-      }
-      return a;
-    }));
+    this.liveAssets.update((prev) =>
+      prev.map((a) => {
+        if (a.id === assetId) {
+          return {...a, isProtected: targetProtection};
+        }
+        return a;
+      }),
+    );
     this.stateService.toggleAssetProtection(assetId, targetProtection);
 
     // 2. Persist to backend json registry
     try {
-      await this.apiService.toggleAssetProtection(assetId, targetProtection, account.id);
+      await this.apiService.toggleAssetProtection(
+        assetId,
+        targetProtection,
+        account.id,
+      );
     } catch (err) {
       console.warn('Failed to persist protection state:', err);
       // Revert on error
-      this.liveAssets.update(prev => prev.map(a => {
-        if (a.id === assetId) {
-          return { ...a, isProtected: !targetProtection };
-        }
-        return a;
-      }));
+      this.liveAssets.update((prev) =>
+        prev.map((a) => {
+          if (a.id === assetId) {
+            return {...a, isProtected: !targetProtection};
+          }
+          return a;
+        }),
+      );
       this.stateService.toggleAssetProtection(assetId, !targetProtection);
     }
   }
@@ -551,10 +562,12 @@ export class ProtectedAssetsComponent implements OnInit {
     const query = this.accountSearchQuery().toLowerCase().trim();
     const accounts = this.accessibleAccounts();
     if (!query) return accounts;
-    return accounts.filter(acc => 
-      acc.id.includes(query) || 
-      (acc.name && acc.name.toLowerCase().includes(query)) ||
-      (acc.descriptive_name && acc.descriptive_name.toLowerCase().includes(query))
+    return accounts.filter(
+      (acc) =>
+        acc.id.includes(query) ||
+        (acc.name && acc.name.toLowerCase().includes(query)) ||
+        (acc.descriptive_name &&
+          acc.descriptive_name.toLowerCase().includes(query)),
     );
   });
 
@@ -564,8 +577,12 @@ export class ProtectedAssetsComponent implements OnInit {
   });
 
   readonly totalCount = computed(() => this.allAssets().length);
-  readonly protectedCount = computed(() => this.allAssets().filter(a => a.isProtected).length);
-  readonly unprotectedCount = computed(() => this.allAssets().filter(a => !a.isProtected).length);
+  readonly protectedCount = computed(
+    () => this.allAssets().filter((a) => a.isProtected).length,
+  );
+  readonly unprotectedCount = computed(
+    () => this.allAssets().filter((a) => !a.isProtected).length,
+  );
 
   readonly searchQuery = signal<string>('');
   readonly activeFilter = signal<'all' | 'protected' | 'unprotected'>('all');
@@ -576,17 +593,18 @@ export class ProtectedAssetsComponent implements OnInit {
     // Filter by selected button pill
     const filter = this.activeFilter();
     if (filter === 'protected') {
-      assets = assets.filter(a => a.isProtected);
+      assets = assets.filter((a) => a.isProtected);
     } else if (filter === 'unprotected') {
-      assets = assets.filter(a => !a.isProtected);
+      assets = assets.filter((a) => !a.isProtected);
     }
 
     // Filter by search query
     const query = this.searchQuery().toLowerCase().trim();
     if (!query) return assets;
-    return assets.filter(a => 
-      a.id.toLowerCase().includes(query) || 
-      a.name.toLowerCase().includes(query)
+    return assets.filter(
+      (a) =>
+        a.id.toLowerCase().includes(query) ||
+        a.name.toLowerCase().includes(query),
     );
   });
 }

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, input, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
+import {CommonModule} from '@angular/common';
+import {Component, computed, input} from '@angular/core';
+import {MatIconModule} from '@angular/material/icon';
 
 export interface ComplianceDetails {
   technicalPassed: boolean;
@@ -101,7 +101,8 @@ export interface ComplianceDetails {
       </div>
     }
   `,
-  styles: [`
+  styles: [
+    `
     .compact-badge {
       border: 1px solid transparent;
     }
@@ -162,7 +163,8 @@ export interface ComplianceDetails {
       width: 16px;
       height: 16px;
     }
-  `]
+  `,
+  ],
 })
 export class ComplianceBadgeComponent {
   score = input<number>(94);
@@ -170,17 +172,21 @@ export class ComplianceBadgeComponent {
   compact = input<boolean>(false);
 
   finalDetails = computed<ComplianceDetails>(() => {
-    return this.details() || {
-      technicalPassed: true,
-      safeZonePassed: true,
-      logoDetected: true,
-      textDensityPassed: true,
-      vibeScore: 92,
-    };
+    return (
+      this.details() || {
+        technicalPassed: true,
+        safeZonePassed: true,
+        logoDetected: true,
+        textDensityPassed: true,
+        vibeScore: 92,
+      }
+    );
   });
 
   isCompliant = computed<boolean>(() => {
     const details = this.finalDetails();
-    return this.score() >= 85 && details.technicalPassed && details.safeZonePassed;
+    return (
+      this.score() >= 85 && details.technicalPassed && details.safeZonePassed
+    );
   });
 }

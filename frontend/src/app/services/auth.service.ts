@@ -1,5 +1,5 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import {computed, inject, Injectable, signal} from '@angular/core';
+import {Router} from '@angular/router';
 
 export interface UserProfile {
   email: string;
@@ -8,13 +8,17 @@ export interface UserProfile {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   private readonly router = inject(Router);
   private readonly userState = signal<UserProfile | null>(null);
-  private readonly tokenState = signal<string | null>(localStorage.getItem('adios_access_token'));
-  private readonly refreshTokenState = signal<string | null>(localStorage.getItem('adios_refresh_token'));
+  private readonly tokenState = signal<string | null>(
+    localStorage.getItem('adios_access_token'),
+  );
+  private readonly refreshTokenState = signal<string | null>(
+    localStorage.getItem('adios_refresh_token'),
+  );
 
   readonly currentUser = computed(() => this.userState());
   readonly isAuthenticated = computed(() => !!this.userState());
@@ -36,34 +40,44 @@ export class AuthService {
   }
 
   getRefreshToken(): string | null {
-    return this.refreshTokenState() || localStorage.getItem('adios_refresh_token');
+    return (
+      this.refreshTokenState() || localStorage.getItem('adios_refresh_token')
+    );
   }
 
   async loginWithGoogle(): Promise<void> {
     try {
       const configRes = await fetch('/v1/auth/config');
       if (!configRes.ok) {
-        throw new Error('Failed to load Google OAuth Client ID configuration from server');
+        throw new Error(
+          'Failed to load Google OAuth Client ID configuration from server',
+        );
       }
       const config = await configRes.json();
       const clientId = config.client_id;
       if (!clientId) {
-        alert('Google OAuth Client ID is not configured. Please add GOOGLE_LOGIN_CLIENT_ID to config.txt.');
+        alert(
+          'Google OAuth Client ID is not configured. Please add GOOGLE_LOGIN_CLIENT_ID to config.txt.',
+        );
         return;
       }
 
       const redirectUri = window.location.origin + '/auth-handler';
       const encodedRedirectUri = encodeURIComponent(redirectUri);
-      const scope = encodeURIComponent('openid email profile https://www.googleapis.com/auth/adwords');
+      const scope = encodeURIComponent(
+        'openid email profile https://www.googleapis.com/auth/adwords',
+      );
       const responseType = encodeURIComponent('code');
       const extraParams = `&access_type=offline&prompt=consent`;
-      
+
       // Redirect to Google's OAuth 2.0 endpoint for authorization code flow
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodedRedirectUri}&response_type=${responseType}&scope=${scope}${extraParams}`;
       window.location.href = authUrl;
     } catch (error) {
       console.error('Error initiating Google authentication:', error);
-      alert('Unable to initiate Google Sign-In. Please verify backend connection and config.txt setup.');
+      alert(
+        'Unable to initiate Google Sign-In. Please verify backend connection and config.txt setup.',
+      );
     }
   }
 
@@ -73,9 +87,9 @@ export class AuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
         },
-        body: JSON.stringify({ code, redirect_uri: redirectUri })
+        body: JSON.stringify({code, redirect_uri: redirectUri}),
       });
 
       if (!response.ok) {
@@ -96,19 +110,24 @@ export class AuthService {
     }
   }
 
-  async handleAuthCallback(idToken: string, accessToken?: string | null): Promise<void> {
+  async handleAuthCallback(
+    idToken: string,
+    accessToken?: string | null,
+  ): Promise<void> {
     try {
       const response = await fetch('/v1/auth/google', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
         },
-        body: JSON.stringify({ id_token: idToken })
+        body: JSON.stringify({id_token: idToken}),
       });
 
       if (!response.ok) {
-        throw new Error(`Authentication validation failed on backend (${response.status})`);
+        throw new Error(
+          `Authentication validation failed on backend (${response.status})`,
+        );
       }
 
       const userProfile: UserProfile = await response.json();
@@ -119,7 +138,7 @@ export class AuthService {
         this.tokenState.set(accessToken);
         localStorage.setItem('adios_access_token', accessToken);
       }
-      
+
       // Redirect home
       await this.router.navigate(['/']);
     } catch (error) {

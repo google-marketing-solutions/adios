@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject, signal, computed, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { CampaignStateService } from '../services/campaign-state.service';
-import { CategoryPreset } from '../models/types';
+import {CommonModule} from '@angular/common';
+import {Component, computed, effect, inject, signal} from '@angular/core';
+import {FormsModule} from '@angular/forms';
+import {MatIconModule} from '@angular/material/icon';
+import {CategoryPreset} from '../models/types';
+import {CampaignStateService} from '../services/campaign-state.service';
 
 @Component({
   selector: 'app-settings-panel',
@@ -234,7 +234,8 @@ import { CategoryPreset } from '../models/types';
       </div>
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     .panel {
       border-color: #dadce0;
     }
@@ -266,7 +267,8 @@ import { CategoryPreset } from '../models/types';
       width: 16px;
       height: 16px;
     }
-  `]
+  `,
+  ],
 })
 export class SettingsPanelComponent {
   readonly stateService = inject(CampaignStateService);
@@ -293,31 +295,34 @@ export class SettingsPanelComponent {
 
   removeFormat(fmt: string): void {
     const current = this.stateService.supportedFormats();
-    this.stateService.setSupportedFormats(current.filter(f => f !== fmt));
+    this.stateService.setSupportedFormats(current.filter((f) => f !== fmt));
   }
 
   constructor() {
     // Initialise local presets copy from CampaignStateService
-    effect(() => {
-      const presets = this.stateService.presets();
-      this.localPresets.set(JSON.parse(JSON.stringify(presets)));
-    }, { allowSignalWrites: true });
+    effect(
+      () => {
+        const presets = this.stateService.presets();
+        this.localPresets.set(JSON.parse(JSON.stringify(presets)));
+      },
+      {allowSignalWrites: true},
+    );
   }
 
   readonly activePreset = computed<CategoryPreset | undefined>(() => {
     const category = this.selectedCategory();
-    return this.localPresets().find(p => p.category === category);
+    return this.localPresets().find((p) => p.category === category);
   });
 
   handleFieldChange(field: keyof CategoryPreset, value: any): void {
     const category = this.selectedCategory();
-    this.localPresets.update(prev => 
-      prev.map(p => {
+    this.localPresets.update((prev) =>
+      prev.map((p) => {
         if (p.category === category) {
-          return { ...p, [field]: value };
+          return {...p, [field]: value};
         }
         return p;
-      })
+      }),
     );
   }
 
@@ -331,36 +336,44 @@ export class SettingsPanelComponent {
     const defaults: CategoryPreset[] = [
       {
         category: 'Food',
-        backgroundPrompt: 'Elegant minimal stone kitchen countertop, warm soft lighting, clean studio background, depth of field, premium look',
-        animationPreset: 'Bowl Physics: Product elements gently fall into a beautiful modern ceramic bowl with natural bounce, floating pieces in air',
+        backgroundPrompt:
+          'Elegant minimal stone kitchen countertop, warm soft lighting, clean studio background, depth of field, premium look',
+        animationPreset:
+          'Bowl Physics: Product elements gently fall into a beautiful modern ceramic bowl with natural bounce, floating pieces in air',
         minComplianceScore: 90,
         maxTextOverlay: 10,
-        safetyMargins: 15
+        safetyMargins: 15,
       },
       {
         category: 'Non-Food',
-        backgroundPrompt: 'Bright scandinavian cozy living room corner, soft natural light, clean modern furniture, cinematic lens, blurred background',
-        animationPreset: 'Water Elements: Clean, pure water bubbling or filling up elegantly in a slow motion splash around the container',
+        backgroundPrompt:
+          'Bright scandinavian cozy living room corner, soft natural light, clean modern furniture, cinematic lens, blurred background',
+        animationPreset:
+          'Water Elements: Clean, pure water bubbling or filling up elegantly in a slow motion splash around the container',
         minComplianceScore: 85,
         maxTextOverlay: 15,
-        safetyMargins: 20
+        safetyMargins: 20,
       },
       {
         category: 'Apparel',
-        backgroundPrompt: 'Abstract premium texture backdrop, pastel gradients, professional studio lighting, high fashion catalog aesthetic',
-        animationPreset: 'Elegant Rotate: Smooth 360 rotation with floating brand logo and sparkles',
+        backgroundPrompt:
+          'Abstract premium texture backdrop, pastel gradients, professional studio lighting, high fashion catalog aesthetic',
+        animationPreset:
+          'Elegant Rotate: Smooth 360 rotation with floating brand logo and sparkles',
         minComplianceScore: 92,
         maxTextOverlay: 5,
-        safetyMargins: 10
+        safetyMargins: 10,
       },
       {
         category: 'Electronics',
-        backgroundPrompt: 'Sleek dark futuristic podium, neon edge lighting, dark industrial environment, isometric view, cinematic shadows',
-        animationPreset: 'Tech Pulse: Pulse zoom with soft glowing rays and technical telemetry graphics fading in',
+        backgroundPrompt:
+          'Sleek dark futuristic podium, neon edge lighting, dark industrial environment, isometric view, cinematic shadows',
+        animationPreset:
+          'Tech Pulse: Pulse zoom with soft glowing rays and technical telemetry graphics fading in',
         minComplianceScore: 88,
         maxTextOverlay: 20,
-        safetyMargins: 15
-      }
+        safetyMargins: 15,
+      },
     ];
 
     this.localPresets.set(defaults);

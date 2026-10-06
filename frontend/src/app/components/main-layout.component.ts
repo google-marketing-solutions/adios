@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { ActivatedRoute } from '@angular/router';
-import { ApiService } from '../services/api.service';
-import { CampaignStateService } from '../services/campaign-state.service';
-import { SidebarComponent } from './sidebar.component';
-import { AssetUploaderComponent } from '../campaign/asset-uploader.component';
-import { BackgroundStudioComponent } from '../product/background-studio.component';
-import { AnimationComponent } from '../video/animation.component';
-import { SpellCheckComponent } from '../text/spell-check.component';
-import { SettingsPanelComponent } from '../config/settings-panel.component';
-import { ProtectedAssetsComponent } from '../campaign/protected-assets.component';
+import {CommonModule} from '@angular/common';
+import {Component, inject, OnInit} from '@angular/core';
+import {MatIconModule} from '@angular/material/icon';
+import {ActivatedRoute} from '@angular/router';
+import {AssetUploaderComponent} from '../campaign/asset-uploader.component';
+import {ProtectedAssetsComponent} from '../campaign/protected-assets.component';
+import {SettingsPanelComponent} from '../config/settings-panel.component';
+import {BackgroundStudioComponent} from '../product/background-studio.component';
+import {ApiService} from '../services/api.service';
+import {CampaignStateService} from '../services/campaign-state.service';
+import {SpellCheckComponent} from '../text/spell-check.component';
+import {AnimationComponent} from '../video/animation.component';
+import {SidebarComponent} from './sidebar.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -29,7 +29,7 @@ import { ProtectedAssetsComponent } from '../campaign/protected-assets.component
     AnimationComponent,
     SpellCheckComponent,
     SettingsPanelComponent,
-    ProtectedAssetsComponent
+    ProtectedAssetsComponent,
   ],
   template: `
     <div class="main-layout font-sans">
@@ -65,14 +65,16 @@ import { ProtectedAssetsComponent } from '../campaign/protected-assets.component
       </div>
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     .main-layout {
       display: flex;
       height: 100vh;
       width: 100vw;
       overflow: hidden;
     }
-  `]
+  `,
+  ],
 })
 export class MainLayoutComponent implements OnInit {
   readonly apiService = inject(ApiService);
@@ -84,7 +86,7 @@ export class MainLayoutComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.route.data.subscribe(data => {
+    this.route.data.subscribe((data) => {
       if (data['section']) {
         this.stateService.setActiveSection(data['section']);
       }

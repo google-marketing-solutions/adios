@@ -1,6 +1,6 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AuthService } from '../services/auth.service';
+import {CommonModule} from '@angular/common';
+import {Component, inject} from '@angular/core';
+import {AuthService} from '../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -38,11 +38,12 @@ import { AuthService } from '../services/auth.service';
         </div>
       </div>
       
-      <!-- Footer Copyright -->
+      <!-- Footer -->
       <span class="footer-text">Google Marketing Solutions &copy; 2026</span>
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     .login-page {
       display: flex;
       flex-direction: column;
@@ -164,7 +165,8 @@ import { AuthService } from '../services/auth.service';
       color: #80868b;
       margin-top: 24px;
     }
-  `]
+  `,
+  ],
 })
 export class LoginComponent {
   readonly authService = inject(AuthService);

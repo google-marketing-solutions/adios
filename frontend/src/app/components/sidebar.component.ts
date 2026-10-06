@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
-import { CampaignStateService } from '../services/campaign-state.service';
-import { AuthService } from '../services/auth.service';
-import { ActiveSection } from '../models/types';
+import {CommonModule} from '@angular/common';
+import {Component, inject} from '@angular/core';
+import {MatIconModule} from '@angular/material/icon';
+import {RouterLink} from '@angular/router';
+import {ActiveSection} from '../models/types';
+import {AuthService} from '../services/auth.service';
+import {CampaignStateService} from '../services/campaign-state.service';
 
 interface MenuItem {
   id: ActiveSection;
@@ -88,7 +88,8 @@ interface MenuItem {
       }
     </div>
   `,
-  styles: [`
+  styles: [
+    `
     .sidebar {
       width: 288px;
       border-color: #dadce0;
@@ -226,7 +227,8 @@ interface MenuItem {
       background-color: #f1f3f4;
       color: #d93025;
     }
-  `]
+  `,
+  ],
 })
 export class SidebarComponent {
   readonly stateService = inject(CampaignStateService);
@@ -286,6 +288,6 @@ export class SidebarComponent {
       icon: 'tune',
       activeColorClass: 'icon-settings-active',
       activeBorderClass: 'border-settings-active',
-    }
+    },
   ];
 }

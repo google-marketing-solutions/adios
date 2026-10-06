@@ -30,6 +30,7 @@ bower_components
 
 # node_modules
 node_modules/
+.node/
 
 # TypeScript output
 dist/
@@ -41,6 +42,7 @@ dist/
 .env.local
 .env.*.local
 config.txt
+config.*.txt
 
 # IDE / OS
 .DS_Store

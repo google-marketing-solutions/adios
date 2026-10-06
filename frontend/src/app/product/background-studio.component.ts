@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { CampaignStateService } from '../services/campaign-state.service';
-import { MerchantProduct } from '../models/types';
-import { ComplianceBadgeComponent } from '../shared/compliance-badge.component';
+import {CommonModule} from '@angular/common';
+import {Component, computed, inject, signal} from '@angular/core';
+import {FormsModule} from '@angular/forms';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatSelectModule} from '@angular/material/select';
+import {MerchantProduct} from '../models/types';
+import {CampaignStateService} from '../services/campaign-state.service';
+import {ComplianceBadgeComponent} from '../shared/compliance-badge.component';
 
 // Mock backgrounds mapped to product IDs
 const mockGeneratedBackgrounds: Record<string, string> = {
@@ -20,20 +20,20 @@ const mockGeneratedBackgrounds: Record<string, string> = {
   p2: 'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=500&q=80',
   p3: 'https://images.unsplash.com/photo-1617806118233-18e1db207f62?w=500&q=80',
   p4: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=500&q=80',
-  p5: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=500&q=80'
+  p5: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=500&q=80',
 };
 
 @Component({
   selector: 'app-background-studio',
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule, 
-    MatIconModule, 
+    CommonModule,
+    FormsModule,
+    MatIconModule,
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
-    ComplianceBadgeComponent
+    ComplianceBadgeComponent,
   ],
   template: `
     <div class="studio-container p-8 space-y-6 select-none animate-fade-in" id="background-studio">
@@ -644,7 +644,8 @@ const mockGeneratedBackgrounds: Record<string, string> = {
       }
     </dialog>
   `,
-  styles: [`
+  styles: [
+    `
     :host {
       font-family: 'Roboto', sans-serif !important;
     }
@@ -940,7 +941,8 @@ const mockGeneratedBackgrounds: Record<string, string> = {
     .alert-confirm-btn:active {
       transform: translateY(0) !important;
     }
-  `]
+  `,
+  ],
 })
 export class BackgroundStudioComponent {
   readonly stateService = inject(CampaignStateService);
@@ -952,18 +954,20 @@ export class BackgroundStudioComponent {
   // 1. Shop signals
   readonly selectedShopId = signal<string>('shop-1');
   readonly shopSearchQuery = signal<string>('');
-  readonly mockShops = signal<Array<{ id: string, name: string }>>([
-    { id: '123456789', name: 'REWE Online-Shop' },
-    { id: '987654321', name: 'PENNY Markt' },
-    { id: '555666777', name: 'ZooRoyal' },
-    { id: '888999000', name: 'toom Baumarkt' }
+  readonly mockShops = signal<Array<{id: string; name: string}>>([
+    {id: '100000001', name: 'Acme Online Store'},
+    {id: '100000002', name: 'ValueMart Daily'},
+    {id: '100000003', name: 'PetCare Essentials'},
+    {id: '100000004', name: 'Home & Garden DIY'},
   ]);
 
   readonly filteredShops = computed(() => {
     const query = this.shopSearchQuery().trim().toLowerCase();
     const list = this.mockShops();
     if (!query) return list;
-    return list.filter(s => s.name.toLowerCase().includes(query) || s.id.includes(query));
+    return list.filter(
+      (s) => s.name.toLowerCase().includes(query) || s.id.includes(query),
+    );
   });
 
   // 2. Product selectors
@@ -974,7 +978,12 @@ export class BackgroundStudioComponent {
     const list = this.stateService.merchantProducts();
     const query = this.productSearchQuery().trim().toLowerCase();
     if (!query) return list;
-    return list.filter(p => p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query) || p.id.toLowerCase().includes(query));
+    return list.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        p.sku.toLowerCase().includes(query) ||
+        p.id.toLowerCase().includes(query),
+    );
   });
 
   // Limited products list - max 10 shown as requested
@@ -986,7 +995,7 @@ export class BackgroundStudioComponent {
     const shown = this.limitedProducts();
     const selected = this.selectedProductIds();
     if (shown.length === 0) return false;
-    return shown.every(p => selected.includes(p.id));
+    return shown.every((p) => selected.includes(p.id));
   });
 
   // 3. Workflow action signals
@@ -1018,17 +1027,17 @@ export class BackgroundStudioComponent {
   readonly hexColor = signal<string>('#4A90E2');
 
   // Flow 5 Delete Labels signals
-  readonly deleteLabels = signal<Array<{ name: string; active: boolean }>>([
-    { name: 'Winter', active: true },
-    { name: 'Backdrop', active: true },
-    { name: 'Summer', active: false },
-    { name: 'Spring', active: false },
-    { name: 'Autumn', active: false },
-    { name: 'Christmas', active: false }
+  readonly deleteLabels = signal<Array<{name: string; active: boolean}>>([
+    {name: 'Winter', active: true},
+    {name: 'Backdrop', active: true},
+    {name: 'Summer', active: false},
+    {name: 'Spring', active: false},
+    {name: 'Autumn', active: false},
+    {name: 'Christmas', active: false},
   ]);
 
   readonly activeDeleteLabelsCount = computed<number>(() => {
-    return this.deleteLabels().filter(l => l.active).length;
+    return this.deleteLabels().filter((l) => l.active).length;
   });
 
   // Rejection/Regeneration comments
@@ -1037,29 +1046,35 @@ export class BackgroundStudioComponent {
   showRegenPanel: Record<string, boolean> = {};
 
   readonly activeReviewDeckCount = computed<number>(() => {
-    return this.stateService.merchantProducts().filter((p: MerchantProduct) => p.bgGenerationStatus !== 'idle').length;
+    return this.stateService
+      .merchantProducts()
+      .filter((p: MerchantProduct) => p.bgGenerationStatus !== 'idle').length;
   });
 
   toggleProduct(id: string): void {
-    this.selectedProductIds.update(prev => 
-      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
+    this.selectedProductIds.update((prev) =>
+      prev.includes(id) ? prev.filter((pId) => pId !== id) : [...prev, id],
     );
   }
 
   toggleSelectAll(): void {
     const shown = this.limitedProducts();
     if (this.isAllFilteredSelected()) {
-      const shownIds = shown.map(p => p.id);
-      this.selectedProductIds.update(prev => prev.filter(id => !shownIds.includes(id)));
+      const shownIds = shown.map((p) => p.id);
+      this.selectedProductIds.update((prev) =>
+        prev.filter((id) => !shownIds.includes(id)),
+      );
     } else {
       const currentSelected = this.selectedProductIds();
-      const nextSelected = Array.from(new Set([...currentSelected, ...shown.map(p => p.id)]));
+      const nextSelected = Array.from(
+        new Set([...currentSelected, ...shown.map((p) => p.id)]),
+      );
       this.selectedProductIds.set(nextSelected);
     }
   }
 
   updateCommentInput(productId: string, value: string): void {
-    this.commentInputs.update(prev => ({ ...prev, [productId]: value }));
+    this.commentInputs.update((prev) => ({...prev, [productId]: value}));
   }
 
   updateRegenComment(productId: string, value: string): void {
@@ -1067,19 +1082,28 @@ export class BackgroundStudioComponent {
   }
 
   toggleDeleteLabel(name: string): void {
-    this.deleteLabels.update(list => list.map(l => l.name === name ? { ...l, active: !l.active } : l));
+    this.deleteLabels.update((list) =>
+      list.map((l) => (l.name === name ? {...l, active: !l.active} : l)),
+    );
   }
 
   handleBulkDelete(dialog: HTMLDialogElement): void {
     // Collect active labels to delete
-    const activeLabelsText = this.deleteLabels().filter(l => l.active).map(l => `"${l.name}"`).join(', ');
-    
+    const activeLabelsText = this.deleteLabels()
+      .filter((l) => l.active)
+      .map((l) => `"${l.name}"`)
+      .join(', ');
+
     // Set message and open custom centered modal
-    this.alertMessage.set(`Backdrop assets linked with labels [ ${activeLabelsText} ] have been successfully deleted from both the database and the Merchant Center feed.`);
+    this.alertMessage.set(
+      `Backdrop assets linked with labels [ ${activeLabelsText} ] have been successfully deleted from both the database and the Merchant Center feed.`,
+    );
     dialog.showModal();
-    
+
     // Reset active deletion checks
-    this.deleteLabels.update(list => list.map(l => ({ ...l, active: false })));
+    this.deleteLabels.update((list) =>
+      list.map((l) => ({...l, active: false})),
+    );
   }
 
   handleBulkGenerate(): void {
@@ -1092,7 +1116,7 @@ export class BackgroundStudioComponent {
       if (selectedIds.includes(p.id)) {
         return {
           ...p,
-          bgGenerationStatus: 'generating' as const
+          bgGenerationStatus: 'generating' as const,
         };
       }
       return p;
@@ -1101,69 +1125,84 @@ export class BackgroundStudioComponent {
 
     // Simulate completion progressively
     selectedIds.forEach((id, index) => {
-      setTimeout(() => {
-        const targetProduct = this.stateService.merchantProducts().find((p: MerchantProduct) => p.id === id);
-        if (!targetProduct) return;
+      setTimeout(
+        () => {
+          const targetProduct = this.stateService
+            .merchantProducts()
+            .find((p: MerchantProduct) => p.id === id);
+          if (!targetProduct) return;
 
-        const vibeMatch = Math.floor(Math.random() * 12) + 85; // 85-97%
-        const compliantDetails = {
-          technicalPassed: true,
-          safeZonePassed: true,
-          logoDetected: Math.random() > 0.15,
-          textDensityPassed: true,
-          vibeScore: vibeMatch
-        };
+          const vibeMatch = Math.floor(Math.random() * 12) + 85; // 85-97%
+          const compliantDetails = {
+            technicalPassed: true,
+            safeZonePassed: true,
+            logoDetected: Math.random() > 0.15,
+            textDensityPassed: true,
+            vibeScore: vibeMatch,
+          };
 
-        const generatedProduct: MerchantProduct = {
-          ...targetProduct,
-          bgGenerationStatus: 'completed',
-          generatedImageUrl: mockGeneratedBackgrounds[id] || 'https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=500&q=80',
-          brandScore: vibeMatch,
-          complianceDetails: compliantDetails
-        };
+          const generatedProduct: MerchantProduct = {
+            ...targetProduct,
+            bgGenerationStatus: 'completed',
+            generatedImageUrl:
+              mockGeneratedBackgrounds[id] ||
+              'https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=500&q=80',
+            brandScore: vibeMatch,
+            complianceDetails: compliantDetails,
+          };
 
-        this.stateService.updateProduct(generatedProduct);
-      }, (index + 1) * 120);
+          this.stateService.updateProduct(generatedProduct);
+        },
+        (index + 1) * 120,
+      );
     });
 
     this.selectedProductIds.set([]);
   }
 
   handleConfirm(id: string): void {
-    const target = this.stateService.merchantProducts().find((p: MerchantProduct) => p.id === id);
+    const target = this.stateService
+      .merchantProducts()
+      .find((p: MerchantProduct) => p.id === id);
     if (!target) return;
     this.stateService.updateProduct({
       ...target,
       bgGenerationStatus: 'completed',
-      rejectionComment: undefined
+      rejectionComment: undefined,
     });
   }
 
   handleReject(id: string): void {
-    const comment = this.commentInputs()[id] || 'Dimensions look perfect, but contrast is slightly low.';
-    const target = this.stateService.merchantProducts().find((p: MerchantProduct) => p.id === id);
+    const comment =
+      this.commentInputs()[id] ||
+      'Dimensions look perfect, but contrast is slightly low.';
+    const target = this.stateService
+      .merchantProducts()
+      .find((p: MerchantProduct) => p.id === id);
     if (!target) return;
 
     this.stateService.updateProduct({
       ...target,
       bgGenerationStatus: 'rejected',
-      rejectionComment: comment
+      rejectionComment: comment,
     });
 
-    this.commentInputs.update(prev => {
-      const copy = { ...prev };
+    this.commentInputs.update((prev) => {
+      const copy = {...prev};
       delete copy[id];
       return copy;
     });
   }
 
   handleRegenerate(id: string): void {
-    const target = this.stateService.merchantProducts().find((p: MerchantProduct) => p.id === id);
+    const target = this.stateService
+      .merchantProducts()
+      .find((p: MerchantProduct) => p.id === id);
     if (!target) return;
 
     this.stateService.updateProduct({
       ...target,
-      bgGenerationStatus: 'generating'
+      bgGenerationStatus: 'generating',
     });
 
     this.showRegenPanel[id] = false;
@@ -1179,12 +1218,14 @@ export class BackgroundStudioComponent {
       const updated: MerchantProduct = {
         ...target,
         bgGenerationStatus: 'completed',
-        generatedImageUrl: mockGeneratedBackgrounds[id] ? `${mockGeneratedBackgrounds[id]}?sig=${Date.now()}` : undefined,
+        generatedImageUrl: mockGeneratedBackgrounds[id]
+          ? `${mockGeneratedBackgrounds[id]}?sig=${Date.now()}`
+          : undefined,
         brandScore: Math.floor(Math.random() * 8) + 90, // higher on second run
-        rejectionComment: undefined
+        rejectionComment: undefined,
       };
       this.stateService.updateProduct(updated);
-      
+
       // Clean up feedback comment
       delete this.regenerationComments[id];
     }, 200);
