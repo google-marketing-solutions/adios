@@ -34,7 +34,7 @@ export const routes: Routes = [
     component: MainLayoutComponent,
     canActivate: [authGuard],
     data: { section: 'background' },
-    title: 'AI Background Studio | Adios 2.0'
+    title: 'AI Image Studio | Adios 2.0'
   },
   {
     path: 'animation-machine',
