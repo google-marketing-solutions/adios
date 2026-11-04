@@ -15,11 +15,15 @@
  */
 
 interface VisionApiResponse {
-  predictions: [
-    {
-      bytesBase64Encoded: string;
-    },
-  ];
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        inlineData?: {
+          data: string;
+        };
+      }>;
+    };
+  }>;
 }
 
 interface GeminiRequest {
@@ -109,8 +113,9 @@ export class VertexAiApi {
    * @returns {string} The complete API endpoint URL for making requests to the model.
    */
   protected getEndPoint(model: string, suffix: string) {
+    const domainPrefix = this._region === 'global' ? '' : `${this._region}-`;
     return (
-      `https://${this._region}-${this._apiEndpoint}/v1/projects/` +
+      `https://${domainPrefix}${this._apiEndpoint}/v1/projects/` +
       `${this._projectId}/locations/${this._region}/publishers/google/models/` +
       model +
       `:${suffix}`
@@ -132,7 +137,7 @@ export class VertexAiApi {
    * @protected
    */
   protected getImageGenerationEndPoint() {
-    return this.getEndPoint(this._imageGenerationModel, 'predict');
+    return this.getEndPoint(this._imageGenerationModel, 'generateContent');
   }
   /**
    * Calls the Google Cloud Vertex AI API to generate images based on a text prompt.
@@ -146,32 +151,50 @@ export class VertexAiApi {
    * @throws {JsonParseError} If there's an error parsing the JSON response from the Vision API.
    */
   callImageGenerationApi(prompt: string, sampleCount = 4) {
-    const options = Object.assign({}, this._baseOptions);
+    const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+      ...this._baseOptions,
+    };
     const payload = {
-      instances: [{prompt}],
-      parameters: {
-        sampleCount,
+      contents: [
+        {
+          role: 'user',
+          parts: [{text: prompt}],
+        },
+      ],
+      generationConfig: {
+        responseModalities: ['IMAGE'],
+        candidateCount: 1,
       },
     };
     options.payload = JSON.stringify(payload);
-    const result = UrlFetchApp.fetch(
-      this.getImageGenerationEndPoint(),
-      options
-    );
-    if (200 !== result.getResponseCode()) {
-      console.error(
-        'Call to image generation API failed',
-        result.getAllHeaders(),
-        result.getContentText()
-      );
-      throw new ImageGenerationApiCallError(result.getContentText());
-    }
 
-    const resultParsed: VisionApiResponse = JSON.parse(
-      result.getContentText('UTF-8')
-    );
-    return resultParsed.predictions?.map(e => e.bytesBase64Encoded);
+    const generatedImagesBase64: string[] = [];
+    for (let i = 0; i < sampleCount; i++) {
+      const result = UrlFetchApp.fetch(
+        this.getImageGenerationEndPoint(),
+        options
+      );
+      if (200 !== result.getResponseCode()) {
+        console.error(
+          'Call to image generation API failed',
+          result.getAllHeaders(),
+          result.getContentText()
+        );
+        throw new ImageGenerationApiCallError(result.getContentText());
+      }
+      const resultParsed: VisionApiResponse = JSON.parse(
+        result.getContentText('UTF-8')
+      );
+      const imagePart = resultParsed.candidates?.[0]?.content?.parts?.find(
+        part => part.inlineData
+      );
+      if (imagePart?.inlineData?.data) {
+        generatedImagesBase64.push(imagePart.inlineData.data);
+      }
+    }
+    return generatedImagesBase64;
   }
+
   /**
    * Calls the Gemini API to generate text responses, optionally using an image as context.
    *
