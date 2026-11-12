@@ -94,6 +94,7 @@ export class GoogleAdsApi implements GoogleAdsApiInterface {
         'login-customer-id': this._managerId,
       },
     };
+    // Updated Google Ads REST API endpoint from v20 to v25 as older versions (v20/v22) are sunset and blocked.
     this._basePath =
       'https://googleads.googleapis.com/v25/customers/' + this._customerId;
   }
