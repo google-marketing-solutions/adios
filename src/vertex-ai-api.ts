@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/**
+*Updated response interface to match the Gemini :generateContent 
+*candidates/inlineData schema (replaces legacy Imagen predictions[] format).
+*/
 interface VisionApiResponse {
   candidates?: Array<{
     content?: {
@@ -113,6 +117,7 @@ export class VertexAiApi {
    * @returns {string} The complete API endpoint URL for making requests to the model.
    */
   protected getEndPoint(model: string, suffix: string) {
+    //Omit the regional subdomain prefix when GCP Region is set to 'global'
     const domainPrefix = this._region === 'global' ? '' : `${this._region}-`;
     return (
       `https://${domainPrefix}${this._apiEndpoint}/v1/projects/` +
@@ -137,6 +142,7 @@ export class VertexAiApi {
    * @protected
    */
   protected getImageGenerationEndPoint() {
+    //Use ':generateContent' instead of legacy ':predict' to support Gemini image generation models
     return this.getEndPoint(this._imageGenerationModel, 'generateContent');
   }
   /**
@@ -154,6 +160,7 @@ export class VertexAiApi {
     const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
       ...this._baseOptions,
     };
+    // Construct Gemini multimodal request payload requesting IMAGE output modality.
     const payload = {
       contents: [
         {
@@ -168,6 +175,10 @@ export class VertexAiApi {
     };
     options.payload = JSON.stringify(payload);
 
+    /**
+    *Gemini image generation only supports candidateCount: 1 per request,
+    * so we loop sampleCount times to generate the configured number of images.
+    */
     const generatedImagesBase64: string[] = [];
     for (let i = 0; i < sampleCount; i++) {
       const result = UrlFetchApp.fetch(
