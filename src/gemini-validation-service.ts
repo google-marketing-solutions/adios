@@ -40,8 +40,11 @@ export class GeminiValidationService {
   constructor() {
     this._gcsApi = new GcsApi(CONFIG['GCS Bucket']);
     this._vertexAiApi = new VertexAiApi(
-      'us-central1-aiplatform.googleapis.com',
-      CONFIG['GCP Project']!
+      CONFIG['GCP Project']!,
+      CONFIG['GCP Region'],
+      'aiplatform.googleapis.com',
+      CONFIG['Gemini Model'],
+      CONFIG['Image Generation Model']
     );
     this._googleAdsApi = GoogleAdsApiFactory.createObject();
   }
