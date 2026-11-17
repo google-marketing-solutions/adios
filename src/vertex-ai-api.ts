@@ -96,16 +96,16 @@ export class VertexAiApi {
    * @constructor
    *
    * @param {string} _projectId - Your Google Cloud Project ID. This is required.
-   * @param {string} [_region='us-central1'] - The region where your AI resources are located (e.g., 'us-central1', 'europe-west4'). Defaults to 'us-central1'.
+   * @param {string} [_region='global'] - The region where your AI resources are located (e.g., 'us-central1', 'europe-west4'). Defaults to 'us-central1'.
    * @param {string} [_apiEndpoint='aiplatform.googleapis.com'] - The base API endpoint for Gemini. Usually, you won't need to change this.
-   * @param {string} [_geminiModel='gemini-1.5-flash'] - The specific Gemini model for text generation tasks (e.g., 'gemini-1.5-flash'). Defaults to the latest flash model.
+   * @param {string} [_geminiModel='gemini-3.8-flash'] - The specific Gemini model for text generation tasks (e.g., 'gemini-1.5-flash'). Defaults to the latest flash model.
    * @param {string} [_imageGenerationModel='imagegeneration'] - The model for image generation tasks.
    */
   constructor(
     private _projectId: string,
-    private _region = 'us-central1',
+    private _region = 'global',
     private _apiEndpoint = 'aiplatform.googleapis.com',
-    private _geminiModel = 'gemini-1.5-flash',
+    private _geminiModel = 'gemini-3.8-flash',
     private _imageGenerationModel = 'imagegeneration'
   ) {}
   /**
